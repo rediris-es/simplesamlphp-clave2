@@ -311,12 +311,12 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
    //IdP config values are the default if sp values not found, else all is default
    $idpList = $spConf->getArray('idpList', $idpConf->getArray('idpList', array()));
    if(count($idpList)>0)
-       $post['idpList '] = sspmod_clave_Tools::serializeIdpList($idpList);
+       $post['idpList'] = sspmod_clave_Tools::serializeIdpList($idpList);
 
 
    $idpExcludedList = $spConf->getArray('idpExcludedList', $idpConf->getArray('idpExcludedList', array()));
    if(count($idpExcludedList)>0)
-       $post['excludedIdPList '] = sspmod_clave_Tools::serializeIdpList($idpExcludedList);    
+       $post['excludedIdPList'] = sspmod_clave_Tools::serializeIdpList($idpExcludedList);    
    
    //Force a certain auth source
    $force = $spConf->getString('force', $idpConf->getString('force', NULL));
