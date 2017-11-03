@@ -17,6 +17,11 @@ class sspmod_clave_SPlib {
   const RSA_SHA384 = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha384';
   const RSA_SHA512 = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha512';
   
+  //Supported encryption algorithms (for symmetric keys and assymmetric)
+  const AES128_CBC = 'http://www.w3.org/2001/04/xmlenc#aes128-cbc';
+  const AES192_CBC = 'http://www.w3.org/2001/04/xmlenc#aes192-cbc';
+  const AES256_CBC = 'http://www.w3.org/2001/04/xmlenc#aes256-cbc';
+  const RSA_OAEP_MGF1P = 'http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p';
   
   //Supported digest algorithms.
   const SHA1 = 'http://www.w3.org/2000/09/xmldsig#sha1';
@@ -171,7 +176,15 @@ class sspmod_clave_SPlib {
   // The generated SamlAuthReq token.
   private $samlAuthReq;
   
+
+  //Parameters for Assertion encryption-decryption
+  private $encryptCert;
+  private $doCipher;
+  private $keyAlgorithm;
   
+  private $decryptPrivateKey;
+  private $doDecipher;
+  private $onlyEncrypted;
   
   
   /*********** Response attributes **************/
@@ -386,7 +399,7 @@ class sspmod_clave_SPlib {
 				22 => "Assertion without Issuer on response.",
 				23 => "Assertion without Subject on response.",
 				24 => "Signature verification failed",
-				25 => "No assertions on a successful response.",
+				25 => "No plain assertions on a successful response.",
 				26 => "No signature node found",
 				27 => "No Destination attribute found on response.",
 				28 => "No InResponseTo attribute found on response.",
@@ -420,6 +433,14 @@ class sspmod_clave_SPlib {
     $this->trustedCerts = array();
 
     $this->forceAuthn = false;
+    
+    $this ->encryptCert = NULL;
+    $this ->doCipher = false;
+    $this ->keyAlgorithm = self::AES256_CBC;
+    
+    $this->decryptPrivateKey  = NULL;
+    $this->doDecipher         = false;
+    $this->onlyEncrypted      = false;
     
     //request ID is randomly generated
     $this->ID = self::generateID();
@@ -505,20 +526,12 @@ class sspmod_clave_SPlib {
   // $keytype: Kind of key [See constants]
   public function setSignatureKeyParams ($cert, $key, 
                                          $keytype=self::RSA_SHA1){
-    
-    self::debug(__CLASS__.".".__FUNCTION__."()");
-
-    if($cert == null || $cert == "")
-      $this->fail(__FUNCTION__, self::ERR_EMPTY_CERT);
-    if($key == null || $key == "")
-      $this->fail(__FUNCTION__, self::ERR_EMPTY_KEY);
-    
-    @openssl_pkey_get_private($key) or $this->fail(__FUNCTION__, self::ERR_RSA_KEY_READ);    
-    @openssl_x509_read($cert) or $this->fail(__FUNCTION__, self::ERR_X509_CERT_READ);
-    
-    $this->signKey     = $key;
-    $this->signCert    = $cert;    
-    $this->signKeyType = $keytype;    
+      
+      self::debug(__CLASS__.".".__FUNCTION__."()");
+      
+      $this->signKey     = $this->checkKey($key);
+      $this->signCert    = $this->checkCert($cert);    
+      $this->signKeyType = $keytype;    
   }
   
   
@@ -850,12 +863,12 @@ class sspmod_clave_SPlib {
   private function calculateXMLDsig($xml){
     
     self::debug(__CLASS__.".".__FUNCTION__."()");
-
+    
     $doc = new DOMDocument(); 
     $doc->formatOutput = false; 
     $doc->preserveWhiteSpace = false; 
     $doc->loadXML($xml);
-
+    
     self::debug("Parsed document to be signed.");
     
     $objDSig = new XMLSecurityDSig(); 
@@ -889,6 +902,30 @@ class sspmod_clave_SPlib {
   
   
   /*******************  SAML RESPONSE PARSING AND VALIDATION  *********************/
+
+  //Checks if a private key is valid and adds PEM headers if necessary
+  public function checkKey($key){
+    
+    if($key == null || $key == "")
+        $this->fail(__FUNCTION__, self::ERR_EMPTY_KEY);
+    
+    $keyPem = $key;
+    
+    // We check it is a valid X509 private key
+    try{
+        @openssl_pkey_get_private($keyPem) or $this->fail(__FUNCTION__, self::ERR_RSA_KEY_READ);    
+    }
+    catch(Exception $e){
+      $keyPem =
+        "-----BEGIN PRIVATE KEY-----\n"
+        . chunk_split($keyPem,64,"\n")
+        . "-----END PRIVATE KEY-----\n";
+    }
+    @openssl_pkey_get_private($keyPem) or $this->fail(__FUNCTION__, self::ERR_RSA_KEY_READ);    
+    
+    return $keyPem;
+  }
+  
   
   //Checks if cert is valid and adds PEM headers if necessary
   public function checkCert($cert){
@@ -1020,55 +1057,67 @@ class sspmod_clave_SPlib {
     
     // If successful, must have at least one assertion.
     if(self::isSuccess($aux)){
-
-      self::debug("Response Successful. Searching for assertions.");
-      $assertions = $samlResponse->children(self::NS_SAML2,false)->Assertion;
-      
-      self::trace("Assertions SimpleXML node: \n".print_r($assertions,true));
-      if(!$assertions || count($assertions)<=0)
-        $this->fail(__FUNCTION__, self::ERR_RESP_SUCC_NO_ASSERTIONS);
-      
-      self::debug("Parsing response assertions.");
-      //Get attribute info
-      self::parseAssertions($assertions);          
-      
-      self::debug("Checking validity dates for each assertion.");
-      $now = time();      
-      foreach($assertions as $assertion){
         
-        //Validate validity dates for each assertion
-        if($checkDates){
-          $NotBefore    = "".$assertion->Conditions->attributes()->NotBefore;
-          $NotOnOrAfter = "".$assertion->Conditions->attributes()->NotOnOrAfter;
-          
-          self::checkDates($now,$NotBefore,$NotOnOrAfter);
+        self::debug("Response Successful.");
+
+        //If strictly only encrypted assertions are accepted, search and delete all plain assertions
+        $onlyEncrypted // TODO SEGUIR:
+        
+        
+        //Search for encrypted assertions and try to decrypt them beforehand
+        if ($this->doDecipher === TRUE){
+            self::debug("Searching for encrypted assertions...");
+            $samlResponse = $this->decryptAssertions($storkSamlResponseToken);
         }
         
-      }
+        self::debug("Searching for assertions.");
+        $assertions = $samlResponse->children(self::NS_SAML2,false)->Assertion;
+      
+        self::trace("Assertions SimpleXML node: \n".print_r($assertions,true));
+        if(!$assertions || count($assertions)<=0)
+            $this->fail(__FUNCTION__, self::ERR_RESP_SUCC_NO_ASSERTIONS);
+      
+        self::debug("Parsing response assertions.");
+        //Get attribute info
+        self::parseAssertions($assertions);          
+      
+        self::debug("Checking validity dates for each assertion.");
+        $now = time();      
+        foreach($assertions as $assertion){
+        
+            //Validate validity dates for each assertion
+            if($checkDates){
+                $NotBefore    = "".$assertion->Conditions->attributes()->NotBefore;
+                $NotOnOrAfter = "".$assertion->Conditions->attributes()->NotOnOrAfter;
+          
+                self::checkDates($now,$NotBefore,$NotOnOrAfter);
+            }
+        
+        }
       
     }
     
 
     // Once all assertions are parsed check if all mandatory attributes have been served.
     if($this->mandatoryAttrList){
-      self::debug("Checking that mandatory attributes were sent.");      
-      foreach($this->mandatoryAttrList as $mAttr){
-        self::trace("Searching attribute: $mAttr");
-        $found = false;
-        foreach($this->responseAssertions as $assertion){
-          foreach($assertion['Attributes'] as $attr){          
-            if(trim($attr['friendlyName']) == trim($mAttr)
-               && $attr['AttributeStatus'] == self::ATST_AVAIL){
-              self::trace("$mAttr found.");
-              $found = true;
-              break 2;
+        self::debug("Checking that mandatory attributes were sent.");      
+        foreach($this->mandatoryAttrList as $mAttr){
+            self::trace("Searching attribute: $mAttr");
+            $found = false;
+            foreach($this->responseAssertions as $assertion){
+                foreach($assertion['Attributes'] as $attr){          
+                    if(trim($attr['friendlyName']) == trim($mAttr)
+                    && $attr['AttributeStatus'] == self::ATST_AVAIL){
+                        self::trace("$mAttr found.");
+                        $found = true;
+                        break 2;
+                    }
+                }
             }
-          }
+            if(!$found){
+                $this->fail(__FUNCTION__, self::ERR_RESP_NO_MAND_ATTR);
+            }
         }
-        if(!$found){
-          $this->fail(__FUNCTION__, self::ERR_RESP_NO_MAND_ATTR);
-        }
-      }
     }
     
     $this->SAMLResponseToken = $storkSamlResponseToken;
@@ -1536,7 +1585,7 @@ class sspmod_clave_SPlib {
     }
     
     //Try to validate with external key
-    //[internal result has priority]
+    //[external result has priority]
     if ($verified && $extKey->key){
       self::debug("Verifying signature with external key.");
       if($objXMLSecDSig->verify($extKey)){
@@ -1930,6 +1979,12 @@ class sspmod_clave_SPlib {
           .'</saml2p:Response>';
       
       
+      //If enabled, cipher the assertions with the recipient key
+      if($this->doCipher === TRUE){
+          self::info("Ciphering the response assertions...");
+          $samlResponse = $this->encryptAssertions($samlResponse);
+      }
+      
       //Sign the response
       $samlResponse = $this->calculateXMLDsig($samlResponse);
       
@@ -2210,6 +2265,299 @@ class sspmod_clave_SPlib {
       //We get the issuer
       return "".$samlTok->children(self::NS_SAML2,false)->NameID;
   }
+  
+  
+  
+  
+  
+  // Set whether to, the key strength and certificate to cipher the
+  // assertions on the response.
+  public function setCipherParams($encryptCert,$doCipher=TRUE,$keyAlgorithm=self::AES256_CBC){
+      
+      self::debug(__CLASS__.".".__FUNCTION__."()");
+      
+      $this->encryptCert  = $this->checkCert($encryptCert);
+      $this->doCipher     = $doCipher;
+      $this->keyAlgorithm = $keyAlgorithm;
+  }
+  
+  
+  
+  //Receives the plain unsigned response xml and the certificate of
+  //the recipient SP
+  private function encryptAssertions($samlToken){
+      
+      self::debug(__CLASS__.".".__FUNCTION__."()");
+      
+      if($samlToken == null || $samlToken == "")
+          $this->fail(__FUNCTION__, self::ERR_GENERIC,"Empty saml token.");
+      
+      if($this->encryptCert == null || $this->encryptCert == "")
+          $this->fail(__FUNCTION__, self::ERR_GENERIC,"Recipient certificate for ciphering not set or empty.");
+      
+      self::debug("Plain input token to cipher: ".$samlToken);
+      self::debug("Recipient certificate to cipher: ".$this->encryptCert);
+      
+      //Parse the input saml token XML
+      $doc = new DOMDocument();   
+      if (!$doc->loadXML($samlToken))
+          $this->fail(__FUNCTION__, self::ERR_GENERIC,"Bad XML in input saml token.");
+      
+      //Get the recipient public key from the certificate for encryption
+      $key = new XMLSecurityKey(XMLSecurityKey::RSA_OAEP_MGF1P, array('type'=>'public'));
+      $key->loadKey($this->encryptCert);
+      
+      //Find any plain assertions in the Response and encrypt them
+      $assertions = $doc->getElementsByTagName('Assertion');
+      self::debug("Found assertions to cipher: ".$assertions->length);
+      while ($assertions->length > 0){
+          
+          //Grab the first assertion
+          $assertion = $assertions->item(0);
+        
+          //Create the encoding context
+          $enc = new XMLSecEnc();
+          $enc->setNode($assertion);
+          $enc->type = XMLSecEnc::Element;
+    
+          //Generate AES symmetric key
+          self::debug("Generating symmetric key (".$this->keyAlgorithm.")...");
+          $symmetricKey = new XMLSecurityKey($this->keyAlgorithm);
+          $symmetricKey->generateSessionKey();
+
+          //Encrypt symmetric key with recipient public key
+          self::debug("Encrypting symmetric key with public key...");
+          $enc->encryptKey($key, $symmetricKey);
+    
+          //Encrypt the Assertion with the symmetric key (will generate an
+          //independent document)
+          self::debug("Encrypting assertion with symmetric key...");
+          $encData = $enc->encryptNode($symmetricKey,FALSE);
+        
+          //Transfer the node tree to the document to space of the original
+          //document
+          $encData2 = $doc->importNode($encData,TRUE);
+    
+          //Create the container for the encrypted data
+          $encAssertion = $doc->createElement('saml2:EncryptedAssertion');    
+
+          //Append the encrypted data to the container
+          $encAssertion->appendChild($encData2);
+
+          //Replace the plain assertion with the encrypted one
+          self::debug("Replacing plain assertion with encrypted one...");
+          $assertion->parentNode->replaceChild($encAssertion,$assertion);
+        
+          //Search for any remaining plain assertions
+          $assertions = $doc->getElementsByTagName('Assertion');
+      }
+      
+      self::debug("Response with encrypted assertions:".$doc->saveXML());
+      
+      //Return the xml response
+      return $doc->saveXML();
+  }
+  
+  
+  
+  //Receives a DomElement object and a xmlsec key and returns a
+  //decrypted DomElement. Doesn't perform any checks on the decrypted
+  //data. If symmetric key was badly decrypted, it will return trash.
+  private function decryptXMLNode(DOMElement $encryptedData, XMLSecurityKey $decryptKey){
+      
+      self::debug(__CLASS__.".".__FUNCTION__."()");
+      
+      $enc = new XMLSecEnc();
+      $enc->setNode($encryptedData);
+      $enc->type = $encryptedData->getAttribute("Type");
+
+      self::debug("Locating encrypted symmetric key...");
+      $symmetricKey = $enc->locateKey($encryptedData);
+      if (!$symmetricKey)
+          $this->fail(__FUNCTION__, self::ERR_GENERIC,"Could not locate key algorithm in encrypted data.");
+
+      //Find the ciphering algorithm info
+      self::debug("Locating ciphering algorithm...");
+      $symmetricKeyInfo = $enc->locateKeyInfo($symmetricKey);
+      if (!$symmetricKeyInfo)
+          $this->fail(__FUNCTION__, self::ERR_GENERIC,"Could not locate <dsig:KeyInfo> for the encrypted key.");
+            
+      //Key will always be encrypted with the recipient public key
+      if (!$symmetricKeyInfo->isEncrypted)
+          $this->fail(__FUNCTION__, self::ERR_GENERIC,"Symmetric key not encrypted. Must be encrypted.");
+      
+      //Decrypt key will be RSA, so it doesn't matter the specific key
+      //type. We always set it as a RSA_OAEP_MGF1P
+      $decryptKeyAlgo = $decryptKey->getAlgorith();
+      $symKeyInfoAlgo = $symmetricKeyInfo->getAlgorith();
+      if ($symKeyInfoAlgo === XMLSecurityKey::RSA_OAEP_MGF1P
+      &&  ($decryptKeyAlgo === XMLSecurityKey::RSA_1_5
+      ||   $decryptKeyAlgo === XMLSecurityKey::RSA_SHA1)) {
+          // Any RSA private key can be used on RSA_OAEP_MGF1P
+          $decryptKeyAlgo = XMLSecurityKey::RSA_OAEP_MGF1P;
+      }
+      
+      //Check that decrypt and encrypt key formats match
+      if ($decryptKeyAlgo !== $symKeyInfoAlgo)
+          $this->fail(__FUNCTION__, self::ERR_GENERIC,"Key used to encrypt ($symKeyInfoAlgo) and to decrypt ($decryptKeyAlgo) don't match");
+      
+      
+      $encKey = $symmetricKeyInfo->encryptedCtx;
+      //Load the RSA key to the security object
+      self::debug("Loading RSA key to the encrypted key context...");
+      $symmetricKeyInfo->key = $decryptKey->key;
+      
+      $keySize = $symmetricKey->getSymmetricKeySize();
+      self::debug("Symmetric key size: $keySize.");
+      if ($keySize === null)
+          $this->fail(__FUNCTION__, self::ERR_GENERIC,"Can't guess key size to check proper decryption");
+      
+      
+      try {
+          self::debug("Decrypting symmetric key...");
+          $key = $encKey->decryptKey($symmetricKeyInfo);
+          if (strlen($key) != $keySize)
+              $this->fail(__FUNCTION__, self::ERR_GENERIC,'Unexpected key size ('.(strlen($key)*8).'bits) for encryption algorithm: '.var_export($symmetricKey->type));
+          
+      } catch (Exception $e) {
+          self::debug('Failed to decrypt symmetric key');
+          
+          //Key oracle attack protection: Generate a correctly padded key
+          //It is a random one and will fail, but will fail securely
+          //Make sure that the key has the correct length
+          $encryptedKey = $encKey->getCipherValue();
+          $pkey = openssl_pkey_get_details($symmetricKeyInfo->key);
+          $pkey = sha1(serialize($pkey), true);
+          $key = sha1($encryptedKey . $pkey, true);
+          if (strlen($key) > $keySize) {
+              $key = substr($key, 0, $keySize);
+          } elseif (strlen($key) < $keySize) {
+              $key = str_pad($key, $keySize);
+          }
+      }
+      
+      //Get the decrypted key back to its place
+      $symmetricKey->loadkey($key);
+      
+      //Decrypt the assertion
+      self::debug('Decrypting data with symmetric key (if succeeded in decrypting it. Rubbish otherwise)');
+      $decrypted = $enc->decryptNode($symmetricKey, false);
+      
+      return $decrypted;
+  }
+  
+  
+  
+  
+  // Set whether to expect encrypted assertions and the private key to
+  // use to decrypt (should be the key linked to the certificate
+  // trusted by the IdP, the one used to sign the requests)
+  public function setDecipherParams($decryptPrivateKey,$doDecipher=TRUE,$onlyEncrypted=FALSE){
+      
+      self::debug(__CLASS__.".".__FUNCTION__."()");
+      
+      $this->decryptPrivateKey  = $this->checkKey($decryptPrivateKey);
+      $this->doDecipher         = $doDecipher;
+  }
+  
+  
+  
+  
+  //Receives a saml response token and returns a simpleXML object of
+  //the response but replacing any encryptedAssertion by its decrypted
+  //counterpart.
+  private function decryptAssertions($samlToken){
+      
+      self::debug(__CLASS__.".".__FUNCTION__."()");
+      
+      if($samlToken == null || $samlToken == "")
+          $this->fail(__FUNCTION__, self::ERR_GENERIC,"Empty saml token.");
+      
+      if($this->decryptPrivateKey == null || $this->decryptPrivateKey == "")
+          $this->fail(__FUNCTION__, self::ERR_GENERIC,"Private key for deciphering not set or empty.");
+      
+      self::debug("Input token to decipher: ".$samlToken);
+      self::debug("Private key to decipher: ".$this->decryptPrivateKey);
+      
+      
+      //Load the private key to decipher
+      self::debug("Loading decryption key...");
+      $objKey = new XMLSecurityKey(XMLSecurityKey::RSA_OAEP_MGF1P, array('type'=>'private'));
+      $objKey->loadKey($this->decryptPrivateKey, FALSE);
+      
+      
+      #Parse the input saml token XML
+      $doc = new DOMDocument();   
+      if (!$doc->loadXML($samlToken))
+          $this->fail(__FUNCTION__, self::ERR_GENERIC,"Bad XML in input saml token.");
+      
+      
+      //Find any encrypted assertions in the Response and decrypt them
+      $assertions = $doc->getElementsByTagName('EncryptedAssertion');
+      self::debug("Found assertions to decipher: ".$assertions->length);
+      while ($assertions->length > 0){
+          
+          self::debug("Decrypting assertion...");
+          $encAssertion = $assertions->item(0);
+          
+          #Search for the encrypted data node inside the encrypted assertion node
+          $encData = $encAssertion->getElementsByTagName('EncryptedData')[0];
+          if ($encData === NULL)
+              $this->fail(__FUNCTION__, self::ERR_GENERIC,"No encrypted data node found.");
+          
+          #Decrypt the assertion
+          $assertion = $this->decryptXMLNode($encData,$objKey);
+          if ($assertion === NULL)
+              $this->fail(__FUNCTION__, self::ERR_GENERIC,"Decrypted content is null.");
+          
+          #To parse the resulting xml, we need to add all the possible namespaces
+          $xml = '<root '
+              .'xmlns:saml2p="'.self::NS_SAML2P.'" '
+              .'xmlns:ds="'.self::NS_XMLDSIG.'" '
+              .'xmlns:saml2="'.self::NS_SAML2.'" '
+              .'xmlns:stork="'.self::NS_STORK.'" '
+              .'xmlns:storkp="'.self::NS_STORKP.'" '
+              .'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" >'
+              .$assertion
+              .'</root>';
+    
+          #Parse the decrypted assertion to check its integrity
+          self::debug("Parsing decrypted assertion...");
+          $newDoc = new DOMDocument();
+          if (!$newDoc->loadXML($xml))
+              $this->fail(__FUNCTION__, self::ERR_GENERIC,"Error parsing decrypted XML. Possibly Bad symmetric key.");
+                    
+          #Check if the decrypted content was empty
+          $decryptedElement = $newDoc->firstChild->firstChild;
+          if ($decryptedElement === NULL)
+              $this->fail(__FUNCTION__, self::ERR_GENERIC,"Decrypted content is empty.");
+          
+          #Check if the decrypted content is a valid DOM Node
+          if (!($decryptedElement instanceof \DOMElement))
+              $this->fail(__FUNCTION__, self::ERR_GENERIC,"Decrypted element is not a DOMElement.");
+          
+          //Parse the decrypted node to be attached to the document
+          self::debug("Replacing encrypted assertion with plain one...");
+          $f = $doc->createDocumentFragment();
+          $f->appendXML($xml);
+          
+          //Replace the encrypted assertion with the plain one (warning!
+          //this will void the saml token signature)
+          $encAssertion->parentNode->replaceChild($f->firstChild->firstChild, $encAssertion);
+          //$doc->documentElement->appendChild($f->firstChild->firstChild);
+          //$encAssertion->parentNode->removeChild($encAssertion);
+          
+          //Search for any remaining encrypted assertions
+          $assertions = $doc->getElementsByTagName('EncryptedAssertion');
+      }
+      
+      self::debug("Response with plain assertions:".$doc->saveXML());
+      
+      //Convert to simpleXML object
+      return $this->parseXML($doc->saveXML());
+  }
+  
+  
   
 } // Class
 
