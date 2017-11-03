@@ -1059,10 +1059,6 @@ class sspmod_clave_SPlib {
     if(self::isSuccess($aux)){
         
         self::debug("Response Successful.");
-
-        //If strictly only encrypted assertions are accepted, search and delete all plain assertions
-        $onlyEncrypted // TODO SEGUIR:
-        
         
         //Search for encrypted assertions and try to decrypt them beforehand
         if ($this->doDecipher === TRUE){
@@ -2458,6 +2454,7 @@ class sspmod_clave_SPlib {
       
       $this->decryptPrivateKey  = $this->checkKey($decryptPrivateKey);
       $this->doDecipher         = $doDecipher;
+      $this->onlyEncrypted      = $onlyEncrypted;
   }
   
   
@@ -2490,6 +2487,28 @@ class sspmod_clave_SPlib {
       $doc = new DOMDocument();   
       if (!$doc->loadXML($samlToken))
           $this->fail(__FUNCTION__, self::ERR_GENERIC,"Bad XML in input saml token.");
+      
+      
+      //If strictly only encrypted assertions are accepted, search
+      //and delete all plain assertions
+      if ($this->onlyEncrypted === TRUE){
+            
+          self::debug("Searching for plain assertions to delete...");
+          $assertions = $doc->getElementsByTagName('Assertion');
+          self::debug("Found plain assertions: ".$assertions->length);
+          while ($assertions->length > 0){
+                
+              //Grab the first assertion
+              $assertion = $assertions->item(0);
+                
+              //Remove it
+              self::debug("Removing plain assertion...");
+              $assertion->parentNode->removeChild($assertion);
+                
+              //Search for any remaining plain assertions
+              $assertions = $doc->getElementsByTagName('Assertion');
+          }
+      }
       
       
       //Find any encrypted assertions in the Response and decrypt them
