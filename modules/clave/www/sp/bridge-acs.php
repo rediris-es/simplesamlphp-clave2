@@ -8,9 +8,16 @@
 
 
 
-
+//Hosted IdP config
 $claveConfig = sspmod_clave_Tools::getMetadataSet("__DYNAMIC:1__","clave-idp-hosted");
 SimpleSAML_Logger::debug('Clave Idp hosted metadata: '.print_r($claveConfig,true));
+
+//Hosted SP config
+$hostedSP = $claveConfig->getString('hostedSP', NULL);
+if($hostedSP == NULL)
+    throw new SimpleSAML_Error_Exception("No clave hosted SP configuration defined in clave bridge configuration.");
+$claveSP = sspmod_clave_Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
+SimpleSAML_Logger::debug('Clave SP hosted metadata: '.print_r($claveSP,true));
 
 
 $expectedResponsePostParams = $claveConfig->getArray('sp.post.allowed', array());
@@ -31,10 +38,10 @@ $idpData['cert'] = $idpMetadata->getString('certData', NULL);
 $expectedIssuers = NULL;
 
 
-$certPath = $claveConfig->getString('certificate', NULL);
-$keyPath  = $claveConfig->getString('privatekey', NULL);
+$hiCertPath = $claveConfig->getString('certificate', NULL);
+$hiKeyPath  = $claveConfig->getString('privatekey', NULL);
 
-if($certPath == NULL || $keyPath == NULL)
+if($hiCertPath == NULL || $hiKeyPath == NULL)
     throw new SimpleSAML_Error_Exception("No clave SSO certificate or key defined for the IdP interface in clave bridge configuration.");
 
 
@@ -67,6 +74,11 @@ SimpleSAML_Logger::debug('State on acs:'.print_r($state,true));
 $reqData = $state['sp:request'];
 
 
+// TODO SEGUIR: Get Remote SP metadata
+// $reqData['issuer']
+
+
+
 SimpleSAML_Logger::debug("Certificate in source: ".$idpData['cert']);
 $clave->addTrustedCert($idpData['cert']);
 
@@ -75,6 +87,17 @@ $clave->setValidationContext($id,
                              $state['bridge:returnPage'],
                              $expectedIssuers,
                              $state['bridge:mandatoryAttrs']);
+
+
+//Expect encrypted assertions and try to decrypt them with the SP
+//private key, also, don't ignore any existing plain assertion (this
+//may change in the future)
+$spkeypem  = sspmod_clave_Tools::readCertKeyFile($claveSP->getString('privatekey', NULL));
+$expectEncrypted = $claveSP->getBoolean('assertions.encrypted', true);
+$onlyEncrypted   = $claveSP->getBoolean('assertions.encrypted.only', false);
+
+$clave->setDecipherParams($spkeypem,$expectEncrypted,$onlyEncrypted);
+// TODO
 
 $clave->validateStorkResponse($resp);
 
@@ -103,13 +126,21 @@ $acs  = $reqData['assertionConsumerService'];
 
 $storkResp = new sspmod_clave_SPlib();
 
-$spkeypem  = sspmod_clave_Tools::readCertKeyFile($keyPath);
-$spcertpem = sspmod_clave_Tools::readCertKeyFile($certPath);
+
+$hikeypem  = sspmod_clave_Tools::readCertKeyFile($hiKeyPath);
+$hicertpem = sspmod_clave_Tools::readCertKeyFile($hiCertPath);
 
 
-$storkResp->setSignatureKeyParams($spcertpem, $spkeypem, sspmod_clave_SPlib::RSA_SHA256);
+$storkResp->setSignatureKeyParams($hicertpem, $hikeypem, sspmod_clave_SPlib::RSA_SHA256);
 
 $storkResp->setSignatureParams(sspmod_clave_SPlib::SHA256,sspmod_clave_SPlib::EXC_C14N);
+
+// TODO get the cert, assertion.encrypot and keyAlgorithm
+
+$encryptAssertions = $claveConfig->getBoolean('assertion.encryption', false);
+$encryptAlgorithm  = $claveConfig->getString('assertion.encryption.keyAlgorith', sspmod_clave_SPlib::AES256_CBC);
+// TODO read the overriding SP values
+$storkResp->setCipherParams($reqData['spCert'],$encryptAssertions,$encryptAlgorithm);
 
 $storkResp->setResponseParameters($storkResp::CNS_OBT,
                                   $acs,
