@@ -1780,7 +1780,9 @@ class sspmod_clave_SPlib {
               'isRequired' => strtolower("".$reqAttr->attributes()->isRequired) === 'true'? true : false
           ); 
       }
-
+      
+      $ret['spCert'] = "".$samlReq->children(self::NS_XMLDSIG,false)->Signature->KeyInfo->X509Data->X509Certificate; // TODO get the signing cert
+            
       return $ret;
   }
   
@@ -1788,7 +1790,6 @@ class sspmod_clave_SPlib {
   
   /*******************  SAML RESPONSE GENERATION  *********************/
   
-  // SEGUIR (comprobar)
   
   //Returns an array with the assertions from the response in the shape of xml strings
   public function getRawAssertions (){
@@ -1900,7 +1901,7 @@ class sspmod_clave_SPlib {
           else
               return $assertion;
       }
-
+      
       // TODO implement parsing of the struct and building of the XML here
   }
   
