@@ -74,8 +74,11 @@ SimpleSAML_Logger::debug('State on acs:'.print_r($state,true));
 $reqData = $state['sp:request'];
 
 
-// TODO SEGUIR: Get Remote SP metadata
-// $reqData['issuer']
+// TODO
+//Get Remote SP metadata
+$spEntityId = $reqData['issuer'];
+$spMetadata = sspmod_clave_Tools::getSPMetadata($claveConfig,$spEntityId);
+SimpleSAML_Logger::debug('Clave SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
 
 
 
@@ -135,10 +138,13 @@ $storkResp->setSignatureKeyParams($hicertpem, $hikeypem, sspmod_clave_SPlib::RSA
 
 $storkResp->setSignatureParams(sspmod_clave_SPlib::SHA256,sspmod_clave_SPlib::EXC_C14N);
 
-// TODO get the cert, assertion.encrypot and keyAlgorithm
-
-$encryptAssertions = $claveConfig->getBoolean('assertion.encryption', false);
-$encryptAlgorithm  = $claveConfig->getString('assertion.encryption.keyAlgorith', sspmod_clave_SPlib::AES256_CBC);
+// TODO
+//Get response encryption config (remote SP configuration prioritary over hosted IdP config)
+$encryptAssertions = $spMetadata->getBoolean('assertion.encryption',
+                                             $claveConfig->getBoolean('assertion.encryption', false));
+$encryptAlgorithm  = $spMetadata->getString('assertion.encryption.keyAlgorithm',
+                                            $claveConfig->getString('assertion.encryption.keyAlgorithm',
+                                                                    sspmod_clave_SPlib::AES256_CBC));
 // TODO read the overriding SP values
 $storkResp->setCipherParams($reqData['spCert'],$encryptAssertions,$encryptAlgorithm);
 

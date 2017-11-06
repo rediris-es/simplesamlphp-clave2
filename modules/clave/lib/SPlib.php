@@ -1793,8 +1793,15 @@ class sspmod_clave_SPlib {
   
   //Returns an array with the assertions from the response in the shape of xml strings
   public function getRawAssertions (){
+      self::debug(__CLASS__.".".__FUNCTION__."()");
       
-      $samlResponse = $this->parseXML($this->SAMLResponseToken);
+      //If there are encrypted assertions, try to decrypt them beforehand
+      if ($this->doDecipher === TRUE){
+          self::debug("Decrypt assertions before returning them...");
+          $samlResponse = $this->decryptAssertions($this->SAMLResponseToken);
+      }else{
+          $samlResponse = $this->parseXML($this->SAMLResponseToken);
+      }
       
       $assertions = $samlResponse->children(self::NS_SAML2,false)->Assertion;
       
