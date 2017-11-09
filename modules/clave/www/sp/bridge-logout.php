@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Logout endpoint for clave bridge SP
+ * Logout acs endpoint (response handler) for clave bridge SP
  *
  */
 
@@ -15,6 +15,17 @@ $idpEntityId = $claveConfig->getString('claveIdP', NULL);
 if($idpEntityId == NULL)
     throw new SimpleSAML_Error_Exception("No clave IdP configuration defined in clave bridge configuration.");
 $idpMetadata = sspmod_clave_Tools::getMetadataSet($idpEntityId,"clave-idp-remote");
+
+
+//Hosted SP config
+$hostedSP = $claveConfig->getString('hostedSP', NULL);
+if($hostedSP == NULL)
+    throw new SimpleSAML_Error_Exception("No clave hosted SP configuration defined in clave auth source configuration.");
+$hostedSPmeta = sspmod_clave_Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
+SimpleSAML_Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true));
+
+$spEntityId = $hostedSPmeta->getString('entityid', NULL);
+
 
 
 //Response validation parameters
@@ -78,6 +89,18 @@ if(!$claveSP->validateSLOResponse($resp)){
 $respStatus = $claveSP->getResponseStatus();
 
 
+//Log for statistics: received LogoutResponse from remote clave IdP
+$statsData = array(
+    'spEntityID'  => $spEntityId,
+    'idpEntityID' => $claveSP->getRespIssuer(),
+);
+$errInfo = "";
+if (!$claveSP->isSuccess($errInfo))
+    $statsData['error'] = $errInfo['MainStatusCode'];
+SimpleSAML_Stats::log('saml:idp:LogoutResponse:recv', $statsData);
+
+
+
 // ****** Build response for the SP *******
 
 
@@ -93,6 +116,17 @@ $claveIdP->setSignatureKeyParams($spcertpem, $spkeypem, sspmod_clave_SPlib::RSA_
 $claveIdP->setSignatureParams(sspmod_clave_SPlib::SHA256,sspmod_clave_SPlib::EXC_C14N);
 
 $spResponse = $claveIdP->generateSLOResponse($inResponseTo,$issuer,$respStatus,$destination);
+
+
+//Log for statistics: sent LogoutResponse to the remote SP
+SimpleSAML_Stats::log('saml:idp:LogoutResponse:sent', array(
+    'spEntityID' => $destination,
+    'idpEntityID' => $issuer,
+    'partial' => TRUE
+));
+//Se refiere a si se han desconectado todos los SP o no. En este
+//caso, como no clave no mantiene ningún listado de ello, ponemos que
+//es parcial siempre
 
 
 //Redirecting to Clave IdP (Only HTTP-POST binding supported, also Stork-flavoured)

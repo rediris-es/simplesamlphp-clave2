@@ -84,6 +84,13 @@ $cert = sspmod_clave_Tools::findX509SignCertOnMetadata($spMetadata);
 $claveIdP->addTrustedRequestIssuer($spEntityId, $cert);
 
 
+//Log for statistics: received LogoutRequest at the clave IdP
+SimpleSAML_Stats::log('saml:idp:LogoutRequest:recv', array(
+    'spEntityID'  => $spEntityId,
+    'idpEntityID' => $claveConfig->getString('issuer', ''),
+));
+
+
 //Validate Clave LogoutRequest
 $claveIdP->validateLogoutRequest($request);
 
@@ -119,6 +126,12 @@ SimpleSAML_Logger::debug("Generated Req ID: ".$id);
 $req = base64_encode($claveSP->generateSLORequest($providerName,$endpoint,$returnPage,$id));
 SimpleSAML_Logger::debug("Generated LogoutReq: ".$req);
 
+
+//Log for statistics: sent LogoutRequest to remote clave IdP
+SimpleSAML_Stats::log('saml:idp:LogoutRequest:sent', array(
+        'spEntityID' =>  $hostedSPmeta->getString('entityid'),
+        'idpEntityID' => $idpMeta->getString('SingleSignOnService'),
+));
 
 
 //Redirect

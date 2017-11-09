@@ -109,12 +109,54 @@ $clave->validateStorkResponse($resp);
 
 //We extract the status info
 $statusInfo = "";
-if($clave->isSuccess($statusInfo))
+if($clave->isSuccess($statusInfo)){
     SimpleSAML_Logger::info("Authentication Successful");
+
+    //Log for statistics: received successful Response from remote clave IdP
+    $statsData = array(
+        'spEntityID' =>  $claveSP->getString('entityid', ''),
+        'idpEntityID' => $clave->getRespIssuer(),
+        'protocol' => 'saml2-clave',
+    );
+    if (isset($state['saml:AuthnRequestReceivedAt'])) {
+        $statsData['logintime'] = microtime(TRUE) - $state['saml:AuthnRequestReceivedAt'];
+    }
+    SimpleSAML_Stats::log('clave:sp:Response', $statsData);
+    
+}else{
+    SimpleSAML_Logger::info("Authentication Error");
+    
+    //Log for statistics: received failed Response from remote clave IdP
+    $status = array(
+        'Code' => $statusInfo['MainStatusCode'],
+        'SubCode' => $statusInfo['SecondaryStatusCode'],
+        'Message' => $statusInfo['StatusMessage'],
+    );
+
+    $statsData = array(
+        'spEntityID' => $claveSP->getString('entityid', ''),
+        'idpEntityID' => $clave->getRespIssuer(),
+        'protocol' => 'saml2-clave',
+        'error' => $status,
+    );
+
+    if (isset($state['saml:AuthnRequestReceivedAt'])) {
+        $statsData['logintime'] = microtime(TRUE) - $state['saml:AuthnRequestReceivedAt'];
+    }
+
+    SimpleSAML_Stats::log('clave:sp:Response:error', $statsData);
+}
+
+
 //For some reason, Clave may not return a main status code. In that case, we set responder error
 if($statusInfo['MainStatusCode'] == sspmod_clave_SPlib::ATST_NOTAVAIL){
     $statusInfo['MainStatusCode'] = sspmod_clave_SPlib::ST_RESPONDER;
 }
+
+
+
+
+
 
 
 //We build a status response with the status codes returned by Clave
@@ -155,6 +197,31 @@ $storkResp->setResponseParameters($storkResp::CNS_OBT,
                                   );
 
 $resp = $storkResp->generateStorkResponse($status,$assertions);
+
+
+
+//Log for statistics: sentResponse to remote clave SP
+$status = array(
+    'Code' => $statusInfo['MainStatusCode'],
+    'SubCode' => $statusInfo['SecondaryStatusCode'],
+    'Message' => $statusInfo['StatusMessage'],
+);
+
+$statsData = array(
+    'spEntityID' => $spEntityId,
+    'idpEntityID' => $claveConfig->getString('issuer', 'NOT_SET'),
+    'protocol' => 'saml2-clave',
+    'status' => $status,
+);
+
+if (isset($state['saml:AuthnRequestReceivedAt'])) {
+    $statsData['logintime'] = microtime(TRUE) - $state['saml:AuthnRequestReceivedAt'];
+}
+
+SimpleSAML_Stats::log('clave:idp:Response', $statsData);
+
+
+
 
 //Redirecting to Clave IdP (Only HTTP-POST binding supported)
 $post = array(

@@ -24,6 +24,16 @@ $spMetadata = $source->getMetadata();
 SimpleSAML_Logger::debug('Metadata on acs:'.print_r($spMetadata,true));
 
 
+//Hosted SP config
+$hostedSP = $spMetadata->getString('hostedSP', NULL);
+if($hostedSP == NULL)
+    throw new SimpleSAML_Error_Exception("No clave hosted SP configuration defined in clave auth source configuration.");
+$hostedSPmeta = sspmod_clave_Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
+SimpleSAML_Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true));
+
+$spEntityId = $hostedSPmeta->getString('entityid', NULL);
+
+
 if(!isset($_REQUEST['SAMLResponse']))
    	throw new SimpleSAML_Error_BadRequest('No SAMLResponse POST param received.');
 
@@ -107,12 +117,51 @@ $returnedAttributes = array_merge($returnedAttributes, $clave->getAttributes());
 
 //Authentication was successful
 $errInfo = "";
-if($clave->isSuccess($errInfo))  
-  $source->handleResponse($state, $returnedAttributes);
+if($clave->isSuccess($errInfo)){
+
+    //Log for statistics: received successful Response from remote clave IdP
+    $statsData = array(
+        'spEntityID' => $spEntityId,
+        'idpEntityID' => $clave->getRespIssuer(),
+        'protocol' => 'saml2-clave',
+    );
+    if (isset($state['saml:AuthnRequestReceivedAt'])) {
+        $statsData['logintime'] = microtime(TRUE) - $state['saml:AuthnRequestReceivedAt'];
+    }
+    SimpleSAML_Stats::log('clave:sp:Response', $statsData);
+    
+    //Pass the response state to the WebSSO SP
+    $source->handleResponse($state, $returnedAttributes);
+}
+
+
+
 
 
 
 //Handle auth error:
+
+
+//Log for statistics: received failed Response from remote clave IdP
+$status = array(
+    'Code' => $errInfo['MainStatusCode'],
+    'SubCode' => $errInfo['SecondaryStatusCode'],
+    'Message' => $errInfo['StatusMessage'],
+);
+
+$statsData = array(
+    'spEntityID' => $spEntityId,
+    'idpEntityID' => $clave->getRespIssuer(),
+    'protocol' => 'saml2-clave',
+    'error' => $status,
+);
+
+if (isset($state['saml:AuthnRequestReceivedAt'])) {
+    $statsData['logintime'] = microtime(TRUE) - $state['saml:AuthnRequestReceivedAt'];
+}
+
+SimpleSAML_Stats::log('clave:sp:Response:error', $statsData);
+
 
 //For some reason, Clave may not return a main status code. In that case, we set responder error
 if($errInfo['MainStatusCode'] == sspmod_clave_SPlib::ATST_NOTAVAIL){

@@ -17,6 +17,16 @@ $spMetadata = $source->getMetadata();
 SimpleSAML_Logger::debug('Metadata on acs:'.print_r($spMetadata,true));
 
 
+//Hosted SP config
+$hostedSP = $spMetadata->getString('hostedSP', NULL);
+if($hostedSP == NULL)
+    throw new SimpleSAML_Error_Exception("No clave hosted SP configuration defined in clave auth source configuration.");
+$hostedSPmeta = sspmod_clave_Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
+SimpleSAML_Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true));
+
+$spEntityId = $hostedSPmeta->getString('entityid', NULL);
+
+
 
 if(!isset($_REQUEST['samlResponseLogout']))
    	throw new SimpleSAML_Error_BadRequest('No samlResponseLogout POST param received.');
@@ -42,9 +52,11 @@ $idpData = $source->getIdP();
 //Not properly set by Clave, so ignoring it.
 $expectedIssuers = NULL;
 
-
 SimpleSAML_Logger::debug("Certificate in source: ".$idpData['cert']);
 $clave->addTrustedCert($idpData['cert']);
+
+
+
 
 $clave->setValidationContext($id,
                              $state['clave:sp:slo:returnPage'],
@@ -62,6 +74,17 @@ if(!$clave->validateSLOResponse($resp)){
 //                      $errInfo['SecondaryStatusCode'],
 //                      $errInfo['StatusMessage'])
 }
+
+
+//Log for statistics: received LogoutResponse from remote clave IdP
+$statsData = array(
+    'spEntityID'  => $spEntityId,
+    'idpEntityID' => $clave->getRespIssuer(),
+);
+$errInfo = "";
+if (!$clave->isSuccess($errInfo))
+    $statsData['error'] = $errInfo['MainStatusCode'];
+SimpleSAML_Stats::log('saml:idp:LogoutResponse:recv', $statsData);
 
 
 

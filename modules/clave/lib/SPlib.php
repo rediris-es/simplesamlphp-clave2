@@ -1742,10 +1742,18 @@ class sspmod_clave_SPlib {
   }
 
   //Returns an array with the important parameters of the received request
-  public function getStorkRequestData(){
+  // If a Request is passed on the parameter, then thereturn is related
+  // to it and not to the request in the object state
+  public function getStorkRequestData($SAMLAuthnReqToken=NULL){
       $ret = array();
       
-      $samlReq = $this->parseXML($this->SAMLAuthnReqToken);
+      $request = $this->SAMLAuthnReqToken;
+      if($SAMLAuthnReqToken !== NULL){
+          self::debug("Notice that you are parsing an external token and not the internal state one");
+          $request = $SAMLAuthnReqToken;
+      }
+      
+      $samlReq = $this->parseXML($request);
       
       $ret['id']                       = "".$samlReq["ID"];
       $ret['destination']              = "".$samlReq["Destination"];
@@ -1753,6 +1761,7 @@ class sspmod_clave_SPlib {
       $ret['protocolBinding']          = "".$samlReq["ProtocolBinding"];
       $ret['ProviderName']             = "".$samlReq["ProviderName"];
       $ret['forceAuthn']               = self::stb("".$samlReq["ForceAuthn"]);
+      $ret['isPassive']                = self::stb("".$samlReq["IsPassive"]);
 
       $ret['issuer'] = "".$samlReq->children(self::NS_SAML2,false)->Issuer;      
 

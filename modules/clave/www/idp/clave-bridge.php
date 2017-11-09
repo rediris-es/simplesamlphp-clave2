@@ -71,7 +71,7 @@ foreach ($_POST as $name => $value){
 
 
 $request = base64_decode($_REQUEST['SAMLRequest']);
-
+SimpleSAML_Logger::debug("SP Request: ".$request);
 
 
 $spEntityId = $claveIdP->getIssuer($request);
@@ -86,10 +86,16 @@ $cert = sspmod_clave_Tools::findX509SignCertOnMetadata($spMetadata);
 $claveIdP->addTrustedRequestIssuer($spEntityId, $cert);
 
 
-
-
-
-
+//Log for statistics: received AuthnRequest at the clave IdP
+$aux = $claveIdP->getStorkRequestData($request);
+SimpleSAML_Stats::log('clave:idp:AuthnRequest', array(
+    'spEntityID' => $spEntityId,
+    'idpEntityID' => $claveConfig->getString('issuer', ''),
+    'forceAuthn' => $aux['forceAuthn'],
+    'isPassive' => $aux['isPassive'],
+    'protocol' => 'saml2-clave',
+    'idpInit' => FALSE,
+));
 
 
 //Validate Clave AuthnRequest
@@ -187,6 +193,17 @@ $clave->setRequestId($id);
 //Generate the new request token
 $req = base64_encode($clave->generateStorkAuthRequest());
 SimpleSAML_Logger::debug("Generated AuthnReq: ".$req);
+
+
+//Log for statistics: sent AuthnRequest to remote clave IdP
+SimpleSAML_Stats::log('clave:sp:AuthnRequest', array(
+    'spEntityID' =>  $claveSP->getString('entityid', NULL),
+    'idpEntityID' => $endpoint,
+    'forceAuthn' => $reqData['forceAuthn'],
+    'isPassive' => FALSE,
+    'protocol' => 'saml2-clave',
+    'idpInit' => FALSE,
+));
 
 
 
