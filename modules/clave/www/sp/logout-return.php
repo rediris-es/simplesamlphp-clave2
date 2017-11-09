@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Logout response handler for clave authentication source SP
+ * Logout acs endpoint (response handler) for clave authentication source SP
  *
  */
 
