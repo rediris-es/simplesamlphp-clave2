@@ -3,11 +3,10 @@
 
 //require_once('xmlseclibs.php');
 
-//eIDAS compliant SP (IdP still stork-clave1)
 
 class sspmod_clave_SPlib {
   
-  const VERSION = "2.0.0";
+  const VERSION = "1.0.1";
   
   /************ Usable constants and static vars *************/
   
@@ -53,7 +52,6 @@ class sspmod_clave_SPlib {
   const NS_STORK   = "urn:eu:stork:names:tc:STORK:1.0:assertion";
   const NS_STORKP  = "urn:eu:stork:names:tc:STORK:1.0:protocol";
   const NS_XMLSCH  = "http://www.w3.org/2001/XMLSchema";
-  const NS_EIDAS   = "http://eidas.europa.eu/saml-extensions";
   
   //SAML Main status codes
   const ST_SUCCESS   = "urn:oasis:names:tc:SAML:2.0:status:Success";
@@ -71,10 +69,6 @@ class sspmod_clave_SPlib {
   const ATST_NOTAVAIL =  "NotAvailable";
   const ATST_WITHLD   =  "Withheld";
 
-  //eIDAS Levels of Assurance
-  const LOA_LOW = "http://eidas.europa.eu/LoA/low";
-  const LOA_SUBST ="http://eidas.europa.eu/LoA/substantial";
-  const LOA_HIGH = "http://eidas.europa.eu/LoA/high";
 
   
   // List of accepted attributes (friendly names)
@@ -433,7 +427,7 @@ class sspmod_clave_SPlib {
     self::trace(__CLASS__.".".__FUNCTION__."()");
 
     // Defaults
-    $this->digestMethod = self::SHA512;
+    $this->digestMethod = self::SHA1;
     $this->c14nMethod   = self::EXC_C14N;
     
     $this->trustedCerts = array();
@@ -486,7 +480,9 @@ class sspmod_clave_SPlib {
         else
           $values=array($values);
     
-
+    
+    $preffix = '<stork:RequestedAttribute Name="'.self::$AttrNamePrefix;
+    $suffix  = '" NameFormat="'.self::$AttrNF.'" isRequired="'.self::bts($required).'"';
     
     
     if($values == NULL || count($values)<=0){
@@ -496,7 +492,7 @@ class sspmod_clave_SPlib {
     }
     else{
       $tagClose = ">";
-      $closeTag = "</eidas:RequestedAttribute>";
+      $closeTag = "</stork:RequestedAttribute>";
     }
     $valueAddition = "";
     foreach($values as $value){
@@ -505,23 +501,16 @@ class sspmod_clave_SPlib {
       if($escape)
         $transformedValue = htmlspecialchars($value);
       
-      $valueAddition .= '<eidas:AttributeValue '
+      $valueAddition .= '<stork:AttributeValue '
         .'xmlns:xs="http://www.w3.org/2001/XMLSchema" '
         .'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
         .'xsi:type="xs:string">'
-        .$transformedValue.'</eidas:AttributeValue>';
+        .$transformedValue.'</stork:AttributeValue>';
     }
     
 
-        FriendlyName
-    $preffix = ;
-    $suffix  = 'NameFormat="'.self::$AttrNF.'" isRequired="'.self::bts($required).'"';
     
-    $attrLine = '<eidas:RequestedAttribute'
-        .' FriendlyName="'.$friendlyName.'"'
-        .' Name="'.self::$AttrNamePrefix.$friendlyName.'"'
-        .$suffix
-        .$tagClose.$valueAddition.$closeTag;
+    $attrLine = $preffix.$friendlyName.$suffix.$tagClose.$valueAddition.$closeTag;
         
     //We add the attribute to the requested attributes array
     // [Notice that an attribute can be requested multiple times]
@@ -536,7 +525,7 @@ class sspmod_clave_SPlib {
   // $key:     private key, of a supported public key cryptosystem.
   // $keytype: Kind of key [See constants]
   public function setSignatureKeyParams ($cert, $key, 
-                                         $keytype=self::RSA_SHA512){
+                                         $keytype=self::RSA_SHA1){
       
       self::debug(__CLASS__.".".__FUNCTION__."()");
       
@@ -632,28 +621,6 @@ class sspmod_clave_SPlib {
     $this->crossSectorShare = $crossSectorShare;
     $this->crossBorderShare = $crossBorderShare;
   }
-
-
-  // TODO ¡
-  //Establishes an equivalence between Stork QAA levels and eIDAS LoA
-  //levels
-  public function qaaToLoA($QAA) {
-      
-      if($QAA === NULL || $QAA === "")
-          return "";
-      
-      if( is_string($QAA) === true )
-          $QAA = (int)$QAA;
-            
-      if($QAA <= 2)
-          return self::LOA_LOW;
-      if($QAA == 3)
-          return self::LOA_SUBST;
-      if($QAA >= 4)
-          return self::LOA_HIGH;
-      
-      return "";
-  }
   
   
   
@@ -690,20 +657,17 @@ class sspmod_clave_SPlib {
         .'<saml2p:AuthnRequest '
         .'xmlns:saml2p="'.self::NS_SAML2P.'" '
         .'xmlns:ds="'.self::NS_XMLDSIG.'" '
-        .'xmlns:eidas="'.self::NS_EIDAS.'" '
         .'xmlns:saml2="'.self::NS_SAML2.'" '
-/*
         .'xmlns:stork="'.self::NS_STORK.'" '
         .'xmlns:storkp="'.self::NS_STORKP.'" '
-*/
-        .'AssertionConsumerServiceURL="'.htmlspecialchars($this->ReturnAddr).'" ' //TODO SHOULD NOT be sent
+        .'AssertionConsumerServiceURL="'.htmlspecialchars($this->ReturnAddr).'" '
         .'Consent="'.self::CNS_UNS.'" '
         .'Destination="'.htmlspecialchars($this->SPEPS).'" '
         .'ForceAuthn="'.self::bts($this->forceAuthn).'" '
         .'ID="'.$this->ID.'" '
         .'IsPassive="false" '
         .'IssueInstant="'.$this->TSTAMP.'" '
-        .'ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" '  //TODO SHOULD NOT be sent
+        .'ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" '
         .'ProviderName="'.htmlspecialchars($this->ServiceProviderName).'" '
         .'Version="2.0">';
     
@@ -715,7 +679,7 @@ class sspmod_clave_SPlib {
       .'</saml2:Issuer>';
     
     
-    //Stork profile extensions: requested attributes  // TODO put new attribute profile and attr metadata
+    //Stork profile extensions: requested attributes
     self::debug("Setting request attributes.");
     $RequestedAttributes = '';
     
@@ -728,7 +692,6 @@ class sspmod_clave_SPlib {
     }
     
 
-/*
     //Stork profile extensions: authentication additional attributes (optional)
     $StorkExtAuthAttrs = "";
     if($this->ServiceProviderID != NULL && $this->ServiceProviderID != ""
@@ -753,7 +716,6 @@ class sspmod_clave_SPlib {
         .'</storkp:VIDPAuthenticationAttributes>'
         .'</storkp:AuthenticationAttributes>';
     }
-
     
     self::debug("Setting request QAA.");
     //Stork profile extensions: QAA
@@ -781,38 +743,15 @@ class sspmod_clave_SPlib {
     $eIdShareInfo = '<storkp:eIDSectorShare>'.htmlspecialchars(self::bts($this->sectorShare)).'</storkp:eIDSectorShare>'
       .'<storkp:eIDCrossSectorShare>'.htmlspecialchars(self::bts($this->crossSectorShare)).'</storkp:eIDCrossSectorShare>'
       .'<storkp:eIDCrossBorderShare>'.htmlspecialchars(self::bts($this->crossBorderShare)).'</storkp:eIDCrossBorderShare>';
-*/
-    
-    
-    
-    $SPtype = '<eidas:SPType>public</eidas:SPType>';  // TODO parametrise: public, private or don't send the node (in that case, it must be on the published metadata)
-    
     
     
     $Extensions = '<saml2p:Extensions>'
-      .$SPtype
-//      .$QAA
-//      .$SPinfo
-//      .$eIdShareInfo
+      .$QAA
+      .$SPinfo
+      .$eIdShareInfo
       .$RequestedAttributes
-//      .$StorkExtAuthAttrs
+      .$StorkExtAuthAttrs
       .'</saml2p:Extensions>';
-
-
-    $NameIDPolicy = '<saml2p:NameIDPolicy' // TODO parametrizar format (persisten, transient, unspecified)
-        .' AllowCreate="true"'
-        .' Format="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent"'
-        .' />';
-    
-    
-    $AuthnContext = "";
-    $LoA = $this->qaaToLoA($this->QAALevel);
-    if($LoA != ""){
-        $AuthnContext = '<saml2p:RequestedAuthnContext' // TODO
-            .' Comparison="minimum">'
-            .'<saml2:AuthnContextClassRef>'.htmlspecialchars($LoA).'</saml2:AuthnContextClassRef>'
-            .'</saml2p:RequestedAuthnContext>';
-    }
     
     $RootTagClose = '</saml2p:AuthnRequest>';  
     
@@ -820,8 +759,6 @@ class sspmod_clave_SPlib {
     $this->samlAuthReq = $RootTagOpen
       .$Issuer
       .$Extensions
-      .$NameIDPolicy
-      .$AuthnContext
       .$RootTagClose;
     
 
@@ -2468,8 +2405,7 @@ class sspmod_clave_SPlib {
       $symKeyInfoAlgo = $symmetricKeyInfo->getAlgorith();
       if ($symKeyInfoAlgo === XMLSecurityKey::RSA_OAEP_MGF1P
       &&  ($decryptKeyAlgo === XMLSecurityKey::RSA_1_5
-      ||   $decryptKeyAlgo === XMLSecurityKey::RSA_SHA1
-      ||   $decryptKeyAlgo === XMLSecurityKey::RSA_SHA512)) {
+      ||   $decryptKeyAlgo === XMLSecurityKey::RSA_SHA1)) {
           // Any RSA private key can be used on RSA_OAEP_MGF1P
           $decryptKeyAlgo = XMLSecurityKey::RSA_OAEP_MGF1P;
       }
@@ -2662,351 +2598,6 @@ class sspmod_clave_SPlib {
 } // Class
 
 
-
-
-// Wrapper class to simplify integration
-
-class claveAuth {
-
-    private $conf;
-
-    private $claveSP;
-
-    private $attributes;
-
-       const LOG_TRACE    = 0;
-  const LOG_DEBUG    = 1;
-  const LOG_INFO     = 2;
-  const LOG_WARN     = 3;
-  const LOG_ERROR    = 4;
-  const LOG_CRITICAL = 5;
-
-  private static $logLevels = array(
-        self::LOG_TRACE    => 'TRACE',
-        self::LOG_DEBUG    => 'DEBUG',
-        self::LOG_INFO     => 'INFO',
-        self::LOG_WARN     => 'WARN',
-        self::LOG_ERROR    => 'ERROR',
-        self::LOG_CRITICAL => 'CRITICAL'
-                                    );
-  
-  
-  private static $logLevel    = self::LOG_TRACE;
-  private static $logFile     = '/tmp/storkLog2';
-  private static $logToFile   = true;
-  private static $logToStdout = false;
-  
-  
-  private static function log($content,$level){
-    
-    if($level < self::$logLevel)
-      return;
-    
-    $prefix = "[".date('c',time())."][".self::$logLevels[$level]."]: ";
-    
-    if(is_object($content) || is_array($content))
-      $message.=print_r($content,TRUE);
-    else
-      $message=$content;
-    
-    if(self::$logToStdout)
-      echo $prefix.$message."\n";
-    
-    if(self::$logToFile)
-      file_put_contents(self::$logFile, $prefix.$message."\n",FILE_APPEND); 
-  }
-  
-  private static function trace($message){
-    self::log($message,self::LOG_TRACE);
-  }
-  private static function debug($message){
-    self::log($message,self::LOG_DEBUG);
-  }
-  private static function info($message){
-    self::log($message,self::LOG_INFO);
-  }
-  private static function warn($message){
-    self::log($message,self::LOG_WARN);
-  }
-  private static function error($message){
-    self::log($message,self::LOG_ERROR);
-  }
-  private static function critical($message){
-    self::log($message,self::LOG_CRITICAL);
-  }
-    
-    public function __construct ($configFile){
-        
-        $this->conf = self::getConfigFromFile($configFile);
-        
-        
-        $this->claveSP  = new sspmod_clave_SPlib();
-        
-        $this->claveSP->forceAuthn();
-        
-        $this->claveSP->setSignatureKeyParams($this->conf['signCert'],
-                                              $this->conf['signKey'],
-                                              sspmod_clave_SPlib::RSA_SHA256);
-        
-        $this->claveSP->setSignatureParams(sspmod_clave_SPlib::SHA256,
-                                           sspmod_clave_SPlib::EXC_C14N);
-
-        //La URL de retorno es la misma que la actual, así que la calculamos
-        $this->claveSP->setServiceProviderParams($this->conf['SPname'],
-                                                 $this->conf['Issuer'],
-                                                 self::full_url($_SERVER));
-        
-        $this->claveSP->setSPLocationParams($this->conf['SPCountry'],
-                                            $this->conf['SPsector'],
-                                            $this->conf['SPinstitution'],
-                                            $this->conf['SPapp']);  
-
-        $this->claveSP->setSPVidpParams($this->conf['SpId'],
-                                        $this->conf['CitizenCountry']);
-
-        $this->claveSP->setSTORKParams ($this->conf['endpoint'],
-                                        $this->conf['QAA'],
-                                        $this->conf['sectorShare'],
-                                        $this->conf['crossSectorShare'],
-                                        $this->conf['crossBorderShare']);
-        
-        foreach($this->conf['attributesToRequest'] as $attr)
-            $this->claveSP->addRequestAttribute ($attr, false); 
-
-
-        $this->attributes = array();
-    }        
-  
-
-    //Returns true if authn succeeded, false if failed, redirects if new authn 
-    public function authenticate (){
-        
-        self::debug("**Entra en authenticate");
-        
-        //If no response token on the request, then we must launch an authn process
-        if(!array_key_exists('SAMLResponse', $_REQUEST)){
-            self::debug("**do_auth");
-            $this->do_Authenticate();
-        }
-        self::debug("**coming back");
-        return $this->handleResponse($_REQUEST['SAMLResponse']);
-    }
-    
-
-    //Transformamos los attrs para compatibilizarlos con el PoA
-    public function getAttributes(){
-
-
-        self::debug("**attrs::".print_r($this->attributes,true));
-
-        
-        $ret = array();
-        foreach($this->attributes as $name => $values){
-            $ret[$name] = $values[0];
-        }
-
-        self::debug("**attrs2::".print_r($ret,true));
-        
-        //Aislar DNI
-        $ret['eIdentifier'] = explode('/',$this->attributes['eIdentifier'][0])[2];
-
-
-        self::debug("**attrs3::".print_r($ret,true));
-                
-        return $ret;
-
-        //return $this->attributes;
-    }
-    
-    
-    //Returns true if logout succeeded, false if failed, redirects if new logout 
-    public function logout(){
-        
-        //If no response token on the request, then we must launch an authn process
-        if(!array_key_exists('samlResponseLogout', $_REQUEST))
-            $this->do_Logout();
-        
-        return $this->handleLogoutResponse($_REQUEST['samlResponseLogout']);
-    }
-
-
-
-    
-    private function do_Logout(){
-        $id = sspmod_clave_SPlib::generateID();
-        
-        $req = $this->claveSP->generateSLORequest($this->conf['Issuer'],
-                                                  $this->conf['sloEndpoint'],
-                                                  self::full_url($_SERVER),$id);
-        $req = base64_encode($req);
-        
-        //Save data in session for the comeback
-        session_start();
-        $_SESSION['storkdemoSPphp']['slorequestId']  = $id;
-        $_SESSION['storkdemoSPphp']['sloreturnPage'] = self::full_url($_SERVER);
-        
-        $this->redirectLogout($req, $this->conf['sloEndpoint']);
-    }
-
-
-    
-    
-    private function handleLogoutResponse($response){
-                
-        $resp = base64_decode($response);
-        
-        $claveSP = new sspmod_clave_SPlib();
-        
-        $claveSP->addTrustedCert($this->conf['validateCert']);
-        
-        session_start();
-        
-        $claveSP->setValidationContext($_SESSION['storkdemoSPphp']['slorequestId'],
-                                       $_SESSION['storkdemoSPphp']['sloreturnPage']);
-        
-        if($claveSP->validateSLOResponse($resp))
-            return true;
-        
-        return false;
-    }
-
-
-
-    
-    private function handleResponse ($response){
-        
-        $resp = base64_decode($response);
-        
-        $claveSP = new sspmod_clave_SPlib();
-        
-        
-        $claveSP->addTrustedCert($this->conf['validateCert']);
-        
-        session_start();
-              
-        $claveSP->setValidationContext($_SESSION['claveLib']['requestId'],
-                                       $_SESSION['claveLib']['returnPage']);
-        
-        $claveSP->setDecipherParams($this->conf['signKey'],TRUE,FALSE);
-        
-        $claveSP->validateStorkResponse($resp);
-        
-        $errInfo = "";
-        if(!$claveSP->isSuccess($errInfo))
-            return false;
-        
-        $this->attributes = $claveSP->getAttributes();
-        return true;
-    }
-    
-    private function do_Authenticate(){
-        $req = base64_encode($this->claveSP->generateStorkAuthRequest());
-        
-        //For response verification, store in session or in config the following:
-        session_start();
-        $_SESSION['claveLib']['requestId']  = $this->claveSP->getRequestId();
-        $_SESSION['claveLib']['returnPage'] = self::full_url($_SERVER);
-        
-
-        $forcedIdP = '';
-        $idpList = '';
-        $excludedIdPList = '';
-        $allowLegalPerson = '';
-        
-        if($this->conf['forcedIdP'] != NULL)
-            $forcedIdP = '<input type="hidden" name="forcedIdP" value="'.$this->conf['forcedIdP'].'" />';
-        if($this->conf['idpList'] != NULL)
-            $idpList = '<input type="hidden" name="idpList" value="'.$this->conf['idpList'].'" />';
-        if($this->conf['excludedIdPList'] != NULL)
-            $excludedIdPList = '<input type="hidden" name="excludedIdPList" value="'.$this->conf['excludedIdPList'].'" />';
-        if($this->conf['allowLegalPerson'] != NULL)
-            $allowLegalPerson = '<input type="hidden" name="allowLegalPerson" value="'.$this->conf['allowLegalPerson'].'" />';
-        
-        $this->redirectLogin($req,$this->conf['endpoint'],
-                        $forcedIdP,$idpList,$excludedIdPList,$allowLegalPerson);
-    }
-
-
-    private function redirectLogin($req,$endpoint,
-                                   $forcedIdP="",$idpList="",
-                                   $excludedIdPList="",$allowLegalPerson=""){
-        self::redirect('SAMLRequest',$req,$endpoint,
-                                   $forcedIdP,$idpList,
-                                   $excludedIdPList,$allowLegalPerson);
-    }
-
-    private function redirectLogout($req,$endpoint,
-                                    $forcedIdP="",$idpList="",
-                                    $excludedIdPList="",$allowLegalPerson=""){
-        self::redirect('samlRequestLogout',$req,$endpoint,
-                                   $forcedIdP,$idpList,
-                                   $excludedIdPList,$allowLegalPerson);
-    }
-    
-    private static function redirect($postParam, $req,$endpoint,
-                              $forcedIdP="",$idpList="",
-                              $excludedIdPList="",$allowLegalPerson=""){
-        
-        echo "
-<html>
-  <body onload=\"document.forms[0].submit();\">
-	   <form name=\"redirectForm\" method=\"post\" action=\"".$endpoint."\">
-		    <input type=\"hidden\" name=\"".$postParam."\" value=\"".$req."\" />
-            $forcedIdP
-            $idpList
-            $excludedIdPList
-            $allowLegalPerson
-	   </form>
-	 </body>
-</html>
-";
-        exit(0);
-    }
-
-
-    
-    private static function getConfigFromFile($file){
-        
-        try{
-            //Don't use _once or the global variable might get unset.
-            require($file);
-        }catch(Exception $e){
-            throw new Exception("Clave config file ".$file." not found.");
-        }
-        
-        if(!isset($clave_config))
-            throw new Exception('$clave_config global variable not found in '.$file);
-
-        if(!is_array($clave_config))
-            throw new Exception('$clave_config global variable not an array in '.$file);
-        
-        return $clave_config;
-    }
-
-
-    private static function url_origin( $s, $use_forwarded_host = false )
-    {
-        $ssl      = ( ! empty( $s['HTTPS'] ) && $s['HTTPS'] == 'on' );
-        $sp       = strtolower( $s['SERVER_PROTOCOL'] );
-        $protocol = substr( $sp, 0, strpos( $sp, '/' ) ) . ( ( $ssl ) ? 's' : '' );
-        $port     = $s['SERVER_PORT'];
-        $port     = ( ( ! $ssl && $port=='80' ) || ( $ssl && $port=='443' ) ) ? '' : ':'.$port;
-        $host     = ( $use_forwarded_host && isset( $s['HTTP_X_FORWARDED_HOST'] ) ) ? $s['HTTP_X_FORWARDED_HOST'] : ( isset( $s['HTTP_HOST'] ) ? $s['HTTP_HOST'] : null );
-        $host     = isset( $host ) ? $host : $s['SERVER_NAME'] . $port;
-        return $protocol . '://' . $host;
-    }
-    
-    private static function full_url( $s, $use_forwarded_host = false )
-    {
-        return self::url_origin( $s, $use_forwarded_host ) . $s['REQUEST_URI'];
-    }
-    
-
-
-   
-
-    
-}
 
 
 
