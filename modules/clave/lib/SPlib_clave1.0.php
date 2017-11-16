@@ -916,6 +916,7 @@ class sspmod_clave_SPlib {
         @openssl_pkey_get_private($keyPem) or $this->fail(__FUNCTION__, self::ERR_RSA_KEY_READ);    
     }
     catch(Exception $e){
+      $keyPem = str_replace("\n","",$keyPem);
       $keyPem =
         "-----BEGIN PRIVATE KEY-----\n"
         . chunk_split($keyPem,64,"\n")
@@ -940,6 +941,7 @@ class sspmod_clave_SPlib {
       @openssl_x509_read($certPem) or $this->fail(__FUNCTION__, self::ERR_X509_CERT_READ);
     }
     catch(Exception $e){
+      $certPem = str_replace("\n","",$certPem);
       $certPem =
         "-----BEGIN CERTIFICATE-----\n"
         . chunk_split($certPem,64,"\n")
