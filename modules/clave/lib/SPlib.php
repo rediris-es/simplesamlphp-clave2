@@ -3,7 +3,7 @@
 
 //require_once('xmlseclibs.php');
 
-//eIDAS compliant SP (IdP still stork-clave1)
+//TODO eIDAS compliant SP (IdP still stork-clave1). Make it dual mode, both at SP and IdP
 
 class sspmod_clave_SPlib {
   
@@ -76,6 +76,15 @@ class sspmod_clave_SPlib {
   const LOA_SUBST ="http://eidas.europa.eu/LoA/substantial";
   const LOA_HIGH = "http://eidas.europa.eu/LoA/high";
 
+  //eIDAS SP types
+  const EIDAS_SPTYPE_PUBLIC  = "public";
+  const EIDAS_SPTYPE_PRIVATE = "private";
+  
+  
+  const NAMEID_FORMAT_PERSISTENT  = "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent";
+  const NAMEID_FORMAT_TRANSIENT   = "urn:oasis:names:tc:SAML:2.0:nameid-format:transient";
+  const NAMEID_FORMAT_UNSPECIFIED = "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified";
+      
   
   // List of accepted attributes (friendly names)
   // Edit as you need it.
@@ -124,6 +133,52 @@ class sspmod_clave_SPlib {
   );
 
 
+  //eIDAS attributes (FriendlyName -> Name)
+  const EIDAS_ATTR_PREFIX = "http://eidas.europa.eu/attributes/";
+  private static $eIdasAttributes = array(
+      "PersonIdentifier"     => self::EIDAS_ATTR_PREFIX."naturalperson/PersonIdentifier",
+      "FirstName"            => self::EIDAS_ATTR_PREFIX."naturalperson/CurrentGivenName",
+      "FamilyName"           => self::EIDAS_ATTR_PREFIX."naturalperson/CurrentFamilyName",
+      "DateOfBirth"          => self::EIDAS_ATTR_PREFIX."naturalperson/DateOfBirth",
+      "AdditionalAttribute"  => self::EIDAS_ATTR_PREFIX."naturalperson/AdditionalAttribute",
+      "BirthName"            => self::EIDAS_ATTR_PREFIX."naturalperson/BirthName",
+      "CurrentAddress"       => self::EIDAS_ATTR_PREFIX."naturalperson/CurrentAddress",
+      "Gender"               => self::EIDAS_ATTR_PREFIX."naturalperson/Gender",
+      "PlaceOfBirth"         => self::EIDAS_ATTR_PREFIX."naturalperson/PlaceOfBirth",
+
+      "D-2012-17-EUIdentifier"    => self::EIDAS_ATTR_PREFIX."legalperson/D-2012-17-EUIdentifier",
+      "EORI"                      => self::EIDAS_ATTR_PREFIX."legalperson/EORI",
+      "LEI"                       => self::EIDAS_ATTR_PREFIX."legalperson/LEI",
+      "LegalAdditionalAttribute"  => self::EIDAS_ATTR_PREFIX."legalperson/LegalAdditionalAttribute",
+      "LegalAddress"              => self::EIDAS_ATTR_PREFIX."legalperson/LegalAddress",
+      "LegalName"                 => self::EIDAS_ATTR_PREFIX."legalperson/LegalName",
+      "LegalPersonIdentifier"     => self::EIDAS_ATTR_PREFIX."legalperson/LegalPersonIdentifier",
+      "SEED"                      => self::EIDAS_ATTR_PREFIX."legalperson/SEED",
+      "SIC"                       => self::EIDAS_ATTR_PREFIX."legalperson/SIC",
+      "TaxReference"              => self::EIDAS_ATTR_PREFIX."legalperson/TaxReference",
+      "VATRegistration"           => self::EIDAS_ATTR_PREFIX."legalperson/VATRegistration",
+
+      "RepresentativeD-2012-17-EUIdentifier"  => self::EIDAS_ATTR_PREFIX."legalperson/representative/D-2012-17-EUIdentifier",
+      "RepresentativeEORI"                    => self::EIDAS_ATTR_PREFIX."legalperson/representative/EORI",
+      "RepresentativeLEI"                     => self::EIDAS_ATTR_PREFIX."legalperson/representative/LEI",
+      "RepresentativeLegalAddress"            => self::EIDAS_ATTR_PREFIX."legalperson/representative/LegalAddress",
+      "RepresentativeLegalName"               => self::EIDAS_ATTR_PREFIX."legalperson/representative/LegalName",
+      "RepresentativeLegalPersonIdentifier"   => self::EIDAS_ATTR_PREFIX."legalperson/representative/LegalPersonIdentifier",
+      "RepresentativeSEED"                    => self::EIDAS_ATTR_PREFIX."legalperson/representative/SEED",
+      "RepresentativeSIC"                     => self::EIDAS_ATTR_PREFIX."legalperson/representative/SIC",
+      "RepresentativeTaxReference"            => self::EIDAS_ATTR_PREFIX."legalperson/representative/TaxReference",
+      "RepresentativeVATRegistration"         => self::EIDAS_ATTR_PREFIX."legalperson/representative/VATRegistration",
+
+      "RepresentativeBirthName"         => self::EIDAS_ATTR_PREFIX."naturalperson/representative/BirthName",
+      "RepresentativeCurrentAddress"    => self::EIDAS_ATTR_PREFIX."naturalperson/representative/CurrentAddress",
+      "RepresentativeFamilyName"        => self::EIDAS_ATTR_PREFIX."naturalperson/representative/CurrentFamilyName",
+      "RepresentativeFirstName"         => self::EIDAS_ATTR_PREFIX."naturalperson/representative/CurrentGivenName",
+      "RepresentativeDateOfBirth"       => self::EIDAS_ATTR_PREFIX."naturalperson/representative/DateOfBirth",
+      "RepresentativeGender"            => self::EIDAS_ATTR_PREFIX."naturalperson/representative/Gender",
+      "RepresentativePersonIdentifier"  => self::EIDAS_ATTR_PREFIX."naturalperson/representative/PersonIdentifier",
+      "RepresentativePlaceOfBirth"      => self::EIDAS_ATTR_PREFIX."naturalperson/representative/PlaceOfBirth",
+      
+  );
 
   
   /************ Internal config vars *************/
@@ -137,7 +192,11 @@ class sspmod_clave_SPlib {
   private static $AttrNamePrefix = "http://www.stork.gov.eu/1.0/";
   private static $AttrNF         = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri";
   
-  
+
+  //Protocol to be used (0:Stork, 1:eIDAS)
+  private $mode;
+
+   
   /*********** Request attributes **************/
   
   //SamlResquestTokenID and generation timestamp
@@ -243,6 +302,15 @@ class sspmod_clave_SPlib {
 
   // The received LogoutRequest token (xml string)
   private $SLOReqToken;
+
+
+
+  /************ eIDAS ***************/
+  
+  //Type of SP (private sector, public sector)
+  private $spType;
+  private $nameIdFormat;
+  
   
   
   /*************************  Error treatment, log and debug  *************************/
@@ -431,8 +499,10 @@ class sspmod_clave_SPlib {
   public function __construct (){
     
     self::trace(__CLASS__.".".__FUNCTION__."()");
-
+    
     // Defaults
+    $this->mode = 0; //Default mode is Stork, the legacy one
+    
     $this->digestMethod = self::SHA512;
     $this->c14nMethod   = self::EXC_C14N;
     
@@ -447,6 +517,9 @@ class sspmod_clave_SPlib {
     $this->decryptPrivateKey  = NULL;
     $this->doDecipher         = false;
     $this->onlyEncrypted      = false;
+    
+    $this->spType = NULL;
+    $this->nameIdFormat = self::NAMEID_FORMAT_PERSISTENT;
     
     //request ID is randomly generated
     $this->ID = self::generateID();
@@ -475,8 +548,12 @@ class sspmod_clave_SPlib {
     self::debug("Adding attribute ".$friendlyName." required(".self::bts($required).")");
     
     // We check if it is a supported attribute (always allow if mandatory)
+//    if(!$required)
+//      self::$ATTRIBUTES[$friendlyName] or $this->fail(__FUNCTION__, self::ERR_NONEXIST_STORK_ATTR, $friendlyName);
+    
     if(!$required)
-      self::$ATTRIBUTES[$friendlyName] or $this->fail(__FUNCTION__, self::ERR_NONEXIST_STORK_ATTR, $friendlyName);
+        self::$eIdasAttributes[$friendlyName] or $this->fail(__FUNCTION__, self::ERR_NONEXIST_STORK_ATTR, $friendlyName);
+    
     
     
     if($values)
@@ -512,16 +589,14 @@ class sspmod_clave_SPlib {
         .$transformedValue.'</eidas:AttributeValue>';
     }
     
-
-        FriendlyName
-    $preffix = ;
-    $suffix  = 'NameFormat="'.self::$AttrNF.'" isRequired="'.self::bts($required).'"';
-    
     $attrLine = '<eidas:RequestedAttribute'
         .' FriendlyName="'.$friendlyName.'"'
-        .' Name="'.self::$AttrNamePrefix.$friendlyName.'"'
-        .$suffix
-        .$tagClose.$valueAddition.$closeTag;
+        .' Name="'.self::$eIdasAttributes[$friendlyName].'"'
+        .' NameFormat="'.self::$AttrNF.'"'
+        .' isRequired="'.self::bts($required).'"'
+        .$tagClose
+        .$valueAddition
+        .$closeTag;
         
     //We add the attribute to the requested attributes array
     // [Notice that an attribute can be requested multiple times]
@@ -632,9 +707,9 @@ class sspmod_clave_SPlib {
     $this->crossSectorShare = $crossSectorShare;
     $this->crossBorderShare = $crossBorderShare;
   }
-
-
-  // TODO ¡
+  
+  
+  
   //Establishes an equivalence between Stork QAA levels and eIDAS LoA
   //levels
   public function qaaToLoA($QAA) {
@@ -682,7 +757,27 @@ class sspmod_clave_SPlib {
        || $this->signKey == NULL || $this->signKey == ""
        || $this->signKeyType == NULL || $this->signKeyType == "")
       $this->fail(__FUNCTION__, self::ERR_EMPTY_KEY);
+
     
+    $specificNamespaces = 'xmlns:stork="'.self::NS_STORK.'" '.'xmlns:storkp="'.self::NS_STORKP.'" ';
+    if($this->mode === 1)
+        $specificNamespaces = 'xmlns:eidas="'.self::NS_EIDAS.'" ';
+    
+    $assertionConsumerServiceURL = 'AssertionConsumerServiceURL="'.htmlspecialchars($this->ReturnAddr).'" ';
+    if($this->mode === 1)  //On eIDAS, this SHOULD NOT be sent.
+        $assertionConsumerServiceURL = "";
+    
+    $protocolBinding = 'ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" ';
+    if($this->mode === 1)  //On eIDAS, this SHOULD NOT be sent.
+        $protocolBinding = "";
+    
+    
+    $nsPrefix1="stork";
+    $nsPrefix2="storkp";
+    if($this->mode === 1){
+        $nsPrefix1 = "eidas";
+        $nsPrefix2 = "eidas";
+    }
     
     self::debug("Setting request header.");
     //Header of the SAML Auth Request 
@@ -690,20 +785,16 @@ class sspmod_clave_SPlib {
         .'<saml2p:AuthnRequest '
         .'xmlns:saml2p="'.self::NS_SAML2P.'" '
         .'xmlns:ds="'.self::NS_XMLDSIG.'" '
-        .'xmlns:eidas="'.self::NS_EIDAS.'" '
         .'xmlns:saml2="'.self::NS_SAML2.'" '
-/*
-        .'xmlns:stork="'.self::NS_STORK.'" '
-        .'xmlns:storkp="'.self::NS_STORKP.'" '
-*/
-        .'AssertionConsumerServiceURL="'.htmlspecialchars($this->ReturnAddr).'" ' //TODO SHOULD NOT be sent
+        .$specificNamespaces
+        .$assertionConsumerServiceURL
         .'Consent="'.self::CNS_UNS.'" '
         .'Destination="'.htmlspecialchars($this->SPEPS).'" '
         .'ForceAuthn="'.self::bts($this->forceAuthn).'" '
         .'ID="'.$this->ID.'" '
         .'IsPassive="false" '
         .'IssueInstant="'.$this->TSTAMP.'" '
-        .'ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" '  //TODO SHOULD NOT be sent
+        .$protocolBinding
         .'ProviderName="'.htmlspecialchars($this->ServiceProviderName).'" '
         .'Version="2.0">';
     
@@ -715,78 +806,82 @@ class sspmod_clave_SPlib {
       .'</saml2:Issuer>';
     
     
-    //Stork profile extensions: requested attributes  // TODO put new attribute profile and attr metadata
+    //Stork profile extensions: requested attributes
     self::debug("Setting request attributes.");
     $RequestedAttributes = '';
     
     if(count($this->AttrList)>0){
-      $RequestedAttributes = '<storkp:RequestedAttributes>';
+      $RequestedAttributes = '<'.$nsPrefix2.':RequestedAttributes>';
       foreach ($this->AttrList as $attr){
         $RequestedAttributes .= $attr;
       }
-      $RequestedAttributes .= '</storkp:RequestedAttributes>';
+      $RequestedAttributes .= '</'.$nsPrefix2.':RequestedAttributes>';
+    }
+    
+    
+    if($this->mode === 0){  //Stork only
+
+        //Stork profile extensions: authentication additional attributes (optional)
+        $StorkExtAuthAttrs = "";
+        if($this->ServiceProviderID != NULL && $this->ServiceProviderID != ""
+        && $this->CitizenCountry != NULL && $this->CitizenCountry != ""
+        ){      
+            self::debug("Setting profile extensions: authentication additional attributes (optional).");
+      
+            $StorkExtAuthAttrs = '<storkp:AuthenticationAttributes>'
+                .'<storkp:VIDPAuthenticationAttributes>';
+      
+            if($this->CitizenCountry != NULL && $this->CitizenCountry != ""){
+                $StorkExtAuthAttrs .= '<storkp:CitizenCountryCode>'
+                    .htmlspecialchars($this->CitizenCountry)
+                    .'</storkp:CitizenCountryCode>';
+            }
+      
+            $StorkExtAuthAttrs .= '<storkp:SPInformation>'
+                .'<storkp:SPID>'
+                .htmlspecialchars($this->ServiceProviderID)
+                .'</storkp:SPID>'
+                .'</storkp:SPInformation>'
+                .'</storkp:VIDPAuthenticationAttributes>'
+                .'</storkp:AuthenticationAttributes>';
+        }
+
+    
+        self::debug("Setting request QAA.");
+        //Stork profile extensions: QAA
+        $QAA = '<stork:QualityAuthenticationAssuranceLevel>'
+            .htmlspecialchars($this->QAALevel)
+            .'</stork:QualityAuthenticationAssuranceLevel>';
+    
+    
+        //Stork profile extensions: SP info (optional)
+        if($this->ServiceProviderCountry != NULL && $this->ServiceProviderCountry != ""
+        && $this->ServiceProviderSector != NULL && $this->ServiceProviderSector != ""
+        && $this->ServiceProviderInstitution != NULL && $this->ServiceProviderInstitution != ""
+        && $this->ServiceProviderApplication != NULL && $this->ServiceProviderApplication != ""
+        ){
+            self::debug("Setting request SP info (optional).");
+
+            $SPinfo = '<stork:spSector>'.htmlspecialchars($this->ServiceProviderSector).'</stork:spSector>'
+                .'<stork:spInstitution>'.htmlspecialchars($this->ServiceProviderInstitution).'</stork:spInstitution>'
+                .'<stork:spApplication>'.htmlspecialchars($this->ServiceProviderApplication).'</stork:spApplication>'
+                .'<stork:spCountry>'.htmlspecialchars($this->ServiceProviderCountry).'</stork:spCountry>';
+        }
+    
+        self::debug("Setting request eID sharing permissions.");
+        //Stork profile extensions: eId sharing permissions.
+        $eIdShareInfo = '<storkp:eIDSectorShare>'.htmlspecialchars(self::bts($this->sectorShare)).'</storkp:eIDSectorShare>'
+            .'<storkp:eIDCrossSectorShare>'.htmlspecialchars(self::bts($this->crossSectorShare)).'</storkp:eIDCrossSectorShare>'
+            .'<storkp:eIDCrossBorderShare>'.htmlspecialchars(self::bts($this->crossBorderShare)).'</storkp:eIDCrossBorderShare>';
     }
     
 
-/*
-    //Stork profile extensions: authentication additional attributes (optional)
-    $StorkExtAuthAttrs = "";
-    if($this->ServiceProviderID != NULL && $this->ServiceProviderID != ""
-       && $this->CitizenCountry != NULL && $this->CitizenCountry != ""
-       ){      
-      self::debug("Setting profile extensions: authentication additional attributes (optional).");
-      
-      $StorkExtAuthAttrs = '<storkp:AuthenticationAttributes>'
-        .'<storkp:VIDPAuthenticationAttributes>';
-      
-      if($this->CitizenCountry != NULL && $this->CitizenCountry != ""){
-        $StorkExtAuthAttrs .= '<storkp:CitizenCountryCode>'
-          .htmlspecialchars($this->CitizenCountry)
-          .'</storkp:CitizenCountryCode>';
-      }
-      
-      $StorkExtAuthAttrs .= '<storkp:SPInformation>'
-        .'<storkp:SPID>'
-        .htmlspecialchars($this->ServiceProviderID)
-        .'</storkp:SPID>'
-        .'</storkp:SPInformation>'
-        .'</storkp:VIDPAuthenticationAttributes>'
-        .'</storkp:AuthenticationAttributes>';
+    if($this->mode === 1){  //eIDAS only
+        //Sending is optional, but in that case, it must be set at the eIDAS node metadata
+        if ($this->spType !== NULL && $this->spType !== ""){
+            $SPtype = '<eidas:SPType>'.$this->spType.'</eidas:SPType>';
+        }
     }
-
-    
-    self::debug("Setting request QAA.");
-    //Stork profile extensions: QAA
-    $QAA = '<stork:QualityAuthenticationAssuranceLevel>'
-      .htmlspecialchars($this->QAALevel)
-      .'</stork:QualityAuthenticationAssuranceLevel>';
-    
-    
-    //Stork profile extensions: SP info (optional)
-    if($this->ServiceProviderCountry != NULL && $this->ServiceProviderCountry != ""
-       && $this->ServiceProviderSector != NULL && $this->ServiceProviderSector != ""
-       && $this->ServiceProviderInstitution != NULL && $this->ServiceProviderInstitution != ""
-       && $this->ServiceProviderApplication != NULL && $this->ServiceProviderApplication != ""
-       ){
-      self::debug("Setting request SP info (optional).");
-
-      $SPinfo = '<stork:spSector>'.htmlspecialchars($this->ServiceProviderSector).'</stork:spSector>'
-        .'<stork:spInstitution>'.htmlspecialchars($this->ServiceProviderInstitution).'</stork:spInstitution>'
-        .'<stork:spApplication>'.htmlspecialchars($this->ServiceProviderApplication).'</stork:spApplication>'
-        .'<stork:spCountry>'.htmlspecialchars($this->ServiceProviderCountry).'</stork:spCountry>';
-    }
-    
-    self::debug("Setting request eID sharing permissions.");
-    //Stork profile extensions: eId sharing permissions.
-    $eIdShareInfo = '<storkp:eIDSectorShare>'.htmlspecialchars(self::bts($this->sectorShare)).'</storkp:eIDSectorShare>'
-      .'<storkp:eIDCrossSectorShare>'.htmlspecialchars(self::bts($this->crossSectorShare)).'</storkp:eIDCrossSectorShare>'
-      .'<storkp:eIDCrossBorderShare>'.htmlspecialchars(self::bts($this->crossBorderShare)).'</storkp:eIDCrossBorderShare>';
-*/
-    
-    
-    
-    $SPtype = '<eidas:SPType>public</eidas:SPType>';  // TODO parametrise: public, private or don't send the node (in that case, it must be on the published metadata)
-    
     
     
     $Extensions = '<saml2p:Extensions>'
@@ -797,34 +892,38 @@ class sspmod_clave_SPlib {
       .$RequestedAttributes
 //      .$StorkExtAuthAttrs
       .'</saml2p:Extensions>';
-
-
-    $NameIDPolicy = '<saml2p:NameIDPolicy' // TODO parametrizar format (persisten, transient, unspecified)
-        .' AllowCreate="true"'
-        .' Format="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent"'
-        .' />';
     
     
-    $AuthnContext = "";
-    $LoA = $this->qaaToLoA($this->QAALevel);
-    if($LoA != ""){
-        $AuthnContext = '<saml2p:RequestedAuthnContext' // TODO
-            .' Comparison="minimum">'
-            .'<saml2:AuthnContextClassRef>'.htmlspecialchars($LoA).'</saml2:AuthnContextClassRef>'
-            .'</saml2p:RequestedAuthnContext>';
+    if($this->mode === 1){  //eIDAS only
+        
+        //Set the format of the identifier of the principal (persistent, transient, unspecified)
+        $NameIDPolicy = '<saml2p:NameIDPolicy'
+            .' AllowCreate="true"'
+            .' Format="'.$this->nameIdFormat.'"'
+            .' />';
+
+        //Set the required Level of Assurance for authentication
+        //(comparison is always minimum-required-value)
+        $AuthnContext = "";
+        $LoA = $this->qaaToLoA($this->QAALevel);
+        if($LoA != ""){
+            $AuthnContext = '<saml2p:RequestedAuthnContext'
+                .' Comparison="minimum">'
+                .'<saml2:AuthnContextClassRef>'.htmlspecialchars($LoA).'</saml2:AuthnContextClassRef>'
+                .'</saml2p:RequestedAuthnContext>';
+        }
     }
     
-    $RootTagClose = '</saml2p:AuthnRequest>';  
     
-    
+    //Compose the AuthnRequest
     $this->samlAuthReq = $RootTagOpen
       .$Issuer
       .$Extensions
       .$NameIDPolicy
       .$AuthnContext
-      .$RootTagClose;
+      .'</saml2p:AuthnRequest>';
     
-
+    
     if($signed){
       self::debug("Proceeding to sign the request.");
       $this->samlAuthReq = $this->calculateXMLDsig($this->samlAuthReq);
@@ -955,12 +1054,15 @@ class sspmod_clave_SPlib {
   
     self::debug("Appending signature certificate.");
     $objDSig->add509Cert($this->signCert);
-    $objDSig->appendSignature($doc->documentElement, true);
+    
+    //$objDSig->appendSignature($doc->documentElement, true); //Inserts the signature ahead
+    $extensions = $doc->getElementsByTagName('Extensions')[0];
+    $objDSig->insertSignature($doc->documentElement, $extensions); //Inserts signature before the Extensions
     
     self::debug("Marshalling signed document.");
     return $doc->saveXML();
   }
-
+  
   
   
   
@@ -979,6 +1081,7 @@ class sspmod_clave_SPlib {
         @openssl_pkey_get_private($keyPem) or $this->fail(__FUNCTION__, self::ERR_RSA_KEY_READ);    
     }
     catch(Exception $e){
+      $keyPem = str_replace("\n","",$keyPem);
       $keyPem =
         "-----BEGIN PRIVATE KEY-----\n"
         . chunk_split($keyPem,64,"\n")
@@ -1003,6 +1106,7 @@ class sspmod_clave_SPlib {
       @openssl_x509_read($certPem) or $this->fail(__FUNCTION__, self::ERR_X509_CERT_READ);
     }
     catch(Exception $e){
+      $certPem = str_replace("\n","",$certPem);
       $certPem =
         "-----BEGIN CERTIFICATE-----\n"
         . chunk_split($certPem,64,"\n")
@@ -1613,6 +1717,8 @@ class sspmod_clave_SPlib {
     if($externalKey != "" && $externalKey != NULL){
       self::debug("Loading external verification public key.");
       $extKey->loadKey($externalKey);
+      self::trace("KEY: \n".$externalKey);
+      
       //If it can't be loaded, we must fail.
       if (!$extKey->key) {
         $this->fail(__FUNCTION__, self::ERR_BAD_PUBKEY_CERT);
@@ -1853,12 +1959,13 @@ class sspmod_clave_SPlib {
           ); 
       }
       
-      $ret['spCert'] = "".$samlReq->children(self::NS_XMLDSIG,false)->Signature->KeyInfo->X509Data->X509Certificate; // TODO get the signing cert
-            
+      //Include the embedded certificate in the returned data
+      $ret['spCert'] = "".$samlReq->children(self::NS_XMLDSIG,false)->Signature->KeyInfo->X509Data->X509Certificate;
+      
       return $ret;
   }
   
-
+  
   
   /*******************  SAML RESPONSE GENERATION  *********************/
   
@@ -2659,12 +2766,77 @@ class sspmod_clave_SPlib {
   
   
   
+  
+  //Switch to eIDAS mode
+  public function setEidasMode() {
+      $this->mode = 1;
+  }
+  
+  
+  //Set eIDAS specific parameters (LoA is inferred from the QAA, but
+  //can set here too)
+  public function setEidasRequestParams($spType = self::EIDAS_SPTYPE_PUBLIC,
+                                        $nameIdFormat = self::NAMEID_FORMAT_PERSISTENT,
+                                        $QAALevel = 1){
+      
+      if($spType !== self::EIDAS_SPTYPE_PUBLIC
+      && $spType !== self::EIDAS_SPTYPE_PRIVATE){
+          $this->fail(__FUNCTION__, self::ERR_GENERIC,"eIDAS SPType not valid: $spType");
+      }
+      
+      
+      if($nameIdFormat !== self::NAMEID_FORMAT_PERSISTENT
+      && $nameIdFormat !== self::NAMEID_FORMAT_TRANSIENT
+      && $nameIdFormat !== self::NAMEID_FORMAT_UNSPECIFIED){
+          $this->fail(__FUNCTION__, self::ERR_GENERIC,"eIDAS nameID format not valid: $nameIdFormat");
+      }
+      
+      
+      $this->spType       = $spType;
+      $this->nameIdFormat = $nameIdFormat;
+      $this->QAALevel     = $QAALevel;
+  }
+  
+  // TODO falta adaptar la respuesta
+
+  
+  
 } // Class
 
 
 
 
-// Wrapper class to simplify integration
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Wrapper class to simplify integration of clave1.0 (Stork) authentication
 
 class claveAuth {
 
