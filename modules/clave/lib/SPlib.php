@@ -3,8 +3,10 @@
 
 //require_once('xmlseclibs.php');
 
-//TODO eIDAS compliant SP (IdP still stork-clave1). Make it dual mode, both at SP and IdP
+// TODO (IdP still stork-clave1). Make it dual mode, both at SP and IdP, just response generatin lacking
 
+
+//STORK and eIDAS compliant SP
 class sspmod_clave_SPlib {
   
   const VERSION = "2.0.0";
@@ -47,13 +49,16 @@ class sspmod_clave_SPlib {
   const CNS_INA = "urn:oasis:names:tc:SAML:2.0:consent:inapplicable";
     
   //Namespaces.
-  const NS_SAML2   = "urn:oasis:names:tc:SAML:2.0:assertion";
-  const NS_SAML2P  = "urn:oasis:names:tc:SAML:2.0:protocol";
-  const NS_XMLDSIG = "http://www.w3.org/2000/09/xmldsig#";
-  const NS_STORK   = "urn:eu:stork:names:tc:STORK:1.0:assertion";
-  const NS_STORKP  = "urn:eu:stork:names:tc:STORK:1.0:protocol";
-  const NS_XMLSCH  = "http://www.w3.org/2001/XMLSchema";
-  const NS_EIDAS   = "http://eidas.europa.eu/saml-extensions";
+  const NS_SAML2    = "urn:oasis:names:tc:SAML:2.0:assertion";
+  const NS_SAML2P   = "urn:oasis:names:tc:SAML:2.0:protocol";
+  const NS_XMLDSIG  = "http://www.w3.org/2000/09/xmldsig#";
+  const NS_STORK    = "urn:eu:stork:names:tc:STORK:1.0:assertion";
+  const NS_STORKP   = "urn:eu:stork:names:tc:STORK:1.0:protocol";
+  const NS_XMLSCH   = "http://www.w3.org/2001/XMLSchema";
+  const NS_XSI      = "http://www.w3.org/2001/XMLSchema-instance";
+  const NS_EIDAS    = "http://eidas.europa.eu/saml-extensions";
+  const NS_EIDASATT = "http://eidas.europa.eu/attributes/naturalperson";  // TODO este no sé muy bien qué pinta. Cuando reciba una req con datos lo sabré, y sabré si hay 2 o 4 y cambia y cómo se hace si hay varios (creo que habrá sólo 2 y serán alternativos, o igual uno de natural y otro de legal y puedan estar juntos). Se usa para el attribute value:transliyterated langInfo... y para la semánmtica de los attrs en el xs:type, pero este último ya queda fuera de scope.
+  
   
   //SAML Main status codes
   const ST_SUCCESS   = "urn:oasis:names:tc:SAML:2.0:status:Success";
@@ -583,8 +588,8 @@ class sspmod_clave_SPlib {
         $transformedValue = htmlspecialchars($value);
       
       $valueAddition .= '<eidas:AttributeValue '
-        .'xmlns:xs="http://www.w3.org/2001/XMLSchema" '
-        .'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+        .'xmlns:xs="'.self::NS_XMLSCH.'" '
+        .'xmlns:xsi="'.self::NS_XSI.'" '
         .'xsi:type="xs:string">'
         .$transformedValue.'</eidas:AttributeValue>';
     }
@@ -729,7 +734,27 @@ class sspmod_clave_SPlib {
       
       return "";
   }
-  
+
+
+
+  public function loaToQaa($LoA) {
+      
+      if($LoA === NULL || $LoA === "")
+          return "";
+      
+      if( is_string($LoA) === false )
+          return "";
+      
+      if($LoA == self::LOA_LOW)
+          return 2;
+      if($LoA == self::LOA_SUBST)
+          return 3;
+      if($LoA >= self::LOA_HIGH)
+          return 4;
+      
+      return 1;
+  }
+    
   
   
   // $signed:  Wether if the generated request has to be digitally signed or not.
@@ -881,16 +906,20 @@ class sspmod_clave_SPlib {
         if ($this->spType !== NULL && $this->spType !== ""){
             $SPtype = '<eidas:SPType>'.$this->spType.'</eidas:SPType>';
         }
+        $QAA="";
+        $SPinfo="";
+        $eIdShareInfo="";
+        $StorkExtAuthAttrs="";
     }
     
-    
+
     $Extensions = '<saml2p:Extensions>'
-      .$SPtype
-//      .$QAA
-//      .$SPinfo
-//      .$eIdShareInfo
+      .$SPtype  //eIDAS
+      .$QAA  //Stork
+      .$SPinfo  //Stork
+      .$eIdShareInfo  //Stork
       .$RequestedAttributes
-//      .$StorkExtAuthAttrs
+      .$StorkExtAuthAttrs  //Stork
       .'</saml2p:Extensions>';
     
     
@@ -1150,7 +1179,7 @@ class sspmod_clave_SPlib {
   
   
   
-  //Validates the received SamlResponse by comparing it to the request
+  //Validates the received SamlResponse by comparing it to the request  // TODO adapt for eIDAs: review
   public function validateStorkResponse($storkSamlResponseToken, $checkDates=True, $checkSignature=True){
     
     self::debug(__CLASS__.".".__FUNCTION__."()");
@@ -1263,7 +1292,7 @@ class sspmod_clave_SPlib {
 
     // Once all assertions are parsed check if all mandatory attributes have been served.
     if($this->mandatoryAttrList){
-        self::debug("Checking that mandatory attributes were sent.");      
+        self::debug("Checking that mandatory attributes were served.");      
         foreach($this->mandatoryAttrList as $mAttr){
             self::trace("Searching attribute: $mAttr");
             $found = false;
@@ -1452,7 +1481,7 @@ class sspmod_clave_SPlib {
   
   
   //Parse and extract information from the assertion subject
-  // $subject:  SimpleXML object representing the Subject
+  // $subject:  SimpleXML object representing the Subject  // TODO see if namequalifier being absent is a problem
   private function parseAssertionSubject($subject){
     
     self::debug(__CLASS__.".".__FUNCTION__."()");
@@ -1462,8 +1491,7 @@ class sspmod_clave_SPlib {
     
     try{
       $subjectInfo = array(
-        "NameID"        => "".$subject->NameID,
-        "NameQualifier" => "".$subject->NameID->attributes()->NameQualifier, //Should be the domain name of the C-PEPS
+        "NameID"        => "".$subject->NameID, //In eIDAS, it will be the same as the PersonIdentifier attribute
         "NameFormat"    => "".$subject->NameID->attributes()->Format,
         "Method"        => "".$subject->SubjectConfirmation->attributes()->Method,
         "Address"       => "".$subject->SubjectConfirmation->SubjectConfirmationData->attributes()->Address,
@@ -1471,8 +1499,11 @@ class sspmod_clave_SPlib {
         "NotOnOrAfter"  => "".$subject->SubjectConfirmation->SubjectConfirmationData->attributes()->NotOnOrAfter,
         "NotBefore"     => "".$subject->SubjectConfirmation->SubjectConfirmationData->attributes()->NotBefore,
         "Recipient"     => "".$subject->SubjectConfirmation->SubjectConfirmationData->attributes()->Recipient
-                           );
-    }catch(Exception $e){
+      );
+      if($subject->NameID->attributes()->NameQualifier) //In Stork, should be the DomainName of the C-PEPS
+          $subjectInfo["NameQualifier"] = "".$subject->NameID->attributes()->NameQualifier;
+      
+    } catch(Exception $e){
       $this->fail(__FUNCTION__, self::ERR_BAD_ASSERT_SUBJ,$e);
     }
     
@@ -1538,7 +1569,14 @@ class sspmod_clave_SPlib {
           $assertionInfo['AuthnStatement']['LocalityAddress'] = "".$assertion->AuthnStatement->SubjectLocality->attributes()->Address;
           $assertionInfo['AuthnStatement']['LocalityDNSName'] = "".$assertion->AuthnStatement->SubjectLocality->attributes()->DNSName;
         }
-
+        
+        //On eIDAS, this is the QAA of the authentication
+        if($assertion->AuthnContext){
+          if($assertion->AuthnContext->AuthnContextClassRef){
+              $assertionInfo['AuthnStatement']['AuthnContext'] = "".$assertion->AuthnContext->AuthnContextClassRef;
+          }
+        }
+        
         self::debug("Parsing Attributes.");        
         //Get Attributes
         $assertionInfo['Attributes'] = self::parseAssertionAttributes($assertion->AttributeStatement);
@@ -1559,6 +1597,8 @@ class sspmod_clave_SPlib {
   
   //Parses the attribute statement of an assertion.
   // $attributes: SimpleXML object representing the attribute statement
+  //Will return an array with the assertion data. 0n eIDAS, attribute
+  //values have one more level of depth: access as ['value']['value]  //TODO probar y revisar cuando tenga una resp correcta
   private function parseAssertionAttributes($attributeStatement){
     
     self::debug(__CLASS__.".".__FUNCTION__."()");
@@ -1568,15 +1608,22 @@ class sspmod_clave_SPlib {
     
     $attrInfo = array();
     foreach ($attributeStatement->Attribute as $attr){
-      $attrname = preg_replace("|.+/(.+?)$|i", "\\1", $attr->attributes()->Name);
-      $attrstatus = "".$attr->attributes(self::NS_STORK,false)->AttributeStatus;
+      
+      if($this->mode === 0){ //Stork
+          $attrname = preg_replace("|.+/(.+?)$|i", "\\1", $attr->attributes()->Name);
+          $attrstatus = "".$attr->attributes(self::NS_STORK,false)->AttributeStatus;
+      }
+      if($this->mode === 1){ //eIDAS
+          $attrname = $attr->attributes()->FriendlyName;
+          $attrstatus = NULL;
+      }
       
       //Status is optional. default value is available
       if(!$attrstatus)
         $attrstatus = self::ATST_AVAIL;
       
       self::debug("Parsing Attribute: ".$attr->attributes()->Name." ($attrname)");
-
+      
       $attribute = array(
          'friendlyName'    => $attrname,
          'Name'            => "".$attr->attributes()->Name,
@@ -1594,37 +1641,62 @@ class sspmod_clave_SPlib {
           
           //$attribute['values'][] = $attrval->asXML();
           
-          
-          //Looks for XML nodes in the STORK namespace inside attribute value
-          if(count($attrval->children(self::NS_STORK)) <= 0){
-            self::trace("Attribute $attrname is simple.");
-            $attribute['values'][] = "".$attrval;
-          }else{
-            self::trace("Attribute $attrname is complex.");
-            $complexAttr = $attrval->xpath("*");
-            //We cat the XML for all children to return it
-            if($complexAttr && count($complexAttr)>0){
-              /*  $complexVal = "";
-              foreach($complexAttr as $subattr)
-                $complexVal .= $subattr->asXML();
-                $attribute['values'][] = $complexVal;*/
-              
-              //// !!!! -*-*
-              
-              $attrNode = new SimpleXMLElement('<stork:'.$attrname.' xmlns:stork="'.self::NS_STORK.'"></stork:'.$attrname.'>');//,NULL,false,'stork',true);
-              
-              //echo "\n***********".$attrNode->asXML()."\n";
+          if($this->mode === 0){ //Stork
 
-              //Declaring stork assertion namespace [xmlns:xmlns: is a common workaround to allow the ns declaration]
-              //$attrNode->addAttribute('xmlns:xmlns:stork','urn:eu:stork:names:tc:STORK:1.0:assertion');
-              foreach($complexAttr as $subattr)
-                $attrNode->addChild($subattr->getName(),"".$subattr);
+                //Looks for XML nodes in the STORK namespace inside attribute value
+                if(count($attrval->children(self::NS_STORK)) <= 0){
+                    self::trace("Attribute $attrname is simple.");
+                    $attribute['values'][] = "".$attrval;
+                }else{
+                    self::trace("Attribute $attrname is complex.");
+                    $complexAttr = $attrval->xpath("*");
+                    //We cat the XML for all children to return it
+                    if($complexAttr && count($complexAttr)>0){
+                        /*  $complexVal = "";
+                            foreach($complexAttr as $subattr)
+                            $complexVal .= $subattr->asXML();
+                            $attribute['values'][] = $complexVal;*/
               
-              //              echo "\n***********".$attrNode->xpath("//*")[0]->asXML()."\n";
-              $attribute['values'][] = $attrNode->asXML();
+                        //// !!!! -*-*
+              
+                        $attrNode = new SimpleXMLElement('<stork:'.$attrname
+                        .' xmlns:stork="'.self::NS_STORK.'"></stork:'.$attrname.'>');//,NULL,false,'stork',true);
+              
+                        //echo "\n***********".$attrNode->asXML()."\n";
 
-            }
+                        //Declaring stork assertion namespace [xmlns:xmlns: is a common workaround to allow the ns declaration]
+                        //$attrNode->addAttribute('xmlns:xmlns:stork','urn:eu:stork:names:tc:STORK:1.0:assertion');
+                        foreach($complexAttr as $subattr)
+                            $attrNode->addChild($subattr->getName(),"".$subattr);
+              
+                        //              echo "\n***********".$attrNode->xpath("//*")[0]->asXML()."\n";
+                        $attribute['values'][] = $attrNode->asXML();
+
+                    }
+                }
           }
+
+          //No complex attributes. Complex ones are in b64 (won't
+          //decode, this is SP's task, and dependent on the attribute
+          //semantics, defined by the type, defined on a profile).
+          //Also, now values is an array pof arrays, and not of
+          //strings
+          if($this->mode === 1){ //eIDAS
+              
+              $valueNode = array(   // TODO  ojo: revisar cuando pueda hacer pruebas reales. el prefijo podría cambiar si hay varios namespaces  y requeriría buscarlos todos o pasar el namespace tal cual.
+                  'value' => "".$attrval,
+                  'type'  => "".$attrval->attributes("xsi",TRUE)->type,
+              );
+              
+              if($attrval->attributes()->languageID)
+                  $valueNode['languageID'] = "".$attrval->attributes()->languageID;
+              
+              if($attrval->attributes(self::NS_EIDASATT)->Transliterated)
+                  $valueNode['Transliterated'] = "".$attrval->attributes(self::NS_EIDASATT)->Transliterated;
+              
+              $attribute['values'][] = $valueNode;
+          }
+          
         }
       }
       else // Not available or withheld
@@ -1911,8 +1983,8 @@ class sspmod_clave_SPlib {
   }
 
   //Returns an array with the important parameters of the received request
-  // If a Request is passed on the parameter, then thereturn is related
-  // to it and not to the request in the object state
+  // If a Request is passed on the parameter, then the return is related
+  // to it and not to the request in the object state       // TODO test eIDAS support 
   public function getStorkRequestData($SAMLAuthnReqToken=NULL){
       $ret = array();
       
@@ -1924,40 +1996,75 @@ class sspmod_clave_SPlib {
       
       $samlReq = $this->parseXML($request);
       
-      $ret['id']                       = "".$samlReq["ID"];
-      $ret['destination']              = "".$samlReq["Destination"];
-      $ret['assertionConsumerService'] = "".$samlReq["AssertionConsumerServiceURL"];
-      $ret['protocolBinding']          = "".$samlReq["ProtocolBinding"];
-      $ret['ProviderName']             = "".$samlReq["ProviderName"];
-      $ret['forceAuthn']               = self::stb("".$samlReq["ForceAuthn"]);
-      $ret['isPassive']                = self::stb("".$samlReq["IsPassive"]);
-
-      $ret['issuer'] = "".$samlReq->children(self::NS_SAML2,false)->Issuer;      
-
-      $ext       = $samlReq->children(self::NS_SAML2P,false)->Extensions;
-      $authAttrs = $ext->children(self::NS_STORKP,false)->AuthenticationAttributes->VIDPAuthenticationAttributes;
-      $reqAttrs  =  $ext->children(self::NS_STORKP,false)->RequestedAttributes->children(self::NS_STORK,false);
-
+      $ret['id']                   = "".$samlReq["ID"];
+      $ret['destination']          = "".$samlReq["Destination"];
+      $ret['protocolBinding']      = "".$samlReq["ProtocolBinding"];
+      $ret['ProviderName']         = "".$samlReq["ProviderName"];
+      $ret['forceAuthn']           = self::stb("".$samlReq["ForceAuthn"]);
+      $ret['isPassive']            = self::stb("".$samlReq["IsPassive"]);
       
-      $ret['QAA'] = "".$ext->children(self::NS_STORK,false)->QualityAuthenticationAssuranceLevel;
-      $ret['spSector'] = "".$ext->children(self::NS_STORK,false)->spSector;
-      $ret['spInstitution'] = "".$ext->children(self::NS_STORK,false)->spInstitution;
-      $ret['spApplication'] = "".$ext->children(self::NS_STORK,false)->spApplication;
-      $ret['spCountry'] = "".$ext->children(self::NS_STORK,false)->spCountry;
-      $ret['eIDSectorShare'] = "".$ext->children(self::NS_STORKP,false)->eIDSectorShare;
-      $ret['eIDCrossSectorShare'] = "".$ext->children(self::NS_STORKP,false)->eIDCrossSectorShare;
-      $ret['eIDCrossBorderShare'] = "".$ext->children(self::NS_STORKP,false)->eIDCrossBorderShare;
-      $ret['citizenCountryCode'] = "".$authAttrs->CitizenCountryCode;
-      $ret['spID'] = "".$authAttrs->SPInformation->SPID;
-  
-      $ret['requestedAttributes'] = array();
-      foreach($reqAttrs as $reqAttr){
-          $ret['requestedAttributes'] []= array(
-              'name'       => "".$reqAttr->attributes()->Name,
-              //Also empty string will be evaluated to false
-              'isRequired' => strtolower("".$reqAttr->attributes()->isRequired) === 'true'? true : false
-          ); 
+      if($this->mode === 0) //Stork
+          $ret['assertionConsumerService'] = "".$samlReq["AssertionConsumerServiceURL"];
+      
+      $ret['issuer'] = "".$samlReq->children(self::NS_SAML2,false)->Issuer;      
+      
+      $ext = $samlReq->children(self::NS_SAML2P,false)->Extensions;
+      
+      if($this->mode === 0){ //Stork
+          
+          $authAttrs = $ext->children(self::NS_STORKP,false)->AuthenticationAttributes->VIDPAuthenticationAttributes;
+          $reqAttrs  =  $ext->children(self::NS_STORKP,false)->RequestedAttributes->children(self::NS_STORK,false);
+          
+          $ret['QAA'] = "".$ext->children(self::NS_STORK,false)->QualityAuthenticationAssuranceLevel;
+          $ret['spSector'] = "".$ext->children(self::NS_STORK,false)->spSector;
+          $ret['spInstitution'] = "".$ext->children(self::NS_STORK,false)->spInstitution;
+          $ret['spApplication'] = "".$ext->children(self::NS_STORK,false)->spApplication;
+          $ret['spCountry'] = "".$ext->children(self::NS_STORK,false)->spCountry;
+          $ret['eIDSectorShare'] = "".$ext->children(self::NS_STORKP,false)->eIDSectorShare;
+          $ret['eIDCrossSectorShare'] = "".$ext->children(self::NS_STORKP,false)->eIDCrossSectorShare;
+          $ret['eIDCrossBorderShare'] = "".$ext->children(self::NS_STORKP,false)->eIDCrossBorderShare;
+          $ret['citizenCountryCode'] = "".$authAttrs->CitizenCountryCode;
+          $ret['spID'] = "".$authAttrs->SPInformation->SPID;
+          
+          
+          $ret['requestedAttributes'] = array();
+          foreach($reqAttrs as $reqAttr){
+              $ret['requestedAttributes'] []= array(
+                  'name'       => "".$reqAttr->attributes()->Name,
+                  //Also empty string will be evaluated to false
+                  'isRequired' => strtolower("".$reqAttr->attributes()->isRequired) === 'true'? true : false
+              ); 
+          }
       }
+      
+      if($this->mode === 1){ //eIDAS
+          
+          $authContext  = $samlReq->children(self::NS_SAML2P,false)->RequestedAuthnContext;
+          $nameIDPolicy = $samlReq->children(self::NS_SAML2P,false)->NameIDPolicy;
+          $reqAttrs     =  $ext->children(self::NS_EIDAS,false)->RequestedAttributes->children(self::NS_EIDAS,false);
+          
+          
+          $ret['Comparison']    = "".$authContext->attributes()->Comparison;
+          $ret['LoA']           = "".$authContext->AuthnContextClassRef;
+          $ret['SPType']        = "".$ext->children(self::NS_EIDAS,false)->SPType;
+
+          $ret['QAA']           = $this->loaToQaa($ret['LoA']);    //Derived from LoA
+
+          $req['IdAllowCreate'] = $nameIDPolicy->attributes()->AllowCreate;
+          $req['IdFormat']      = $nameIDPolicy->attributes()->Format;
+
+          $ret['requestedAttributes'] = array();
+          foreach($reqAttrs as $reqAttr){
+              $ret['requestedAttributes'] []= array(
+                  'friendlyName' => "".$reqAttr->attributes()->FriendlyName,
+                  'name'         => "".$reqAttr->attributes()->Name,
+                  //Also empty string will be evaluated to false
+                  'isRequired'   => strtolower("".$reqAttr->attributes()->isRequired) === 'true'? true : false
+              ); 
+          }
+          
+      }
+      
       
       //Include the embedded certificate in the returned data
       $ret['spCert'] = "".$samlReq->children(self::NS_XMLDSIG,false)->Signature->KeyInfo->X509Data->X509Certificate;
@@ -2088,7 +2195,19 @@ class sspmod_clave_SPlib {
               return $assertion;
       }
       
-      // TODO implement parsing of the struct and building of the XML here
+      // TODO implement HERE parsing of the struct and building of the
+      // XML , also implement the eIDAS assertion:
+      // * eID on the nameID
+      // * attr value attrs: transliterated, languageID, type, codificado en B64 de los attrs complejos
+      // * authnStatement:
+      /*
+        <saml2:AuthnStatement AuthnInstant="2015-04-30T19:27:20.159Z"
+        SessionIndex="_5eeb319253e2d7d125e3dcc72806209a">
+        <saml2:AuthnContext>
+        <saml2:AuthnContextClassRef>http://eidas.europa.eu/LoA/high</saml2:AuthnContextClassRef>
+        </saml2:AuthnContext>
+        </saml2:AuthnStatement>
+      */
   }
   
   
@@ -2105,7 +2224,7 @@ class sspmod_clave_SPlib {
   // 
   // rawAssertions: true if assertions array
   // contains xml strings or false if it contains arrays
-  public function generateStorkResponse($status, $assertions, $rawStatus=true, $rawAssertions=true){
+  public function generateStorkResponse($status, $assertions, $rawStatus=true, $rawAssertions=true){  // TODO probar
 
 
       $consent      = $this->consent;
@@ -2115,7 +2234,7 @@ class sspmod_clave_SPlib {
       $issuer  = $this->responseIssuer;
             
       
-      //For each assertion (if not repacked): Esperar array como el que genero yo en el parsing de la response. Así menos quebraderos. Si he de tocar algo, se toca sobre el array
+      //TODO For each assertion (if not repacked): Esperar array como el que genero yo en el parsing de la response. Así menos quebraderos. Si he de tocar algo, se toca sobre el array
       // issuer
       // subject: (pasar en un array tal cual lo genero al parsear)
       // Conditions:
@@ -2125,14 +2244,26 @@ class sspmod_clave_SPlib {
 
       //Build the response with the params
 
+      if($this->mode === 0){ //eIDAS  // TODO check
+          $storkNamespaces =
+               'xmlns:stork="'.self::NS_STORK.'" '
+              .'xmlns:storkp="'.self::NS_STORKP.'" ';
+          
+      }
+      if($this->mode === 1){ //eIDAS  // TODO check
+          $eIDASNamespaces = 'xmlns:eidas="'.self::NS_EIDASATT.'" ';
+      }
+      
+      
       //Header of the SAML Response 
       $RootTagOpen = '<?xml version="1.0" encoding="UTF-8"?>'
           .'<saml2p:Response '
           .'xmlns:saml2p="'.self::NS_SAML2P.'" '
           .'xmlns:ds="'.self::NS_XMLDSIG.'" '
           .'xmlns:saml2="'.self::NS_SAML2.'" '
-          .'xmlns:stork="'.self::NS_STORK.'" '
-          .'xmlns:storkp="'.self::NS_STORKP.'" '
+          .$storkNamespaces
+          .'xmlns:xsi="'.self::NS_XSI.'" '
+          .$eIDASNamespaces
           .'xmlns:xs="'.self::NS_XMLSCH.'" '
           .'Consent="'.htmlspecialchars($consent).'" '
           .'Destination="'.htmlspecialchars($destination).'" '
@@ -2191,20 +2322,28 @@ class sspmod_clave_SPlib {
 
 
   public static function getFriendlyName($attributeName){
-      $prefixLen = strlen(self::$AttrNamePrefix);
-      
-      if (substr($attributeName, 0, $prefixLen) == self::$AttrNamePrefix){
-          return substr($attributeName, $prefixLen);
+
+      if($this->mode === 0){ //Stork
+          $prefixLen = strlen(self::$AttrNamePrefix);      
+          if (substr($attributeName, 0, $prefixLen) == self::$AttrNamePrefix){
+              return substr($attributeName, $prefixLen);
+          }
+          return $attributeName;
       }
-      return $attributeName;
+      
+      if($this->mode === 1){ //eIDAS  // TODO check
+          $attrname = preg_replace("|.+/(.+?)$|i", "\\1", $attributeName);
+          return $attrname;
+      }
+      
   }
+  
 
 
 
 
 
-
-  // *************** Stork Single Logout *******************
+  // *************** Stork Single Logout *******************  // TODO once eIDAS-clave2.0 is deployed, see if there's SSO and adapt
   
   // Stork single logout has some differences with the standard saml logout:
 
@@ -2724,7 +2863,7 @@ class sspmod_clave_SPlib {
               .'xmlns:saml2="'.self::NS_SAML2.'" '
               .'xmlns:stork="'.self::NS_STORK.'" '
               .'xmlns:storkp="'.self::NS_STORKP.'" '
-              .'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" >'
+              .'xmlns:xsi="'.self::NS_XSI.'" >'
               .$assertion
               .'</root>';
     
