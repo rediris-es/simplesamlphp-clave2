@@ -227,6 +227,13 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
 
    $clave = new sspmod_clave_SPlib();
 
+   // TODO eIDAS
+   $clave->setEidasMode();
+   $clave->setEidasRequestParams(sspmod_clave_SPlib::EIDAS_SPTYPE_PUBLIC,
+                                 sspmod_clave_SPlib::NAMEID_FORMAT_PERSISTENT,
+                                 $QAA); 
+   
+   
    //We get the forceAuthn of the AuthnReq and reproduce it, default is false
    //if($this->metadata->getInteger('ForceAuthn', 0) == 1)
 
@@ -251,9 +258,13 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
    //Get remote sp metadata and get attributes to request 
    $attrsToRequest = $state['SPMetadata']['attributes'];
    if($attrsToRequest == NULL || count($attrsToRequest)<=0)
-     $attrsToRequest = array("eIdentifier","givenName","surname");
+//     $attrsToRequest = array("eIdentifier","givenName","surname");    // TODO eIDAS
+       $attrsToRequest = array("PersonIdentifier","FirstName","FamilyName","DateOfBirth");
+   
+   
    foreach($attrsToRequest as $attr)
-     $clave->addRequestAttribute ($attr, false);
+//     $clave->addRequestAttribute ($attr, false);    // TODO eIDAS
+       $clave->addRequestAttribute ($attr, true);
    
    
    //Save information needed for the comeback
@@ -307,7 +318,8 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
 
 
    $post = array('SAMLRequest'  => $req);
-
+   
+/*     // TODO eIDAS  
    //IdP config values are the default if sp values not found, else all is default
    $idpList = $spConf->getArray('idpList', $idpConf->getArray('idpList', array()));
    if(count($idpList)>0)
@@ -328,6 +340,18 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
    $legal = $spConf->getBoolean('allowLegalPerson', false);
    if ($legal === true)
        $post['allowLegalPerson'] = 'true';
+*/
+
+    // TODO eIDAS
+   $post['country'] = "ES"; // TODO hacer filtro con country selector. Supongo que el valor llegará aquí en el estado
+
+   // TODO ver si algún otro parámetro es relevante:    // TODO eIDAS
+/*   
+   $post['postLocationUrl']     = "https://se-eidas.redsara.es/EidasNode/ServiceProvider";
+   $post['redirectLocationUrl'] = "https://se-eidas.redsara.es/EidasNode/ServiceProvider";
+   $post['RelayState']          = "MyRelayState";
+   $post['sendmethods']         = "POST";
+*/   
    
    //Redirecting to Clave IdP (Only HTTP-POST binding supported)
    SimpleSAML_Utilities::postRedirect($destination, $post);

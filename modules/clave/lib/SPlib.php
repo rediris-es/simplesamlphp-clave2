@@ -140,48 +140,50 @@ class sspmod_clave_SPlib {
 
   //eIDAS attributes (FriendlyName -> Name)
   const EIDAS_ATTR_PREFIX = "http://eidas.europa.eu/attributes/";
+  //PHP5.4 does not accept concatenations in declaration
+  //      "PersonIdentifier"     => self::EIDAS_ATTR_PREFIX."naturalperson/PersonIdentifier",
   private static $eIdasAttributes = array(
-      "PersonIdentifier"     => self::EIDAS_ATTR_PREFIX."naturalperson/PersonIdentifier",
-      "FirstName"            => self::EIDAS_ATTR_PREFIX."naturalperson/CurrentGivenName",
-      "FamilyName"           => self::EIDAS_ATTR_PREFIX."naturalperson/CurrentFamilyName",
-      "DateOfBirth"          => self::EIDAS_ATTR_PREFIX."naturalperson/DateOfBirth",
-      "AdditionalAttribute"  => self::EIDAS_ATTR_PREFIX."naturalperson/AdditionalAttribute",
-      "BirthName"            => self::EIDAS_ATTR_PREFIX."naturalperson/BirthName",
-      "CurrentAddress"       => self::EIDAS_ATTR_PREFIX."naturalperson/CurrentAddress",
-      "Gender"               => self::EIDAS_ATTR_PREFIX."naturalperson/Gender",
-      "PlaceOfBirth"         => self::EIDAS_ATTR_PREFIX."naturalperson/PlaceOfBirth",
+      "PersonIdentifier"     => "http://eidas.europa.eu/attributes/naturalperson/PersonIdentifier",
+      "FirstName"            => "http://eidas.europa.eu/attributes/naturalperson/CurrentGivenName",
+      "FamilyName"           => "http://eidas.europa.eu/attributes/naturalperson/CurrentFamilyName",
+      "DateOfBirth"          => "http://eidas.europa.eu/attributes/naturalperson/DateOfBirth",
+      "AdditionalAttribute"  => "http://eidas.europa.eu/attributes/naturalperson/AdditionalAttribute",
+      "BirthName"            => "http://eidas.europa.eu/attributes/naturalperson/BirthName",
+      "CurrentAddress"       => "http://eidas.europa.eu/attributes/naturalperson/CurrentAddress",
+      "Gender"               => "http://eidas.europa.eu/attributes/naturalperson/Gender",
+      "PlaceOfBirth"         => "http://eidas.europa.eu/attributes/naturalperson/PlaceOfBirth",
 
-      "D-2012-17-EUIdentifier"    => self::EIDAS_ATTR_PREFIX."legalperson/D-2012-17-EUIdentifier",
-      "EORI"                      => self::EIDAS_ATTR_PREFIX."legalperson/EORI",
-      "LEI"                       => self::EIDAS_ATTR_PREFIX."legalperson/LEI",
-      "LegalAdditionalAttribute"  => self::EIDAS_ATTR_PREFIX."legalperson/LegalAdditionalAttribute",
-      "LegalAddress"              => self::EIDAS_ATTR_PREFIX."legalperson/LegalAddress",
-      "LegalName"                 => self::EIDAS_ATTR_PREFIX."legalperson/LegalName",
-      "LegalPersonIdentifier"     => self::EIDAS_ATTR_PREFIX."legalperson/LegalPersonIdentifier",
-      "SEED"                      => self::EIDAS_ATTR_PREFIX."legalperson/SEED",
-      "SIC"                       => self::EIDAS_ATTR_PREFIX."legalperson/SIC",
-      "TaxReference"              => self::EIDAS_ATTR_PREFIX."legalperson/TaxReference",
-      "VATRegistration"           => self::EIDAS_ATTR_PREFIX."legalperson/VATRegistration",
+      "D-2012-17-EUIdentifier"    => "http://eidas.europa.eu/attributes/legalperson/D-2012-17-EUIdentifier",
+      "EORI"                      => "http://eidas.europa.eu/attributes/legalperson/EORI",
+      "LEI"                       => "http://eidas.europa.eu/attributes/legalperson/LEI",
+      "LegalAdditionalAttribute"  => "http://eidas.europa.eu/attributes/legalperson/LegalAdditionalAttribute",
+      "LegalAddress"              => "http://eidas.europa.eu/attributes/legalperson/LegalAddress",
+      "LegalName"                 => "http://eidas.europa.eu/attributes/legalperson/LegalName",
+      "LegalPersonIdentifier"     => "http://eidas.europa.eu/attributes/legalperson/LegalPersonIdentifier",
+      "SEED"                      => "http://eidas.europa.eu/attributes/legalperson/SEED",
+      "SIC"                       => "http://eidas.europa.eu/attributes/legalperson/SIC",
+      "TaxReference"              => "http://eidas.europa.eu/attributes/legalperson/TaxReference",
+      "VATRegistration"           => "http://eidas.europa.eu/attributes/legalperson/VATRegistration",
 
-      "RepresentativeD-2012-17-EUIdentifier"  => self::EIDAS_ATTR_PREFIX."legalperson/representative/D-2012-17-EUIdentifier",
-      "RepresentativeEORI"                    => self::EIDAS_ATTR_PREFIX."legalperson/representative/EORI",
-      "RepresentativeLEI"                     => self::EIDAS_ATTR_PREFIX."legalperson/representative/LEI",
-      "RepresentativeLegalAddress"            => self::EIDAS_ATTR_PREFIX."legalperson/representative/LegalAddress",
-      "RepresentativeLegalName"               => self::EIDAS_ATTR_PREFIX."legalperson/representative/LegalName",
-      "RepresentativeLegalPersonIdentifier"   => self::EIDAS_ATTR_PREFIX."legalperson/representative/LegalPersonIdentifier",
-      "RepresentativeSEED"                    => self::EIDAS_ATTR_PREFIX."legalperson/representative/SEED",
-      "RepresentativeSIC"                     => self::EIDAS_ATTR_PREFIX."legalperson/representative/SIC",
-      "RepresentativeTaxReference"            => self::EIDAS_ATTR_PREFIX."legalperson/representative/TaxReference",
-      "RepresentativeVATRegistration"         => self::EIDAS_ATTR_PREFIX."legalperson/representative/VATRegistration",
+      "RepresentativeD-2012-17-EUIdentifier"  => "http://eidas.europa.eu/attributes/legalperson/representative/D-2012-17-EUIdentifier",
+      "RepresentativeEORI"                    => "http://eidas.europa.eu/attributes/legalperson/representative/EORI",
+      "RepresentativeLEI"                     => "http://eidas.europa.eu/attributes/legalperson/representative/LEI",
+      "RepresentativeLegalAddress"            => "http://eidas.europa.eu/attributes/legalperson/representative/LegalAddress",
+      "RepresentativeLegalName"               => "http://eidas.europa.eu/attributes/legalperson/representative/LegalName",
+      "RepresentativeLegalPersonIdentifier"   => "http://eidas.europa.eu/attributes/legalperson/representative/LegalPersonIdentifier",
+      "RepresentativeSEED"                    => "http://eidas.europa.eu/attributes/legalperson/representative/SEED",
+      "RepresentativeSIC"                     => "http://eidas.europa.eu/attributes/legalperson/representative/SIC",
+      "RepresentativeTaxReference"            => "http://eidas.europa.eu/attributes/legalperson/representative/TaxReference",
+      "RepresentativeVATRegistration"         => "http://eidas.europa.eu/attributes/legalperson/representative/VATRegistration",
 
-      "RepresentativeBirthName"         => self::EIDAS_ATTR_PREFIX."naturalperson/representative/BirthName",
-      "RepresentativeCurrentAddress"    => self::EIDAS_ATTR_PREFIX."naturalperson/representative/CurrentAddress",
-      "RepresentativeFamilyName"        => self::EIDAS_ATTR_PREFIX."naturalperson/representative/CurrentFamilyName",
-      "RepresentativeFirstName"         => self::EIDAS_ATTR_PREFIX."naturalperson/representative/CurrentGivenName",
-      "RepresentativeDateOfBirth"       => self::EIDAS_ATTR_PREFIX."naturalperson/representative/DateOfBirth",
-      "RepresentativeGender"            => self::EIDAS_ATTR_PREFIX."naturalperson/representative/Gender",
-      "RepresentativePersonIdentifier"  => self::EIDAS_ATTR_PREFIX."naturalperson/representative/PersonIdentifier",
-      "RepresentativePlaceOfBirth"      => self::EIDAS_ATTR_PREFIX."naturalperson/representative/PlaceOfBirth",
+      "RepresentativeBirthName"         => "http://eidas.europa.eu/attributes/naturalperson/representative/BirthName",
+      "RepresentativeCurrentAddress"    => "http://eidas.europa.eu/attributes/naturalperson/representative/CurrentAddress",
+      "RepresentativeFamilyName"        => "http://eidas.europa.eu/attributes/naturalperson/representative/CurrentFamilyName",
+      "RepresentativeFirstName"         => "http://eidas.europa.eu/attributes/naturalperson/representative/CurrentGivenName",
+      "RepresentativeDateOfBirth"       => "http://eidas.europa.eu/attributes/naturalperson/representative/DateOfBirth",
+      "RepresentativeGender"            => "http://eidas.europa.eu/attributes/naturalperson/representative/Gender",
+      "RepresentativePersonIdentifier"  => "http://eidas.europa.eu/attributes/naturalperson/representative/PersonIdentifier",
+      "RepresentativePlaceOfBirth"      => "http://eidas.europa.eu/attributes/naturalperson/representative/PlaceOfBirth",
       
   );
 
@@ -593,10 +595,15 @@ class sspmod_clave_SPlib {
         .'xsi:type="xs:string">'
         .$transformedValue.'</eidas:AttributeValue>';
     }
+
+    //If we can't translate the friendlyname to a name, use it as is
+    $name = $friendlyName;
+    if (array_key_exists($friendlyName,self::$eIdasAttributes))
+        $name = self::$eIdasAttributes[$friendlyName];
     
     $attrLine = '<eidas:RequestedAttribute'
         .' FriendlyName="'.$friendlyName.'"'
-        .' Name="'.self::$eIdasAttributes[$friendlyName].'"'
+        .' Name="'.$name.'"'
         .' NameFormat="'.self::$AttrNF.'"'
         .' isRequired="'.self::bts($required).'"'
         .$tagClose
@@ -1085,7 +1092,7 @@ class sspmod_clave_SPlib {
     $objDSig->add509Cert($this->signCert);
     
     //$objDSig->appendSignature($doc->documentElement, true); //Inserts the signature ahead
-    $extensions = $doc->getElementsByTagName('Extensions')[0];
+    $extensions = $doc->getElementsByTagName('Extensions')->item(0);
     $objDSig->insertSignature($doc->documentElement, $extensions); //Inserts signature before the Extensions
     
     self::debug("Marshalling signed document.");
