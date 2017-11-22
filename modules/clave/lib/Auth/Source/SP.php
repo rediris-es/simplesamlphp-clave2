@@ -217,12 +217,19 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
    $crossBorderShare = $spConf->getBoolean('eIDCrossBorderShare', $this->claveConfig->getBoolean('eIDCrossBorderShare', true));
    
    $reqIssuer = $spConf->getString('issuer', $this->claveConfig->getString('issuer', $this->entityId));
-   
+
+// TODO Here biuld the metadata url with the proper 
+
+   //Metadata URL for eIDAS
+   $spConfId = $this->metadata->getString('hostedSP', NULL);
+   $metadataURL = SimpleSAML_Module::getModuleURL('clave/sp/metadata.php/'.'clave/'.$spConfId.'/'.$this->authId);
+
+   $reqIssuer = $metadataURL;// TODO eIDAS
    
    //Get address of assertion consumer service for this module (it
    //ends with the id of the authsource, so we can retrieve the
    //correct authsource config on the acs)
-   $returnPage = SimpleSAML_Module::getModuleURL('clave/sp/clave-acs.php/'.$this->authId);  // TODO now this is built in metadata. Here biuld the metadata url with the proper params. // TODO eIDAS
+   $returnPage = SimpleSAML_Module::getModuleURL('clave/sp/clave-acs.php/'.$this->authId);  // TODO now this is built in metadata.params. // TODO eIDAS
 
 
    $clave = new sspmod_clave_SPlib();
@@ -243,8 +250,8 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
    if( ((bool)$state['ForceAuthn']) === true)
        $clave->forceAuthn();
    
-   $clave->setSignatureKeyParams($this->certData, $this->keyData, sspmod_clave_SPlib::RSA_SHA256);
-   $clave->setSignatureParams(sspmod_clave_SPlib::SHA256,sspmod_clave_SPlib::EXC_C14N);
+   $clave->setSignatureKeyParams($this->certData, $this->keyData, sspmod_clave_SPlib::RSA_SHA512);
+   $clave->setSignatureParams(sspmod_clave_SPlib::SHA512,sspmod_clave_SPlib::EXC_C14N);
    
    $clave->setServiceProviderParams($this->claveConfig->getString('providerName', NULL), 
                                     $reqIssuer,
@@ -402,8 +409,8 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         $clave = new sspmod_clave_SPlib();
    
         $clave->setSignatureKeyParams($this->certData, $this->keyData,
-                                      sspmod_clave_SPlib::RSA_SHA256);
-        $clave->setSignatureParams(sspmod_clave_SPlib::SHA256,sspmod_clave_SPlib::EXC_C14N);
+                                      sspmod_clave_SPlib::RSA_SHA512);
+        $clave->setSignatureParams(sspmod_clave_SPlib::SHA512,sspmod_clave_SPlib::EXC_C14N);
         
         
         //Save information needed for the comeback

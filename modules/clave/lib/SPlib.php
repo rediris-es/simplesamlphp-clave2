@@ -941,7 +941,9 @@ class sspmod_clave_SPlib {
         //Set the required Level of Assurance for authentication
         //(comparison is always minimum-required-value)
         $AuthnContext = "";
-        $LoA = $this->qaaToLoA($this->QAALevel);
+        $LoA = $this->QAALevel;
+        if(is_int($this->QAALevel))
+            $LoA = $this->qaaToLoA($this->QAALevel);
         if($LoA != ""){
             $AuthnContext = '<saml2p:RequestedAuthnContext'
                 .' Comparison="minimum">'
@@ -2065,10 +2067,19 @@ class sspmod_clave_SPlib {
           $authContext  = $samlReq->children(self::NS_SAML2P,false)->RequestedAuthnContext;
           $nameIDPolicy = $samlReq->children(self::NS_SAML2P,false)->NameIDPolicy;
           $reqAttrs     =  $ext->children(self::NS_EIDAS,false)->RequestedAttributes->children(self::NS_EIDAS,false);
+
+          $ret['spSector'] = "";
+          $ret['spInstitution'] = "";
+          $ret['spApplication'] = "";
+          $ret['spCountry'] = "";
+          $ret['eIDSectorShare'] = "";
+          $ret['eIDCrossSectorShare'] = "";
+          $ret['eIDCrossBorderShare'] = "";
+          $ret['citizenCountryCode'] = "";
+          $ret['spID'] = "";
           
-          
-          $ret['Comparison']    = "".$authContext->attributes()->Comparison;
-          $ret['LoA']           = "".$authContext->AuthnContextClassRef;
+          $ret['Comparison']    = "".$authContext->attributes()->Comparison; 
+          $ret['LoA']           = "".$authContext->children(self::NS_SAML2,false)->AuthnContextClassRef;//*****
           $ret['SPType']        = "".$ext->children(self::NS_EIDAS,false)->SPType;
 
           $ret['QAA']           = $this->loaToQaa($ret['LoA']);    //Derived from LoA

@@ -56,7 +56,7 @@ $spkeypem  = sspmod_clave_Tools::readCertKeyFile($keyPath);
 
 $claveIdP = new sspmod_clave_SPlib();
 
-
+$claveIdP->setEidasMode();   // TODO
 
 if(!isset($_REQUEST['SAMLRequest']))
    	throw new SimpleSAML_Error_BadRequest('No SAMLRequest POST param received.');
@@ -139,12 +139,29 @@ $reqIssuer = $claveConfig->getString('issuer', $reqData['issuer']);
 //Calculate return page for the new request
 $returnPage = SimpleSAML_Module::getModuleURL('clave/sp/bridge-acs.php/');
 
+
+
+//Calculate metadata URL // TODO eIDAS
+$metadataURL = SimpleSAML_Module::getModuleURL('clave/sp/metadata.php/'.'bridge/'.$hostedSP.'/');
+$reqIssuer = $metadataURL;  // TODO eIDAS
+
+
+
+
 //Build the new authn request
 $clave = new sspmod_clave_SPlib();
 
 
-$clave->setSignatureKeyParams($spcertpem, $spkeypem, sspmod_clave_SPlib::RSA_SHA256);
-$clave->setSignatureParams(sspmod_clave_SPlib::SHA256, sspmod_clave_SPlib::EXC_C14N);
+
+// TODO eIDAS
+$clave->setEidasMode();   // TODO en el futuro, los parámetros de abajo tomarlos de la req entrante. De momento dejarlos fijos
+$clave->setEidasRequestParams(sspmod_clave_SPlib::EIDAS_SPTYPE_PUBLIC,
+                              sspmod_clave_SPlib::NAMEID_FORMAT_PERSISTENT,  
+                              $ret['LoA']);
+
+
+$clave->setSignatureKeyParams($spcertpem, $spkeypem, sspmod_clave_SPlib::RSA_SHA512);
+$clave->setSignatureParams(sspmod_clave_SPlib::SHA512, sspmod_clave_SPlib::EXC_C14N);
 
 
 $clave->setServiceProviderParams($providerName,
@@ -166,8 +183,10 @@ $clave->setSTORKParams ($endpoint, $reqData['QAA'],
 
 $mandatory = array();
 foreach($reqData['requestedAttributes'] as $attr){
-    $name = sspmod_clave_SPlib::getFriendlyName($attr['name']);    
-    $clave->addRequestAttribute($name, $attr['isRequired']);
+    //$name = sspmod_clave_SPlib::getFriendlyName($attr['name']);  // TODO eIDAS. 
+    //$clave->addRequestAttribute($name, $attr['isRequired']);
+    $clave->addRequestAttribute($attr['friendlyName'], $attr['isRequired']);  // TODO eIDAS.
+
     
     //We store the list of mandatory attributes for response validation
     if(sspmod_clave_SPlib::stb($attr['isRequired']) === true){
@@ -210,6 +229,7 @@ SimpleSAML_Stats::log('clave:sp:AuthnRequest', array(
 //Redirect (forwarded params are appended, priority to the ones set here)
 $post = array(
     'SAMLRequest'  => $req,
+    // 'country'  => 'ES', // TODO eIDAS forwarded, but if not present , show country selector
 ) + $forwardedParams;
 
 SimpleSAML_Logger::debug("forwarded: ".print_r($forwardedParams, true));
