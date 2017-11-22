@@ -1058,7 +1058,7 @@ class sspmod_clave_SPlib {
   }
   
   // Returns the xml document signed in enveloped mode.
-  private function calculateXMLDsig($xml){
+  private function calculateXMLDsig($xml, $insertAhead=false){
     
     self::debug(__CLASS__.".".__FUNCTION__."()");
     
@@ -1091,9 +1091,12 @@ class sspmod_clave_SPlib {
     self::debug("Appending signature certificate.");
     $objDSig->add509Cert($this->signCert);
     
-    //$objDSig->appendSignature($doc->documentElement, true); //Inserts the signature ahead
-    $extensions = $doc->getElementsByTagName('Extensions')->item(0);
-    $objDSig->insertSignature($doc->documentElement, $extensions); //Inserts signature before the Extensions
+    if ($insertAhead ===true)
+        $objDSig->appendSignature($doc->documentElement, true); //Inserts the signature ahead
+    else{
+        $extensions = $doc->getElementsByTagName('Extensions')->item(0);
+        $objDSig->insertSignature($doc->documentElement, $extensions); //Inserts signature before the Extensions
+    }
     
     self::debug("Marshalling signed document.");
     return $doc->saveXML();
@@ -1154,7 +1157,20 @@ class sspmod_clave_SPlib {
 
     return $certPem;
   }
-
+  
+  
+  //Turns a PEM certificate into a one-line b64 string (removing
+  //headers, if any, and chunk splitting)
+  public static function implodeCert($cert) {
+      
+      $certLine = str_replace("\n","",$cert);
+      $certLine = str_replace("-----BEGIN CERTIFICATE-----","",$certLine);
+      $certLine = str_replace("-----END CERTIFICATE-----","",$certLine);
+      
+      return $certLine;
+  }
+  
+  
   
   // Adds a certificate to the trusted certificate list
   public function addTrustedCert ($cert){
@@ -2126,14 +2142,16 @@ class sspmod_clave_SPlib {
   }
   
 
-  public static function generateTimestamp(){
+  public static function generateTimestamp($time=NULL){
       
       //Not compatible with SimpleSamlPHP IdP. In fact, standard SAML
       //requires ZULU dates, not with a timezone
-      
       //return date('c',time());
-
-      return gmdate('Y-m-d\TH:i:s\Z',time());
+      
+      if($time === NULL)
+          $time = time();
+      
+      return gmdate('Y-m-d\TH:i:s\Z',$time);
   }
 
   public function setResponseParameters($consent,$destination,$inResponseTo,$issuer){
@@ -2942,9 +2960,74 @@ class sspmod_clave_SPlib {
       $this->nameIdFormat = $nameIdFormat;
       $this->QAALevel     = $QAALevel;
   }
-  
-  // TODO falta adaptar la respuesta
 
+
+
+  // TODO
+  //Will generate a metadata signed document that must be published at
+  //the URL stated in <issuer>
+  public function generateSPMetadata() {
+      
+      self::debug(__CLASS__.".".__FUNCTION__."()");
+
+      self::info("Generating metadata for the AuthnRequest");
+      $metadata = '<?xml version="1.0" encoding="UTF-8"?>'
+          .'<md:EntityDescriptor'
+          .'    xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata"'
+          .'    entityID="'.htmlspecialchars($this->Issuer).'"'
+          .'    validUntil="'.self::generateTimestamp(time()+(1*24*60*60)).'">'
+          .'  <md:SPSSODescriptor'
+          .'      AuthnRequestsSigned="true" '
+          .'      WantAssertionsSigned="true" '
+          .'      protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">'
+          .'    <md:KeyDescriptor use="signing">'
+          .'      <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">'
+          .'        <ds:X509Data>'
+          .'          <ds:X509Certificate>'.self::implodeCert($this->signCert).'</ds:X509Certificate>'
+          .'        </ds:X509Data>'
+          .'      </ds:KeyInfo>'
+          .'    </md:KeyDescriptor>'
+          .'    <md:KeyDescriptor use="encryption">'
+          .'      <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">'
+          .'        <ds:X509Data>'
+          .'          <ds:X509Certificate>'.self::implodeCert($this->signCert).'</ds:X509Certificate>'
+          .'        </ds:X509Data>'
+          .'      </ds:KeyInfo>'
+          .'    </md:KeyDescriptor>'
+          .'    <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:persistent</md:NameIDFormat>'
+          .'    <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>'
+          .'    <md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>'
+          .'    <md:AssertionConsumerService'
+          .'        Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"'
+          .'        Location="'.htmlspecialchars($this->ReturnAddr).'"'
+          .'        index="0"'
+          .'        isDefault="true"/>'
+          .'  </md:SPSSODescriptor>'
+          .'  <md:Organization>'
+          .'    <md:OrganizationName xml:lang="en"/>'
+          .'    <md:OrganizationDisplayName xml:lang="en"/>'
+          .'    <md:OrganizationURL xml:lang="en"/>'
+          .'  </md:Organization>'
+          .'  <md:ContactPerson contactType="support"/>'
+          .'  <md:ContactPerson contactType="technical"/>'
+          .'</md:EntityDescriptor>';
+      
+      
+      //Sign the metadata
+      self::info("Signing metadata");
+      $metadata = $this->calculateXMLDsig($metadata, true);
+      
+      return $metadata;
+  }
+  
+  
+  
+  
+  
+  
+  
+  // TODO falta adaptar la respuesta --> creo que ya no, aunque debo esperar a ver qué recibo.
+  
   
   
 } // Class
@@ -3319,10 +3402,6 @@ class claveAuth {
         return self::url_origin( $s, $use_forwarded_host ) . $s['REQUEST_URI'];
     }
     
-
-
-   
-
     
 }
 
