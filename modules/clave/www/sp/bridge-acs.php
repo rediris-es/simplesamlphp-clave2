@@ -167,7 +167,8 @@ $assertions = $clave->getRawAssertions();
 
 
 //Generate response with attributes, show the response and send back with submit button
-$acs  = $reqData['assertionConsumerService'];
+//$acs  = $reqData['assertionConsumerService'];  // TODO eIDAS
+$acs = $spMetadata->getArray('AssertionConsumerService',NULL)[0]['Location'];  // TODO revisar que funciona
 
 $storkResp = new sspmod_clave_SPlib();
 
