@@ -108,6 +108,25 @@ SimpleSAML_Logger::debug("SP Request data: ".print_r($reqData,true));
 
 
 
+
+
+
+//****** Show Country selector if no country provided *****
+
+
+if(isset($_REQUEST['country']))
+    $country = $_REQUEST['country'];
+else{
+
+// TODO eIDAS SEGUIR. Si saco aquí el country selector, que es lo correcto, lo de abajo lo he de mover a otro script (como el discorespphp) y transferir estado (ojo. ver qué necesito de arriba). Si lo pongo al principio, es raro pero me ahorro guardar estado.
+
+    // Probar porque igual lo de abajo lo puedo transformar en parte a una llamada al authsource. Si no, quizá sería mejor  crear una clase auxiliar que abstraiga partes del código de abajo y de la authsource. Así, imitando la interfaz del estado, quizá podría fusionar el acs de ambas partes y la mitad esta de abajo y el authsource.
+    
+}
+
+
+
+
 // ******************************* Building the new request ************
 
 
@@ -128,6 +147,14 @@ $bridgeData['eIDCrossSectorShare'] =
 $bridgeData['eIDCrossBorderShare'] =
     $claveSP->getBoolean('eIDCrossBorderShare',
     sspmod_clave_SPlib::stb($reqData['eIDCrossBorderShare']));
+
+//TODO eIDAS
+//eIDas request parameters. If set on the hostedSP, remote sp request values are overriden
+$bridgeData['SPType']       = $claveSP->getString('SPType', $reqData['SPType']);
+$bridgeData['NameIDFormat'] = $claveSP->getString('NameIDFormat', $reqData['IdFormat']);
+$bridgeData['LoA']          = $claveSP->getString('LoA', $reqData['LoA']);
+                               
+                              
 
 
 //The issuer is set to be the SP's entityId, if not fixed on the IdP configuration
@@ -154,10 +181,10 @@ $clave = new sspmod_clave_SPlib();
 
 
 // TODO eIDAS
-$clave->setEidasMode();   // TODO en el futuro, los parámetros de abajo tomarlos de la req entrante. De momento dejarlos fijos
-$clave->setEidasRequestParams(sspmod_clave_SPlib::EIDAS_SPTYPE_PUBLIC,
-                              sspmod_clave_SPlib::NAMEID_FORMAT_PERSISTENT,  
-                              $ret['LoA']);
+$clave->setEidasMode();
+$clave->setEidasRequestParams($bridgeData['SPType'],
+                              $bridgeData['NameIDFormat'],
+                              $bridgeData['LoA']);
 
 
 $clave->setSignatureKeyParams($spcertpem, $spkeypem, sspmod_clave_SPlib::RSA_SHA512);

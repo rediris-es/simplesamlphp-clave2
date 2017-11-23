@@ -2011,6 +2011,9 @@ class sspmod_clave_SPlib {
   // If a Request is passed on the parameter, then the return is related
   // to it and not to the request in the object state       // TODO test eIDAS support 
   public function getStorkRequestData($SAMLAuthnReqToken=NULL){
+      
+      self::debug(__CLASS__.".".__FUNCTION__."()");
+      
       $ret = array();
       
       $request = $this->SAMLAuthnReqToken;
@@ -2084,8 +2087,8 @@ class sspmod_clave_SPlib {
 
           $ret['QAA']           = $this->loaToQaa($ret['LoA']);    //Derived from LoA
 
-          $req['IdAllowCreate'] = $nameIDPolicy->attributes()->AllowCreate;
-          $req['IdFormat']      = $nameIDPolicy->attributes()->Format;
+          $ret['IdAllowCreate'] = "".$nameIDPolicy->attributes()->AllowCreate;
+          $ret['IdFormat']      = "".$nameIDPolicy->attributes()->Format;
 
           $ret['requestedAttributes'] = array();
           foreach($reqAttrs as $reqAttr){
