@@ -326,7 +326,21 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         //Build authn request
         $req = base64_encode($clave->generateStorkAuthRequest());
         SimpleSAML_Logger::debug("Generated AuthnReq: ".$req);
-   
+
+
+
+        //Log for statistics: sent AuthnRequest to remote clave IdP
+        SimpleSAML_Stats::log('clave:sp:AuthnRequest', array(
+            'spEntityID' =>  $this->entityId,
+            'idpEntityID' => $idp['endpoint'],
+            'forceAuthn' => $state['ForceAuthn'],
+            'isPassive' => FALSE,
+            'protocol' => 'saml2-clave',
+            'idpInit' => FALSE,
+        ));
+
+
+        
         //Perform redirection
         $this->redirect($idp['endpoint'],$req, $state);
    

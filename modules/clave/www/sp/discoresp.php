@@ -52,6 +52,7 @@ $idp = array('endpoint' => $idpMetadata->getString('SingleSignOnService', NULL),
              'cert'     => $idpMetadata->getString('certData', NULL),
              'country'  => $_REQUEST['country']);
 
+//Return to the AuthSource and call the function that performs the request
 $source->startSSO($idp, $state);
 assert('FALSE');
 
