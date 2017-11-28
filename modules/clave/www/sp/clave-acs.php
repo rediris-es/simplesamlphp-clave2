@@ -107,18 +107,17 @@ $clave->setDecipherParams($spkeypem,$expectEncrypted,$onlyEncrypted);
 $clave->validateStorkResponse($resp);
 
 
-//If later these attributes are passed from the POST to the SAML
-//token, the values coming on the token will prevail
-$returnedAttributes = array_merge($returnedAttributes, $clave->getAttributes());
-
-
-
-
 
 //Authentication was successful
 $errInfo = "";
 if($clave->isSuccess($errInfo)){
 
+
+    //If later these attributes are passed from the POST to the SAML
+    //token, the values coming on the token will prevail
+    $returnedAttributes = array_merge($returnedAttributes, $clave->getAttributes());
+
+    
     //Log for statistics: received successful Response from remote clave IdP
     $statsData = array(
         'spEntityID' => $spEntityId,

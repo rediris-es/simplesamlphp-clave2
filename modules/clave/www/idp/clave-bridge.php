@@ -40,6 +40,12 @@ $expectedRequestPostParams = $claveConfig->getArray('idp.post.allowed', array())
 
 
 
+
+
+
+
+
+
 if($endpoint == NULL)
     throw new SimpleSAML_Error_Exception("No clave SSO endpoint defined in clave bridge configuration.");
 if($providerName == NULL)
@@ -54,23 +60,49 @@ $spkeypem  = sspmod_clave_Tools::readCertKeyFile($keyPath);
 
 
 
+
+//Wrap the request parameters
+$authnRequest = $_REQUEST['SAMLRequest'];
+$postParams   = $_POST;
+
+
+//Code to identify the second call, if we were redirected to the
+//country selector
+if($_REQUEST['AuthID']){
+    
+    //Get the auth process state left when we jumped to the Country Selector
+    $state = SimpleSAML_Auth_State::loadState($_REQUEST['AuthID'], 'clave:bridge:country');
+
+    //Restore the original request parameters (and now, country will also be there)
+    $authnRequest = $state['sp:authnRequest'];
+    $postParams   = $state['sp:postParams'];
+}
+// TODO SEGUIR
+
+
+
+
+
+
+
+
 $claveIdP = new sspmod_clave_SPlib();
 
 $claveIdP->setEidasMode();   // TODO
 
-if(!isset($_REQUEST['SAMLRequest']))
+if(!isset($authnRequest))
    	throw new SimpleSAML_Error_BadRequest('No SAMLRequest POST param received.');
 
 //Get allowed post params to be forwarded to Clave
 $forwardedParams = array();
-foreach ($_POST as $name => $value){
+foreach ($postParams as $name => $value){
     if(in_array($name,$expectedRequestPostParams))
         $forwardedParams[$name] = $value;
 }
 
 
 
-$request = base64_decode($_REQUEST['SAMLRequest']);
+$request = base64_decode($authnRequest);
 SimpleSAML_Logger::debug("SP Request: ".$request);
 
 
@@ -86,16 +118,6 @@ $cert = sspmod_clave_Tools::findX509SignCertOnMetadata($spMetadata);
 $claveIdP->addTrustedRequestIssuer($spEntityId, $cert);
 
 
-//Log for statistics: received AuthnRequest at the clave IdP
-$aux = $claveIdP->getStorkRequestData($request);
-SimpleSAML_Stats::log('clave:idp:AuthnRequest', array(
-    'spEntityID' => $spEntityId,
-    'idpEntityID' => $claveConfig->getString('issuer', ''),
-    'forceAuthn' => $aux['forceAuthn'],
-    'isPassive' => $aux['isPassive'],
-    'protocol' => 'saml2-clave',
-    'idpInit' => FALSE,
-));
 
 
 //Validate Clave AuthnRequest
@@ -121,8 +143,54 @@ else{
 // TODO eIDAS SEGUIR. Si saco aquí el country selector, que es lo correcto, lo de abajo lo he de mover a otro script (como el discorespphp) y transferir estado (ojo. ver qué necesito de arriba). Si lo pongo al principio, es raro pero me ahorro guardar estado.
 
     // Probar porque igual lo de abajo lo puedo transformar en parte a una llamada al authsource. Si no, quizá sería mejor  crear una clase auxiliar que abstraiga partes del código de abajo y de la authsource. Así, imitando la interfaz del estado, quizá podría fusionar el acs de ambas partes y la mitad esta de abajo y el authsource.
-    
+
+
+// Auto-post with all the allowed parameters, the request  and the selected country
+
+
+    // TODO save the request parameters and the samlreq in state. redirect to country selector, passing this as the return url and somehow, the token to recover the state. Then, at the beginning, if the token exists, get the state and fill the request parameters with that and go on as normal --> wrap the $_REQUEST and on the second comeback fill it with forwarded, same for the $_REQUEST
+
+
+    //Store state for the comeback
+    $state = array();
+    $state['sp:authnRequest'] = $authnRequest;
+    $state['sp:postParams']   = $forwardedParams;
+
+    $stateId = SimpleSAML_Auth_State::saveState($state, 'clave:bridge:country', true);
+    SimpleSAML_Logger::debug("Generated Req ID: ".$stateId);
+
+
+    //Redirect to the country selector
+    $discoURL = SimpleSAML_Module::getModuleURL('clave/sp/countryselector.php');
+    $returnTo = SimpleSAML_Module::getModuleURL('clave/idp/clave-bridge.php', array('AuthID' => $stateId));
+		
+    $params = array( // TODO ver si son necesarios y describirlos
+        //'entityID' => $this->entityId,     //The clave hosted SP entityID
+        'return' => $returnTo,             //The script to go on with the auth process (contains the authsource ID)
+        //'returnIDParam' => 'country'       //The param name where the country ID will be searched
+    );
+
+    \SimpleSAML\Utils\HTTP::redirectTrustedURL($discoURL, $params);
+
 }
+
+
+
+
+
+
+//Log for statistics: received AuthnRequest at the clave IdP
+$aux = $claveIdP->getStorkRequestData($request);
+SimpleSAML_Stats::log('clave:idp:AuthnRequest', array(
+    'spEntityID' => $spEntityId,
+    'idpEntityID' => $claveConfig->getString('issuer', ''),
+    'forceAuthn' => $aux['forceAuthn'],
+    'isPassive' => $aux['isPassive'],
+    'protocol' => 'saml2-clave',
+    'idpInit' => FALSE,
+));
+
+
 
 
 
@@ -256,7 +324,7 @@ SimpleSAML_Stats::log('clave:sp:AuthnRequest', array(
 //Redirect (forwarded params are appended, priority to the ones set here)
 $post = array(
     'SAMLRequest'  => $req,
-    // 'country'  => 'ES', // TODO eIDAS forwarded, but if not present , show country selector
+    'country'  => $country, // TODO eIDAS forwarded, but if not present , show country selector
 ) + $forwardedParams;
 
 SimpleSAML_Logger::debug("forwarded: ".print_r($forwardedParams, true));

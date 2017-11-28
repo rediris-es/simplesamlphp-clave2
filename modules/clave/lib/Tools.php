@@ -75,8 +75,8 @@ class sspmod_clave_Tools {
             return "";
         
         $idpList = "";
-        foreach($idpArray as $$idp){
-            $idpList .= $$idp.';';
+        foreach($idpArray as $idp){
+            $idpList .= $idp.';';
         }
         //Remove trailing separator
         $idpList = substr($idpList,0,strlen($idpList)-1);
