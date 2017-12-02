@@ -207,13 +207,16 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         
         SimpleSAML_Logger::info("state: ".print_r($state,true));
         SimpleSAML_Logger::info("metadata: ".print_r($this->metadata,true));
-
-
-        //Redirect to the Country Selector
-        $this->startDisco($state);
-        assert('FALSE');
-
-        // TODO eIDAS : this code will be reached for clave later when dual mode isimplemented, but now for eIDAS it's dead
+        
+        
+        //Redirect to the Country Selector (if enabled)
+        $showCountrySelector = $this->claveConfig->getBoolean('showCountrySelector', false);
+        if($showCountrySelector === true){
+            $this->startDisco($state);
+            assert('FALSE');
+        }
+        
+        //Go on with the authentication
         $this->startSSO( $this->idp, $state);
         assert('FALSE');   
 	}

@@ -40,10 +40,11 @@ $expectedRequestPostParams = $claveConfig->getArray('idp.post.allowed', array())
 
 
 
+//Whether to show the country selctor
+$showCountrySelector = $claveSP->getBoolean('showCountrySelector', false);
 
 
-
-
+// TODO configure the country selector in the hosted SP config (the list of options key-value)
 
 
 if($endpoint == NULL)
@@ -62,13 +63,19 @@ $spkeypem  = sspmod_clave_Tools::readCertKeyFile($keyPath);
 
 
 //Wrap the request parameters
-$authnRequest = $_REQUEST['SAMLRequest'];
 $postParams   = $_POST;
+
+//On the country selector comeback, is not defined
+if(isset($_REQUEST['SAMLRequest']))
+    $authnRequest = $_REQUEST['SAMLRequest'];
+
+
+
 
 
 //Code to identify the second call, if we were redirected to the
 //country selector
-if($_REQUEST['AuthID']){
+if(isset($_REQUEST['AuthID']) && $_REQUEST['AuthID'] !== ""){
     
     //Get the auth process state left when we jumped to the Country Selector
     $state = SimpleSAML_Auth_State::loadState($_REQUEST['AuthID'], 'clave:bridge:country');
@@ -135,10 +142,10 @@ SimpleSAML_Logger::debug("SP Request data: ".print_r($reqData,true));
 
 //****** Show Country selector if no country provided *****
 
-
+$country = NULL;
 if(isset($_REQUEST['country']))
     $country = $_REQUEST['country'];
-else{
+else if($showCountrySelector){
 
 // TODO eIDAS SEGUIR. Si saco aquí el country selector, que es lo correcto, lo de abajo lo he de mover a otro script (como el discorespphp) y transferir estado (ojo. ver qué necesito de arriba). Si lo pongo al principio, es raro pero me ahorro guardar estado.
 
@@ -324,8 +331,14 @@ SimpleSAML_Stats::log('clave:sp:AuthnRequest', array(
 //Redirect (forwarded params are appended, priority to the ones set here)
 $post = array(
     'SAMLRequest'  => $req,
-    'country'  => $country, // TODO eIDAS forwarded, but if not present , show country selector
 ) + $forwardedParams;
+
+// TODO eIDAS
+//If SP sent it or the country selector was activated (otherwise, we
+//rely on the eIDAS node country selector)
+if ($country !== NULL and $country !== "")
+    $post ['country'] = $country;
+
 
 SimpleSAML_Logger::debug("forwarded: ".print_r($forwardedParams, true));
 SimpleSAML_Logger::debug("post: ".print_r($post, true));

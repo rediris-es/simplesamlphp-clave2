@@ -5,39 +5,61 @@
  *
  */
 
+//Hosted IdP config
+$claveConfig = sspmod_clave_Tools::getMetadataSet("__DYNAMIC:1__","clave-idp-hosted");
+SimpleSAML_Logger::debug('Clave Idp hosted metadata: '.print_r($claveConfig,true));
+
+
+//Hosted SP config
+$hostedSP = $claveConfig->getString('hostedSP', NULL);
+if($hostedSP == NULL)
+    throw new SimpleSAML_Error_Exception("No clave hosted SP configuration defined in clave bridge configuration.");
+$claveSP = sspmod_clave_Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
+SimpleSAML_Logger::debug('Clave SP hosted metadata: '.print_r($claveSP,true));
+
+
+//Get the list of countries
+$countries = $claveSP->getArray('countries', array());
+
+
+
+
 //$spEntityId    = $_GET['entityID']; //Hosted SP entity ID
 $returnURL     = \SimpleSAML\Utils\HTTP::checkURLAllowed($_GET['return']);
 //$returnIdParam = $_GET['returnIDParam'];
 $returnIdParam = "country";
 
-echo '<html>'
+$countryLines = '';
+foreach($countries as $countryCode => $countryName)
+    $countryLines .= '<option value="'.$countryCode.'">'.$countryName.'</option>';
+
+
+$page =  '<html>'
     .'  <body>'
     .'    <form action="'.$returnURL.'" method="POST">'
     .'      Seleccione su país de orígen:<br/>'
     .'      <br/>'
     .'      <select name="'.$returnIdParam.'">'
-    .'        <option value="ES">Spain</option>'
-    .'        <option value="AT">Austria</option>'
-    .'        <option value="SE">Sweden</option>'
-    .'        <option value="GR">Greece</option>'
+    .$countryLines
     .'      </select>'
     .'      <br/>'
     .'      <br/>'
-    .'      <input type="submit" value="OK">'
+    .'      <input type="submit" value="Continuar">'
     .'    </form>'
     .'  <body>'
     .'<html>';
 
-    
 
-// TODO read the country list from clave remote IdP or hosted SP config
+echo $page;
 
 
 //\SimpleSAML\Utils\HTTP::redirectTrustedURL($returnURL,array($returnIdParam => 'ES'));
 
 
 
-// TODO multilanguage
+//TODO multilanguage
+
+//TODO include ssphp template header and footer
 
 /*
 // TODO implement all html in the module as templates (see if the other modules redirects use the standard calls)
