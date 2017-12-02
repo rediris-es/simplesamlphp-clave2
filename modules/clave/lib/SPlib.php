@@ -778,10 +778,11 @@ class sspmod_clave_SPlib {
 
     if($this->SPEPS == NULL || $this->SPEPS == "")
       $this->fail(__FUNCTION__, self::ERR_NEEDED_SPEPS);
-
-    if($this->ReturnAddr == NULL || $this->ReturnAddr == "")
-      $this->fail(__FUNCTION__, self::ERR_NEEDED_RADDR);   
- 
+    
+    if($this->mode === 0)
+        if($this->ReturnAddr == NULL || $this->ReturnAddr == "")
+            $this->fail(__FUNCTION__, self::ERR_NEEDED_RADDR);   
+    
     if($this->ServiceProviderName == NULL || $this->ServiceProviderName == "")
       $this->fail(__FUNCTION__, self::ERR_NEEDED_SPROVN);
  
