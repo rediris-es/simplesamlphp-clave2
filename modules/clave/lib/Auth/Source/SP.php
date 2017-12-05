@@ -235,23 +235,28 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
 	 * @param array $state  The state array for the current authentication.
 	 */
 	public function startSSO(array $idp, array $state) {
-   
+        
         SimpleSAML_Logger::info("clave auth filter startSSO");
-      
+        
         SimpleSAML_Logger::info("SP sign cert: ".$this->certData);
-
-   
+        
+        
         $spConf  = SimpleSAML_Configuration::loadFromArray($state['SPMetadata']);
 
-        //These params are read from the SP remote config and if not set, from the IdP hosted config.
-        $SPCountry = $spConf->getString('spCountry',$this->claveConfig->getString('spCountry', 'NOTSET'));
-        $SPsector  = $spConf->getString('spSector',$this->claveConfig->getString('spSector', 'ANY'));
-        $SPinstitution = $spConf->getString('spInstitution',$this->claveConfig->getString('spInstitution', 'ANY'));
-        $SPapp = $spConf->getString('spApplication',$this->claveConfig->getString('spApplication', 'ANY'));
-//   $SpId="$SPCountry-$SPsector-$SPinstitution-$SPapp";
-        $SpId = $spConf->getString('spID',$this->claveConfig->getString('spID', 'NOTSET'));
-
+        $sectorShare      = "";
+        $crossSectorShare = "";
+        $crossBorderShare = "";
         if ($this->dialect === 'stork'){ //On Stork, might be fixed (clave) or country selector (stork)
+            
+            //These params are read from the SP remote config and if not set, from the IdP hosted config.
+            $SPCountry = $spConf->getString('spCountry',$this->claveConfig->getString('spCountry', 'NOTSET'));
+            $SPsector  = $spConf->getString('spSector',$this->claveConfig->getString('spSector', 'ANY'));
+            $SPinstitution = $spConf->getString('spInstitution',$this->claveConfig->getString('spInstitution', 'ANY'));
+            $SPapp = $spConf->getString('spApplication',$this->claveConfig->getString('spApplication', 'ANY'));
+            //$SpId="$SPCountry-$SPsector-$SPinstitution-$SPapp";
+            $SpId = $spConf->getString('spID',$this->claveConfig->getString('spID', 'NOTSET'));
+
+            
             $CitizenCountry = $spConf->getString('citizenCountryCode',
                               $this->claveConfig->getString('citizenCountryCode', $idp['country']));
 
