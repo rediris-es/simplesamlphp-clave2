@@ -185,6 +185,9 @@ $storkResp->setSignatureParams(sspmod_clave_SPlib::SHA256,sspmod_clave_SPlib::EX
 //Get response encryption config (remote SP configuration prioritary over hosted IdP config)
 $encryptAssertions = $spMetadata->getBoolean('assertion.encryption',
                                              $claveConfig->getBoolean('assertion.encryption', false));
+
+SimpleSAML_Logger::debug('Will encrypt assertions: '.$encryptAssertions);
+
 $encryptAlgorithm  = $spMetadata->getString('assertion.encryption.keyAlgorithm',
                                             $claveConfig->getString('assertion.encryption.keyAlgorithm',
                                                                     sspmod_clave_SPlib::AES256_CBC));

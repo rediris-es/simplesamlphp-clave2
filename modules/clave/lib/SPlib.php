@@ -553,14 +553,19 @@ class sspmod_clave_SPlib {
   public function addRequestAttribute ($friendlyName, $required=false, $values=NULL, $escape=true){
     
     self::debug("Adding attribute ".$friendlyName." required(".self::bts($required).")");
+
+    if($this->mode === 0)
+        $prefix = "stork";
+    if($this->mode === 1)
+        $prefix = "eidas";
     
     // We check if it is a supported attribute (always allow if mandatory)
-//    if(!$required)
-//      self::$ATTRIBUTES[$friendlyName] or $this->fail(__FUNCTION__, self::ERR_NONEXIST_STORK_ATTR, $friendlyName);
-    
-    if(!$required)
-        self::$eIdasAttributes[$friendlyName] or $this->fail(__FUNCTION__, self::ERR_NONEXIST_STORK_ATTR, $friendlyName);
-    
+    if(!$required){
+        if($this->mode === 0)
+            self::$ATTRIBUTES[$friendlyName] or $this->fail(__FUNCTION__, self::ERR_NONEXIST_STORK_ATTR, $friendlyName);
+        if($this->mode === 1)
+            self::$eIdasAttributes[$friendlyName] or $this->fail(__FUNCTION__, self::ERR_NONEXIST_STORK_ATTR, $friendlyName);
+    }
     
     
     if($values)
@@ -580,7 +585,7 @@ class sspmod_clave_SPlib {
     }
     else{
       $tagClose = ">";
-      $closeTag = "</eidas:RequestedAttribute>";
+      $closeTag = "</$prefix:RequestedAttribute>";
     }
     $valueAddition = "";
     foreach($values as $value){
@@ -589,27 +594,42 @@ class sspmod_clave_SPlib {
       if($escape)
         $transformedValue = htmlspecialchars($value);
       
-      $valueAddition .= '<eidas:AttributeValue '
+      $valueAddition .= '<$prefix:AttributeValue '
         .'xmlns:xs="'.self::NS_XMLSCH.'" '
         .'xmlns:xsi="'.self::NS_XSI.'" '
         .'xsi:type="xs:string">'
-        .$transformedValue.'</eidas:AttributeValue>';
+        .$transformedValue.'</$prefix:AttributeValue>';
     }
-
-    //If we can't translate the friendlyname to a name, use it as is
-    $name = $friendlyName;
-    if (array_key_exists($friendlyName,self::$eIdasAttributes))
-        $name = self::$eIdasAttributes[$friendlyName];
     
-    $attrLine = '<eidas:RequestedAttribute'
-        .' FriendlyName="'.$friendlyName.'"'
-        .' Name="'.$name.'"'
-        .' NameFormat="'.self::$AttrNF.'"'
-        .' isRequired="'.self::bts($required).'"'
-        .$tagClose
-        .$valueAddition
-        .$closeTag;
-        
+    
+    
+    if($this->mode === 0){        
+        $attrLine = '<stork:RequestedAttribute'
+            .' Name="'.self::$AttrNamePrefix.$friendlyName.'"'
+            .' NameFormat="'.self::$AttrNF.'"'
+            .' isRequired="'.self::bts($required).'"'
+            .$tagClose
+            .$valueAddition
+            .$closeTag;
+    }
+    
+    if($this->mode === 1){    
+        //If we can't translate the friendlyname to a name, use it as is
+        $name = $friendlyName;
+        if (array_key_exists($friendlyName,self::$eIdasAttributes))
+            $name = self::$eIdasAttributes[$friendlyName];
+    
+        $attrLine = '<$prefix:RequestedAttribute'
+            .' FriendlyName="'.$friendlyName.'"'
+            .' Name="'.$name.'"'
+            .' NameFormat="'.self::$AttrNF.'"'
+            .' isRequired="'.self::bts($required).'"'
+            .$tagClose
+            .$valueAddition
+            .$closeTag;
+    }
+    
+    
     //We add the attribute to the requested attributes array
     // [Notice that an attribute can be requested multiple times]
     if($attrLine != "")
@@ -909,6 +929,7 @@ class sspmod_clave_SPlib {
     }
     
 
+    $SPtype = '';
     if($this->mode === 1){  //eIDAS only
         //Sending is optional, but in that case, it must be set at the eIDAS node metadata
         if ($this->spType !== NULL && $this->spType !== ""){
@@ -930,7 +951,8 @@ class sspmod_clave_SPlib {
       .$StorkExtAuthAttrs  //Stork
       .'</saml2p:Extensions>';
     
-    
+    $NameIDPolicy = '';
+    $AuthnContext = "";
     if($this->mode === 1){  //eIDAS only
         
         //Set the format of the identifier of the principal (persistent, transient, unspecified)
@@ -941,7 +963,6 @@ class sspmod_clave_SPlib {
 
         //Set the required Level of Assurance for authentication
         //(comparison is always minimum-required-value)
-        $AuthnContext = "";
         $LoA = $this->QAALevel;
         if(is_int($this->QAALevel))
             $LoA = $this->qaaToLoA($this->QAALevel);
@@ -2361,9 +2382,9 @@ class sspmod_clave_SPlib {
   }
 
 
-  public static function getFriendlyName($attributeName){
+  public static function getFriendlyName($attributeName, $mode=0){
 
-      if($this->mode === 0){ //Stork
+      if($mode === 0){ //Stork
           $prefixLen = strlen(self::$AttrNamePrefix);      
           if (substr($attributeName, 0, $prefixLen) == self::$AttrNamePrefix){
               return substr($attributeName, $prefixLen);
@@ -2371,7 +2392,7 @@ class sspmod_clave_SPlib {
           return $attributeName;
       }
       
-      if($this->mode === 1){ //eIDAS  // TODO check
+      if($mode === 1){ //eIDAS  // TODO check
           $attrname = preg_replace("|.+/(.+?)$|i", "\\1", $attributeName);
           return $attrname;
       }

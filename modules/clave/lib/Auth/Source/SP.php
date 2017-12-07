@@ -255,11 +255,16 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
             $SPapp = $spConf->getString('spApplication',$this->claveConfig->getString('spApplication', 'ANY'));
             //$SpId="$SPCountry-$SPsector-$SPinstitution-$SPapp";
             $SpId = $spConf->getString('spID',$this->claveConfig->getString('spID', 'NOTSET'));
-
             
+            
+            if ($this->subdialect === 'clave-2.0'){
             $CitizenCountry = $spConf->getString('citizenCountryCode',
-                              $this->claveConfig->getString('citizenCountryCode', $idp['country']));
-
+                                                 $this->claveConfig->getString('citizenCountryCode', 'NOTSET'));
+            }
+            if ($this->subdialect === 'stork')
+                $CitizenCountry = $idp['country'];
+            
+            
             $sectorShare      = $spConf->getBoolean('eIDSectorShare', $this->claveConfig->getBoolean('eIDSectorShare', true));
             $crossSectorShare = $spConf->getBoolean('eIDCrossSectorShare', $this->claveConfig->getBoolean('eIDCrossSectorShare', true));
             $crossBorderShare = $spConf->getBoolean('eIDCrossBorderShare', $this->claveConfig->getBoolean('eIDCrossBorderShare', true));
@@ -329,8 +334,8 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         }
         
         foreach($attrsToRequest as $attr)
-//     $clave->addRequestAttribute ($attr, false);    // TODO eIDAS // TODO verify if eIDAS accepts them as not mandatory and if so, remove the following line and uncomment this one
-            $clave->addRequestAttribute ($attr, true);
+            $clave->addRequestAttribute ($attr, false);    // TODO eIDAS // TODO verify if eIDAS accepts the minimum dataset as not mandatory and if so, remove this line and uncomment the next one
+        //$clave->addRequestAttribute ($attr, true);
         
         
         //Save information needed for the comeback
