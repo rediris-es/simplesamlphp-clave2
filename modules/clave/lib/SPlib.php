@@ -226,7 +226,7 @@ class sspmod_clave_SPlib {
   private $SPEPS;                  // S-PEPS url, the destination of the request.
   private $QAALevel;               // Minimum authentication quality needed.
 
-  private $forceAuthn;
+  private $forceAuth;
   
   private $sectorShare;            // Can eID be shared on the SP sector?
   private $crossSectorShare;       // Can eID be shared outside the SP sector?
@@ -515,7 +515,7 @@ class sspmod_clave_SPlib {
     
     $this->trustedCerts = array();
 
-    $this->forceAuthn = false;
+    $this->forceAuth = false;
     
     $this ->encryptCert = NULL;
     $this ->doCipher = false;
@@ -585,7 +585,7 @@ class sspmod_clave_SPlib {
     }
     else{
       $tagClose = ">";
-      $closeTag = "</$prefix:RequestedAttribute>";
+      $closeTag = "</".$prefix.":RequestedAttribute>";
     }
     $valueAddition = "";
     foreach($values as $value){
@@ -594,11 +594,11 @@ class sspmod_clave_SPlib {
       if($escape)
         $transformedValue = htmlspecialchars($value);
       
-      $valueAddition .= '<$prefix:AttributeValue '
+      $valueAddition .= '<'.$prefix.':AttributeValue '
         .'xmlns:xs="'.self::NS_XMLSCH.'" '
         .'xmlns:xsi="'.self::NS_XSI.'" '
         .'xsi:type="xs:string">'
-        .$transformedValue.'</$prefix:AttributeValue>';
+        .$transformedValue.'</'.$prefix.':AttributeValue>';
     }
     
     
@@ -619,7 +619,7 @@ class sspmod_clave_SPlib {
         if (array_key_exists($friendlyName,self::$eIdasAttributes))
             $name = self::$eIdasAttributes[$friendlyName];
     
-        $attrLine = '<$prefix:RequestedAttribute'
+        $attrLine = '<'.$prefix.':RequestedAttribute'
             .' FriendlyName="'.$friendlyName.'"'
             .' Name="'.$name.'"'
             .' NameFormat="'.self::$AttrNF.'"'
@@ -683,7 +683,7 @@ class sspmod_clave_SPlib {
 
   //Enables the force authentication flag on the request (default false)
   public function forceAuthn(){
-      $this->forceAuthn = true;
+      $this->forceAuth = true;
   }
   
   
@@ -843,7 +843,7 @@ class sspmod_clave_SPlib {
         .$assertionConsumerServiceURL
         .'Consent="'.self::CNS_UNS.'" '
         .'Destination="'.htmlspecialchars($this->SPEPS).'" '
-        .'ForceAuthn="'.self::bts($this->forceAuthn).'" '
+        .'ForceAuthn="'.self::bts($this->forceAuth).'" '
         .'ID="'.$this->ID.'" '
         .'IsPassive="false" '
         .'IssueInstant="'.$this->TSTAMP.'" '
@@ -1088,7 +1088,8 @@ class sspmod_clave_SPlib {
     
     $doc = new DOMDocument(); 
     $doc->formatOutput = false; 
-    $doc->preserveWhiteSpace = false; 
+    $doc->preserveWhiteSpace = false;
+    self::debug($xml);
     $doc->loadXML($xml);
     
     self::debug("Parsed document to be signed.");

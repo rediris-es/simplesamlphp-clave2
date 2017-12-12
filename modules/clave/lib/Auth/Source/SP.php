@@ -304,9 +304,10 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         //We get the forceAuthn of the AuthnReq and reproduce it, default is false
         //if($this->metadata->getInteger('ForceAuthn', 0) == 1)
         //if (isset($state['ForceAuthn']) && $state['ForceAuthn'] === 1)
-        SimpleSAML_Logger::debug("************************FA:".$state['ForceAuthn']);
-        if( ((bool)$state['ForceAuthn']) === true)
-            $clave->forceAuthn();
+// Both in stork and eIDAS, always true. Otherwise, it fails
+//SimpleSAML_Logger::debug("************************FA:".$state['ForceAuthn']);
+//if( ((bool)$state['ForceAuthn']) === true)
+        $clave->forceAuthn();
         
         $clave->setSignatureKeyParams($this->certData, $this->keyData, sspmod_clave_SPlib::RSA_SHA512);
         $clave->setSignatureParams(sspmod_clave_SPlib::SHA512,sspmod_clave_SPlib::EXC_C14N);
@@ -360,7 +361,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         SimpleSAML_Stats::log('clave:sp:AuthnRequest', array(
             'spEntityID' =>  $this->entityId,
             'idpEntityID' => $idp['endpoint'],
-            'forceAuthn' => $state['ForceAuthn'],
+            'forceAuthn' => TRUE,//$state['ForceAuthn'],
             'isPassive' => FALSE,
             'protocol' => 'saml2-'.$this->dialect,
             'idpInit' => FALSE,

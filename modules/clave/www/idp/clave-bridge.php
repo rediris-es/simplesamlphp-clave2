@@ -213,7 +213,7 @@ $aux = $claveIdP->getStorkRequestData($request);
 SimpleSAML_Stats::log('clave:idp:AuthnRequest', array(
     'spEntityID' => $spEntityId,
     'idpEntityID' => $claveConfig->getString('issuer', ''),
-    'forceAuthn' => $aux['forceAuthn'],
+    'forceAuthn' => TRUE, //$aux['forceAuthn'],
     'isPassive' => $aux['isPassive'],
     'protocol' => 'saml2-'.$IdPdialect,
     'idpInit' => FALSE,
@@ -305,8 +305,8 @@ $clave->setServiceProviderParams($providerName,
                                  $returnPage);
 
 
-if($reqData['forceAuthn'])
-    $clave->forceAuthn();
+//if($reqData['forceAuthn'])
+$clave->forceAuthn();
 
 
 if ($SPdialect === 'stork'){
@@ -362,7 +362,7 @@ SimpleSAML_Logger::debug("Generated AuthnReq: ".$req);
 SimpleSAML_Stats::log('clave:sp:AuthnRequest', array(
     'spEntityID' =>  $claveSP->getString('entityid', NULL),
     'idpEntityID' => $endpoint,
-    'forceAuthn' => $reqData['forceAuthn'],
+    'forceAuthn' => TRUE, //$reqData['forceAuthn'],
     'isPassive' => FALSE,
     'protocol' => 'saml2-'.$SPdialect,
     'idpInit' => FALSE,
