@@ -334,8 +334,17 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
                 $attrsToRequest = array("PersonIdentifier","FirstName","FamilyName","DateOfBirth");
         }
         
-        foreach($attrsToRequest as $attr)
-            $clave->addRequestAttribute ($attr, false);    // TODO eIDAS // TODO verify if eIDAS accepts the minimum dataset as not mandatory and if so, remove this line and uncomment the next one
+        foreach($attrsToRequest as $attr){
+            $mandatory = false;
+            
+            if ($this->dialect === 'eidas')
+                if (in_array($attr, array("PersonIdentifier","FirstName","FamilyName","DateOfBirth")))
+                    $mandatory = true;
+            
+            $clave->addRequestAttribute ($attr, $mandatory);    // TODO eIDAS // TODO verify if eIDAS accepts the minimum dataset as not mandatory and if so, remove this line and uncomment the next one  // TODO minimum dataset always mandatory.
+
+            // TODO change metadata structure: allow to define individually each attribute mandatoriness
+        }
         //$clave->addRequestAttribute ($attr, true);
         
         

@@ -1089,7 +1089,6 @@ class sspmod_clave_SPlib {
     $doc = new DOMDocument(); 
     $doc->formatOutput = false; 
     $doc->preserveWhiteSpace = false;
-    self::debug($xml);
     $doc->loadXML($xml);
     
     self::debug("Parsed document to be signed.");
@@ -2909,7 +2908,11 @@ class sspmod_clave_SPlib {
           $encAssertion = $assertions->item(0);
           
           #Search for the encrypted data node inside the encrypted assertion node
-          $encData = $encAssertion->getElementsByTagName('EncryptedData')[0];
+          $encData = $encAssertion->getElementsByTagName('EncryptedData');
+          if(is_array($encData))
+              $encData = $encData[0];  // TODO SEGUIR
+          if($encData instanceof DOMNodeList)
+              $encData = $encData->item(0);
           if ($encData === NULL)
               $this->fail(__FUNCTION__, self::ERR_GENERIC,"No encrypted data node found.");
           
