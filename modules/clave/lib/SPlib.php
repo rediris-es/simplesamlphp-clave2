@@ -24,6 +24,10 @@ class sspmod_clave_SPlib {
   const AES128_CBC = 'http://www.w3.org/2001/04/xmlenc#aes128-cbc';
   const AES192_CBC = 'http://www.w3.org/2001/04/xmlenc#aes192-cbc';
   const AES256_CBC = 'http://www.w3.org/2001/04/xmlenc#aes256-cbc';
+  const AES128_GCM = 'http://www.w3.org/2009/xmlenc11#aes128-gcm';
+  const AES192_GCM = 'http://www.w3.org/2009/xmlenc11#aes192-gcm';
+  const AES256_GCM = 'http://www.w3.org/2009/xmlenc11#aes256-gcm';
+  
   const RSA_OAEP_MGF1P = 'http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p';
   
   //Supported digest algorithms.
@@ -2749,22 +2753,29 @@ class sspmod_clave_SPlib {
   private function decryptXMLNode(DOMElement $encryptedData, XMLSecurityKey $decryptKey){
       
       self::debug(__CLASS__.".".__FUNCTION__."()");
+
       
       $enc = new XMLSecEnc();
       $enc->setNode($encryptedData);
       $enc->type = $encryptedData->getAttribute("Type");
 
+      self::debug("*******************".print_r($encryptedData,true));
+      
       self::debug("Locating encrypted symmetric key...");
       $symmetricKey = $enc->locateKey($encryptedData);
       if (!$symmetricKey)
           $this->fail(__FUNCTION__, self::ERR_GENERIC,"Could not locate key algorithm in encrypted data.");
 
-      //Find the ciphering algorithm info
+      self::debug("*******************".print_r($symmetricKey,true));
+
+      //Find the ciphering algorithm info (returns a XMLSecurityKey instance with the symmetric key)
       self::debug("Locating ciphering algorithm...");
       $symmetricKeyInfo = $enc->locateKeyInfo($symmetricKey);
       if (!$symmetricKeyInfo)
           $this->fail(__FUNCTION__, self::ERR_GENERIC,"Could not locate <dsig:KeyInfo> for the encrypted key.");
             
+      self::debug("*******************".print_r($symmetricKeyInfo,true));
+      
       //Key will always be encrypted with the recipient public key
       if (!$symmetricKeyInfo->isEncrypted)
           $this->fail(__FUNCTION__, self::ERR_GENERIC,"Symmetric key not encrypted. Must be encrypted.");
@@ -2780,6 +2791,8 @@ class sspmod_clave_SPlib {
           // Any RSA private key can be used on RSA_OAEP_MGF1P
           $decryptKeyAlgo = XMLSecurityKey::RSA_OAEP_MGF1P;
       }
+      self::debug("Decrypt key algorithm: $decryptKeyAlgo.");
+      self::debug("Symmetric key algorithm: $symKeyInfoAlgo.");
       
       //Check that decrypt and encrypt key formats match
       if ($decryptKeyAlgo !== $symKeyInfoAlgo)
@@ -2819,13 +2832,24 @@ class sspmod_clave_SPlib {
               $key = str_pad($key, $keySize);
           }
       }
+
+
+      self::debug("Decrypted symmetric key (raw): ". bin2hex("$key"));
       
       //Get the decrypted key back to its place
-      $symmetricKey->loadkey($key);
+      //$symmetricKey->loadkey($key);
+      $symmetricKey->key = $key;
+      
+      self::debug("Decrypted symmetric key (obj): ".print_r($symmetricKey,true));
+      self::debug("Decrypted symmetric key (raw from obj): ".bin2hex($symmetricKey->key));
+      self::debug("Data to decrypt: ".base64_encode($enc->getCipherValue()));
       
       //Decrypt the assertion
       self::debug('Decrypting data with symmetric key (if succeeded in decrypting it. Rubbish otherwise)');
       $decrypted = $enc->decryptNode($symmetricKey, false);
+
+      self::debug("Decrypted data: $decrypted");
+
       
       return $decrypted;
   }
@@ -2866,7 +2890,7 @@ class sspmod_clave_SPlib {
       
       
       //Load the private key to decipher
-      self::debug("Loading decryption key...");
+      self::debug("Loading decryption key...");  // TODO get the key type from the  <ds:KeyInfo><xenc:EncryptedKey><xenc:EncryptionMethod> --->  as it is my key, I know I use this algorithm
       $objKey = new XMLSecurityKey(XMLSecurityKey::RSA_OAEP_MGF1P, array('type'=>'private'));
       $objKey->loadKey($this->decryptPrivateKey, FALSE);
       
@@ -2917,7 +2941,7 @@ class sspmod_clave_SPlib {
               $this->fail(__FUNCTION__, self::ERR_GENERIC,"No encrypted data node found.");
           
           #Decrypt the assertion
-          $assertion = $this->decryptXMLNode($encData,$objKey);
+          $assertion = $this->decryptXMLNode($encData,$objKey);  // TODO parece que estoy desencriptando con la llave privada rsa
           if ($assertion === NULL)
               $this->fail(__FUNCTION__, self::ERR_GENERIC,"Decrypted content is null.");
           

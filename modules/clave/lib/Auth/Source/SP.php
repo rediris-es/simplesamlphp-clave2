@@ -242,7 +242,10 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         
         
         $spConf  = SimpleSAML_Configuration::loadFromArray($state['SPMetadata']);
-
+        
+        
+        $showCountrySelector = $this->claveConfig->getBoolean('showCountrySelector', false);
+        
         $sectorShare      = "";
         $crossSectorShare = "";
         $crossBorderShare = "";
@@ -261,8 +264,11 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
             $CitizenCountry = $spConf->getString('citizenCountryCode',
                                                  $this->claveConfig->getString('citizenCountryCode', 'NOTSET'));
             }
+            
+            $CitizenCountry = "";
             if ($this->subdialect === 'stork')
-                $CitizenCountry = $idp['country'];
+                if($showCountrySelector === true)
+                    $CitizenCountry = $idp['country'];
             
             
             $sectorShare      = $spConf->getBoolean('eIDSectorShare', $this->claveConfig->getBoolean('eIDSectorShare', true));
@@ -273,7 +279,10 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         }
         
         if ($this->dialect === 'eidas'){ //On eIDAS, always get the country selector value
-            $CitizenCountry = $idp['country'];
+
+            $CitizenCountry = '';
+            if($showCountrySelector === true)
+                $CitizenCountry = $idp['country'];
             
             //Metadata URL for eIDAS   // TODO Here biuld the metadata url with the proper 
             $spConfId = $this->metadata->getString('hostedSP', NULL);
@@ -445,7 +454,8 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
        
        //The state variable country will be set on the return page of the
        //discovery service (country selector)
-       $post['country'] = $state['country'];
+       if (isset($state['country']))
+           $post['country'] = $state['country'];
        
        // TODO ver si algún otro parámetro es relevante:    // TODO eIDAS
        /*
