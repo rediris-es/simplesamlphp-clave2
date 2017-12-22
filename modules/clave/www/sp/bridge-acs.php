@@ -20,6 +20,10 @@ $claveSP = sspmod_clave_Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
 SimpleSAML_Logger::debug('Clave SP hosted metadata: '.print_r($claveSP,true));
 
 
+//Get the mode for the SP
+$SPdialect    = $claveSP->getString('dialect');
+$SPsubdialect = $claveSP->getString('subdialect');
+
 $expectedResponsePostParams = $claveConfig->getArray('sp.post.allowed', array());
 
 
@@ -167,8 +171,15 @@ $assertions = $clave->getRawAssertions();
 
 
 //Generate response with attributes, show the response and send back with submit button
-//$acs  = $reqData['assertionConsumerService'];  // TODO eIDAS
-$acs = $spMetadata->getArray('AssertionConsumerService',NULL)[0]['Location'];  // TODO revisar que funciona
+if ($SPdialect === 'stork')
+    $acs  = $reqData['assertionConsumerService'];  // TODO eIDAS
+if ($SPdialect === 'eidas')
+    $acs = $spMetadata->getArray('AssertionConsumerService',NULL)[0]['Location'];  // TODO revisar que funciona  // TODO a veces FALLA. creo que porque el SP no lo tiene
+
+
+if($acs === NULL || $acs == "")
+    throw new SimpleSAML_Error_Exception("No assertion consumer url found on the request or metadata for the remote SP: $spEntityId.");
+
 
 $storkResp = new sspmod_clave_SPlib();
 

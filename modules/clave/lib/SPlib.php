@@ -2057,7 +2057,7 @@ class sspmod_clave_SPlib {
       $ret['forceAuthn']           = self::stb("".$samlReq["ForceAuthn"]);
       $ret['isPassive']            = self::stb("".$samlReq["IsPassive"]);
       
-      if($this->mode === 0) //Stork
+      if(isset($samlReq["AssertionConsumerServiceURL"]))
           $ret['assertionConsumerService'] = "".$samlReq["AssertionConsumerServiceURL"];
       
       $ret['issuer'] = "".$samlReq->children(self::NS_SAML2,false)->Issuer;      
