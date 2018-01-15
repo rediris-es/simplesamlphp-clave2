@@ -260,8 +260,12 @@ if ($SPdialect === 'stork'){
 
 //eIDas request parameters. If set on the hostedSP, remote sp request values are overriden
 if ($SPdialect === 'eidas'){
+
+    if($reqData['IdFormat'] === NULL || $reqData['IdFormat'] === "")
+        $reqData['IdFormat'] = sspmod_clave_SPlib::NAMEID_FORMAT_PERSISTENT;
+        
     $bridgeData['SPType']       = $claveSP->getString('SPType', $reqData['SPType']);
-    $bridgeData['NameIDFormat'] = $claveSP->getString('NameIDFormat', $reqData['IdFormat']);
+    $bridgeData['NameIDFormat'] = $claveSP->getString('NameIDFormat', $reqData['IdFormat']);  // TODO SEGUIR: cuando el sp está en stork, $reqData['IdFormat'] es vacío, y falla luego. hay que poner otro default
     $bridgeData['LoA']          = $claveSP->getString('LoA', $reqData['LoA']);
 }//TODO eIDAS
 
