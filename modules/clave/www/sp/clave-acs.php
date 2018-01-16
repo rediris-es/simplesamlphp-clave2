@@ -48,12 +48,13 @@ $claveConfig = sspmod_clave_Tools::getMetadataSet("__DYNAMIC:1__","clave-idp-hos
 SimpleSAML_Logger::debug('Clave Idp hosted metadata: '.print_r($claveConfig,true));
 
 //Hosted SP config
+/*
 $hostedSP = $claveConfig->getString('hostedSP', NULL);
 if($hostedSP == NULL)
     throw new SimpleSAML_Error_Exception("No clave hosted SP configuration defined in clave bridge configuration.");
 $claveSP = sspmod_clave_Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
 SimpleSAML_Logger::debug('Clave SP hosted metadata: '.print_r($claveSP,true));
-
+*/
 
 
 //Add additional post params as attributes on the response (it is
@@ -94,9 +95,9 @@ $clave->setValidationContext($id,
 //Expect encrypted assertions and try to decrypt them with the SP
 //private key, also, don't ignore any existing plain assertion (this
 //may change in the future)
-$spkeypem  = sspmod_clave_Tools::readCertKeyFile($claveSP->getString('privatekey', NULL));
-$expectEncrypted = $claveSP->getBoolean('assertions.encrypted', true);
-$onlyEncrypted   = $claveSP->getBoolean('assertions.encrypted.only', false);
+$spkeypem  = sspmod_clave_Tools::readCertKeyFile($hostedSPmeta->getString('privatekey', NULL));
+$expectEncrypted = $hostedSPmeta->getBoolean('assertions.encrypted', true);
+$onlyEncrypted   = $hostedSPmeta->getBoolean('assertions.encrypted.only', false);
 
 $clave->setDecipherParams($spkeypem,$expectEncrypted,$onlyEncrypted);
 // TODO

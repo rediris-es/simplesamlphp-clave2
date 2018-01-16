@@ -348,13 +348,12 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
             
             if ($this->dialect === 'eidas')
                 if (in_array($attr, array("PersonIdentifier","FirstName","FamilyName","DateOfBirth")))
-                    $mandatory = true;
+                    $mandatory = true;   //minimum dataset always mandatory.
             
-            $clave->addRequestAttribute ($attr, $mandatory);    // TODO eIDAS // TODO verify if eIDAS accepts the minimum dataset as not mandatory and if so, remove this line and uncomment the next one  // TODO minimum dataset always mandatory.
-
+            $clave->addRequestAttribute ($attr, $mandatory);    // TODO eIDAS 
+            
             // TODO change metadata structure: allow to define individually each attribute mandatoriness
         }
-        //$clave->addRequestAttribute ($attr, true);
         
         
         //Save information needed for the comeback
@@ -456,14 +455,6 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
        //discovery service (country selector)
        if (isset($state['country']))
            $post['country'] = $state['country'];
-       
-       // TODO ver si algún otro parámetro es relevante:    // TODO eIDAS
-       /*
-         $post['postLocationUrl']     = "https://se-eidas.redsara.es/EidasNode/ServiceProvider";
-         $post['redirectLocationUrl'] = "https://se-eidas.redsara.es/EidasNode/ServiceProvider";
-         $post['RelayState']          = "MyRelayState";
-         $post['sendmethods']         = "POST";
-       */
    }
    
    

@@ -260,13 +260,29 @@ if ($SPdialect === 'stork'){
 
 //eIDas request parameters. If set on the hostedSP, remote sp request values are overriden
 if ($SPdialect === 'eidas'){
-
-    if($reqData['IdFormat'] === NULL || $reqData['IdFormat'] === "")
+    
+    //Set defaults for when the remote SP was in Stork mode
+    if(!array_key_exists('IdFormat',$reqData)
+    || $reqData['IdFormat'] === NULL
+    || $reqData['IdFormat'] === "")
         $reqData['IdFormat'] = sspmod_clave_SPlib::NAMEID_FORMAT_PERSISTENT;
+
+    if(!array_key_exists('SPType',$reqData)
+    || $reqData['SPType'] === NULL
+    || $reqData['SPType'] === "")
+        $reqData['SPType'] = sspmod_clave_SPlib::EIDAS_SPTYPE_PUBLIC;
+
+    if(!array_key_exists('LoA',$reqData)
+    || $reqData['LoA'] === NULL
+    || $reqData['LoA'] === "")
+        $reqData['LoA'] = sspmod_clave_SPlib::qaaToLoA($reqData['QAA']);
+    
         
     $bridgeData['SPType']       = $claveSP->getString('SPType', $reqData['SPType']);
-    $bridgeData['NameIDFormat'] = $claveSP->getString('NameIDFormat', $reqData['IdFormat']);  // TODO SEGUIR: cuando el sp está en stork, $reqData['IdFormat'] es vacío, y falla luego. hay que poner otro default
+    $bridgeData['NameIDFormat'] = $claveSP->getString('NameIDFormat', $reqData['IdFormat']);
     $bridgeData['LoA']          = $claveSP->getString('LoA', $reqData['LoA']);
+    $reqData['QAA'] = $bridgeData['LoA']; //We overwrite it to avoid it overwriting the LoA later when the remote SP spoke stork
+
 }//TODO eIDAS
 
 
@@ -292,6 +308,7 @@ $clave = new sspmod_clave_SPlib();
 
 
 if ($SPdialect === 'eidas'){
+
     $clave->setEidasMode();
     $clave->setEidasRequestParams($bridgeData['SPType'],
                                   $bridgeData['NameIDFormat'],
@@ -333,8 +350,15 @@ foreach($reqData['requestedAttributes'] as $attr){
         $name = sspmod_clave_SPlib::getFriendlyName($attr['name']);
         $clave->addRequestAttribute($name, $attr['isRequired']);
     }
-    if ($SPdialect === 'eidas')
-        $clave->addRequestAttribute($attr['friendlyName'], $attr['isRequired']);  // TODO eIDAS.
+    if ($SPdialect === 'eidas'){
+        
+        if ($IdPdialect === 'stork') // The remote SP was using stork and sent the full name of the eIDAS attributes // TODO STORK-eIDAS
+            $name = sspmod_clave_SPlib::getEidasFriendlyName($attr['name']); //We are expecting eIDAS attribute full names, so 1
+        if ($IdPdialect === 'eidas')
+            $name = $attr['friendlyName'];
+        
+        $clave->addRequestAttribute($name, $attr['isRequired']);  // TODO eIDAS.
+    }
     
     //We store the list of mandatory attributes for response validation
     if(sspmod_clave_SPlib::stb($attr['isRequired']) === true){

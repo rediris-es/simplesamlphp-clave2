@@ -9,7 +9,7 @@
 //STORK and eIDAS compliant SP
 class sspmod_clave_SPlib {
   
-  const VERSION = "2.0.0";
+  const VERSION = "2.0.3";
   
   /************ Usable constants and static vars *************/
   
@@ -99,46 +99,46 @@ class sspmod_clave_SPlib {
   // Edit as you need it.
   private static $ATTRIBUTES = array(
           // STORK 1 Personal Attributes
-          "givenName"                 => true, 
-          "surname"                   => true,
-          "eIdentifier"               => true,
-          "countryCodeOfBirth"        => true,
-          "canonicalResidenceAddress" => true,
-          "dateOfBirth"               => true,
-          "textResidenceAddress"      => true,
-          "maritalStatus"             => true,
-          "pseudonym"                 => true,
-          "citizenQAAlevel"           => true,
-          "adoptedFamilyName"         => true,
-          "title"                     => true,
-          "residencePermit"           => true,
-          "nationalityCode"           => true,
-          "gender"                    => true,
-          "fiscalNumber"              => true,
-          "inheritedFamilyName"       => true,
-          "age"                       => true,
-          "eMail"                     => true,
-          "signedDoc"                 => true,
-          "isAgeOver"                 => true,
+          "givenName"                 => "http://www.stork.gov.eu/1.0/givenName", 
+          "surname"                   => "http://www.stork.gov.eu/1.0/surname",
+          "eIdentifier"               => "http://www.stork.gov.eu/1.0/eIdentifier",
+          "countryCodeOfBirth"        => "http://www.stork.gov.eu/1.0/countryCodeOfBirth",
+          "canonicalResidenceAddress" => "http://www.stork.gov.eu/1.0/canonicalResidenceAddress",
+          "dateOfBirth"               => "http://www.stork.gov.eu/1.0/dateOfBirth",
+          "textResidenceAddress"      => "http://www.stork.gov.eu/1.0/textResidenceAddress",
+          "maritalStatus"             => "http://www.stork.gov.eu/1.0/maritalStatus",
+          "pseudonym"                 => "http://www.stork.gov.eu/1.0/pseudonym",
+          "citizenQAAlevel"           => "http://www.stork.gov.eu/1.0/citizenQAAlevel",
+          "adoptedFamilyName"         => "http://www.stork.gov.eu/1.0/adoptedFamilyName",
+          "title"                     => "http://www.stork.gov.eu/1.0/title",
+          "residencePermit"           => "http://www.stork.gov.eu/1.0/residencePermit",
+          "nationalityCode"           => "http://www.stork.gov.eu/1.0/nationalityCode",
+          "gender"                    => "http://www.stork.gov.eu/1.0/gender",
+          "fiscalNumber"              => "http://www.stork.gov.eu/1.0/fiscalNumber",
+          "inheritedFamilyName"       => "http://www.stork.gov.eu/1.0/inheritedFamilyName",
+          "age"                       => "http://www.stork.gov.eu/1.0/age",
+          "eMail"                     => "http://www.stork.gov.eu/1.0/eMail",
+          "signedDoc"                 => "http://www.stork.gov.eu/1.0/signedDoc",
+          "isAgeOver"                 => "http://www.stork.gov.eu/1.0/isAgeOver",
           // New Personal Attributes
-          "placeOfBirth"			  => true,
+          "placeOfBirth"			  => "http://www.stork.gov.eu/1.0/placeOfBirth",
           // Academia Attributes
-          "diplomaSupplement"         => true,
-          "currentStudiesSupplement"  => true,
-          "isStudent"                 => true,
-          "isAcademicStaff"		      => true,
-          "isTeacherOf"			      => true,
-          "isCourseCoordinator"	      => true,
-          "isAdminStaff"			  => true,
-          "habilitation"			  => true,
-          "languageQualification"     => true,
-          "academicRecommendation"    => true,
-          "hasDegree"		          => true,
+          "diplomaSupplement"         => "http://www.stork.gov.eu/1.0/diplomaSupplement",
+          "currentStudiesSupplement"  => "http://www.stork.gov.eu/1.0/currentStudiesSupplement",
+          "isStudent"                 => "http://www.stork.gov.eu/1.0/isStudent",
+          "isAcademicStaff"		      => "http://www.stork.gov.eu/1.0/isAcademicStaff",
+          "isTeacherOf"			      => "http://www.stork.gov.eu/1.0/isTeacherOf",
+          "isCourseCoordinator"	      => "http://www.stork.gov.eu/1.0/isCourseCoordinator",
+          "isAdminStaff"			  => "http://www.stork.gov.eu/1.0/isAdminStaff",
+          "habilitation"			  => "http://www.stork.gov.eu/1.0/habilitation",
+          "languageQualification"     => "http://www.stork.gov.eu/1.0/languageQualification",
+          "academicRecommendation"    => "http://www.stork.gov.eu/1.0/academicRecommendation",
+          "hasDegree"		          => "http://www.stork.gov.eu/1.0/hasDegree",
           
           //Clave Attributes
-          "afirmaResponse"	          => true,
-          "isdnie"			          => true,
-          "registerType"			  => true,
+          "afirmaResponse"	          => "http://www.stork.gov.eu/1.0/afirmaResponse",
+          "isdnie"			          => "http://www.stork.gov.eu/1.0/isdnie",
+          "registerType"			  => "http://www.stork.gov.eu/1.0/registerType",
   );
 
 
@@ -191,6 +191,22 @@ class sspmod_clave_SPlib {
       
   );
 
+
+  //Get the friendly name for a eIDAS attribute name
+  public static function getEidasFriendlyName ($attributeName){
+      
+      if($attributeName === NULL || $attributeName === "")
+          $this->fail(__FUNCTION__, self::ERR_GENERIC,"Empty or null attribute name.");
+      
+      
+      foreach(self::$eIdasAttributes as $friendlyName => $name){
+          if($name === $attributeName)
+              return $friendlyName;
+      }
+      
+      return "";
+  }
+  
   
   /************ Internal config vars *************/
 
@@ -538,12 +554,21 @@ class sspmod_clave_SPlib {
   
   
   
-  // Returns the list of supported attribute friendly names
+  // Returns the list of supported STORK attribute friendly names
   public function listSupportedAttributes(){
     
     self::debug(__CLASS__.".".__FUNCTION__."()");
     
     return array_keys(self::$ATTRIBUTES);
+  }
+
+
+  // Returns the list of supported eIDAS attribute friendly names
+  public function listEidasSupportedAttributes(){
+    
+    self::debug(__CLASS__.".".__FUNCTION__."()");
+    
+    return array_keys(self::$eIdasAttributes);
   }
   
   
@@ -564,12 +589,15 @@ class sspmod_clave_SPlib {
         $prefix = "eidas";
     
     // We check if it is a supported attribute (always allow if mandatory)
-    if(!$required){
-        if($this->mode === 0)
+    if($this->mode === 0)
+        if(!$required){
             self::$ATTRIBUTES[$friendlyName] or $this->fail(__FUNCTION__, self::ERR_NONEXIST_STORK_ATTR, $friendlyName);
-        if($this->mode === 1)
-            self::$eIdasAttributes[$friendlyName] or $this->fail(__FUNCTION__, self::ERR_NONEXIST_STORK_ATTR, $friendlyName);
-    }
+        }
+
+    // On eIDAS, allow always?
+    //if($this->mode === 1)
+    //    self::$eIdasAttributes[$friendlyName] or $this->fail(__FUNCTION__, self::ERR_NONEXIST_STORK_ATTR, $friendlyName);
+
     
     
     if($values)
@@ -607,9 +635,14 @@ class sspmod_clave_SPlib {
     
     
     
-    if($this->mode === 0){        
+    if($this->mode === 0){
+        
+        $attrName = $friendlyName;
+        if (array_key_exists($friendlyName,self::$ATTRIBUTES))
+            $attrName = self::$ATTRIBUTES[$friendlyName];
+        
         $attrLine = '<stork:RequestedAttribute'
-            .' Name="'.self::$AttrNamePrefix.$friendlyName.'"'
+            .' Name="'.$attrName.'"'
             .' NameFormat="'.self::$AttrNF.'"'
             .' isRequired="'.self::bts($required).'"'
             .$tagClose
@@ -748,7 +781,7 @@ class sspmod_clave_SPlib {
   
   //Establishes an equivalence between Stork QAA levels and eIDAS LoA
   //levels
-  public function qaaToLoA($QAA) {
+  public static function qaaToLoA($QAA) {
       
       if($QAA === NULL || $QAA === "")
           return "";
@@ -768,7 +801,7 @@ class sspmod_clave_SPlib {
 
 
 
-  public function loaToQaa($LoA) {
+  public static function loaToQaa($LoA) {
       
       if($LoA === NULL || $LoA === "")
           return "";
@@ -969,7 +1002,7 @@ class sspmod_clave_SPlib {
         //(comparison is always minimum-required-value)
         $LoA = $this->QAALevel;
         if(is_int($this->QAALevel))
-            $LoA = $this->qaaToLoA($this->QAALevel);
+            $LoA = self::qaaToLoA($this->QAALevel);
         if($LoA != ""){
             $AuthnContext = '<saml2p:RequestedAuthnContext'
                 .' Comparison="minimum">'
@@ -1649,7 +1682,7 @@ class sspmod_clave_SPlib {
   //Parses the attribute statement of an assertion.
   // $attributes: SimpleXML object representing the attribute statement
   //Will return an array with the assertion data. 0n eIDAS, attribute
-  //values have one more level of depth: access as ['value']['value]  //TODO probar y revisar cuando tenga una resp correcta
+  //values have one more level of depth: access as ['value']['value]
   private function parseAssertionAttributes($attributeStatement){
     
     self::debug(__CLASS__.".".__FUNCTION__."()");
@@ -2084,9 +2117,10 @@ class sspmod_clave_SPlib {
           $ret['requestedAttributes'] = array();
           foreach($reqAttrs as $reqAttr){
               $ret['requestedAttributes'] []= array(
-                  'name'       => "".$reqAttr->attributes()->Name,
+                  'name'         => "".$reqAttr->attributes()->Name,
+                  //'friendlyName' => "".$reqAttr->attributes()->Name,
                   //Also empty string will be evaluated to false
-                  'isRequired' => strtolower("".$reqAttr->attributes()->isRequired) === 'true'? true : false
+                  'isRequired'   => strtolower("".$reqAttr->attributes()->isRequired) === 'true'? true : false
               ); 
           }
       }
@@ -2111,7 +2145,7 @@ class sspmod_clave_SPlib {
           $ret['LoA']           = "".$authContext->children(self::NS_SAML2,false)->AuthnContextClassRef;//*****
           $ret['SPType']        = "".$ext->children(self::NS_EIDAS,false)->SPType;
 
-          $ret['QAA']           = $this->loaToQaa($ret['LoA']);    //Derived from LoA
+          $ret['QAA']           = self::loaToQaa($ret['LoA']);    //Derived from LoA
 
           $ret['IdAllowCreate'] = "".$nameIDPolicy->attributes()->AllowCreate;
           $ret['IdFormat']      = "".$nameIDPolicy->attributes()->Format;
@@ -2395,11 +2429,12 @@ class sspmod_clave_SPlib {
           }
           return $attributeName;
       }
-      
-      if($mode === 1){ //eIDAS  // TODO check
-          $attrname = preg_replace("|.+/(.+?)$|i", "\\1", $attributeName);
-          return $attrname;
-      }
+
+// Deleted: eIDAS full names suffixes don't always match the friendly names
+//      if($mode === 1){ //eIDAS
+//          $attrname = preg_replace("|.+/(.+?)$|i", "\\1", $attributeName);
+//          return $attrname;
+//      }
       
   }
   
@@ -2408,7 +2443,7 @@ class sspmod_clave_SPlib {
 
 
 
-  // *************** Stork Single Logout *******************  // TODO once eIDAS-clave2.0 is deployed, see if there's SSO and adapt
+  // *************** Stork Single Logout *******************  // TODO once eIDAS-clave3.0 is deployed, see if there's SSO and adapt
   
   // Stork single logout has some differences with the standard saml logout:
 
@@ -2934,7 +2969,7 @@ class sspmod_clave_SPlib {
           #Search for the encrypted data node inside the encrypted assertion node
           $encData = $encAssertion->getElementsByTagName('EncryptedData');
           if(is_array($encData))
-              $encData = $encData[0];  // TODO SEGUIR
+              $encData = $encData[0];
           if($encData instanceof DOMNodeList)
               $encData = $encData->item(0);
           if ($encData === NULL)
@@ -3090,7 +3125,6 @@ class sspmod_clave_SPlib {
   
   
   
-  // TODO falta adaptar la respuesta --> creo que ya no, aunque debo esperar a ver qué recibo.
   
   
   

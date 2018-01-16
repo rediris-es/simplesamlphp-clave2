@@ -171,14 +171,34 @@ $assertions = $clave->getRawAssertions();
 
 
 //Generate response with attributes, show the response and send back with submit button
-if ($SPdialect === 'stork')
-    $acs  = $reqData['assertionConsumerService'];  // TODO eIDAS
-if ($SPdialect === 'eidas')
-    $acs = $spMetadata->getArray('AssertionConsumerService',NULL)[0]['Location'];  // TODO revisar que funciona  // TODO a veces FALLA. creo que porque el SP no lo tiene
+
+
+
+
+
+
+
+//******Hybrid STORK, eIDAS, own brew behaviour to get the ACS
+
+//if ($SPdialect === 'stork')
+//    $acs  = $reqData['assertionConsumerService'];  // TODO eIDAS
+//if ($SPdialect === 'eidas')
+//    $acs = $spMetadata->getArray('AssertionConsumerService',array(['Location' => ""]))[0]['Location'];  // TODO revisar que funciona  // TODO a veces FALLA. creo que porque el SP no lo tiene
+
+//Try to get the ACS from the request
+$acs='';  // TODO eIDAS
+if(array_key_exists('assertionConsumerService',$reqData))
+    $acs  = $reqData['assertionConsumerService'];
+//If none, get it from the remote SP metadata
+if($acs === NULL || $acs === '')
+    $acs = $spMetadata->getArray('AssertionConsumerService',array(['Location' => ""]))[0]['Location'];
 
 
 if($acs === NULL || $acs == "")
     throw new SimpleSAML_Error_Exception("No assertion consumer url found on the request or metadata for the remote SP: $spEntityId.");
+
+
+
 
 
 $storkResp = new sspmod_clave_SPlib();
