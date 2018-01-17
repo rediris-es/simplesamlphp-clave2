@@ -84,7 +84,7 @@ class sspmod_clave_Tools {
         return $idpList;
     }
 
-
+/*
     public static function findX509SignCertOnMetadata ($metadata){
         $pem = NULL;
         
@@ -105,5 +105,32 @@ class sspmod_clave_Tools {
         
         return $pem;
     }
+*/
+    
+    //Now it returns an array
+    public static function findX509SignCertOnMetadata ($metadata){
+        $ret = array();
+        
+        $keys = $metadata->getArray('keys',NULL);
+        if ($keys == NULL)
+            throw new Exception('No key entry found in metadata: '.print_r($metadata,true));
+        
+        foreach($keys as $key){
+            if($key['type'] != 'X509Certificate')
+                continue;
+            if(!$key['signing'])
+                continue;
+            if(!$key['X509Certificate'] || $key['X509Certificate'] == "")
+                continue;
+            
+            $ret []= $key['X509Certificate'];
+        }
+        
+        if(sizeof($ret) <= 0)
+            throw new Exception('No X509 signing certificate found in metadata: '.print_r($metadata,true));
+        
+        return $ret;
+    }
+    
     
 }

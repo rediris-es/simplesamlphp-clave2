@@ -79,9 +79,10 @@ SimpleSAML_Logger::info("SLO request Issuer (SP): ".$spEntityId);
 $spMetadata = sspmod_clave_Tools::getSPMetadata($claveConfig,$spEntityId);
 SimpleSAML_Logger::debug('Clave SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
 
-$cert = sspmod_clave_Tools::findX509SignCertOnMetadata($spMetadata);
+$certs = sspmod_clave_Tools::findX509SignCertOnMetadata($spMetadata);
 
-$claveIdP->addTrustedRequestIssuer($spEntityId, $cert);
+foreach($certs as $cert)
+    $claveIdP->addTrustedRequestIssuer($spEntityId, $cert);
 
 
 //Log for statistics: received LogoutRequest at the clave IdP

@@ -158,8 +158,10 @@ if ($IdPdialect === 'eidas')
 
 
 //Trust the alleged requester certificate we have in local metadata
-$cert = sspmod_clave_Tools::findX509SignCertOnMetadata($spMetadata);
-$claveIdP->addTrustedRequestIssuer($spEntityId, $cert);
+$certs = sspmod_clave_Tools::findX509SignCertOnMetadata($spMetadata);
+
+foreach($certs as $cert)
+    $claveIdP->addTrustedRequestIssuer($spEntityId, $cert);
 
 
 

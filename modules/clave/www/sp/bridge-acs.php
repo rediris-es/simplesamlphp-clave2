@@ -67,7 +67,13 @@ foreach ($_POST as $name => $value){
 
 
 
+
+
 $clave = new sspmod_clave_SPlib();
+
+
+if ($SPdialect === 'eidas')
+    $clave->setEidasMode();
 
 
 $id = $clave->getInResponseToFromReq($resp);

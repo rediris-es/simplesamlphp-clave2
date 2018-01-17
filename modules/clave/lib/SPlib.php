@@ -1195,28 +1195,30 @@ class sspmod_clave_SPlib {
   
   //Checks if cert is valid and adds PEM headers if necessary
   public function checkCert($cert){
-    
-    if($cert == null || $cert == "")
-      $this->fail(__FUNCTION__, self::ERR_EMPTY_CERT);
+      
+      if($cert == null || $cert == "")
+        $this->fail(__FUNCTION__, self::ERR_EMPTY_CERT);
     
     $certPem = $cert;
     //    SimpleSAML_Logger::debug("********** cert  at the beginning: ".$certPem);
     // We check it is a valid X509 certificate
-    try{
+//    try{
+//      @openssl_x509_read($certPem) or $this->fail(__FUNCTION__, self::ERR_X509_CERT_READ);
+//    }
+//    catch(Exception $e){
+      if (!@openssl_x509_read($certPem)){
+        
+          $certPem = str_replace("\n","",$certPem);
+          $certPem =
+              "-----BEGIN CERTIFICATE-----\n"
+              . chunk_split($certPem,64,"\n")
+              . "-----END CERTIFICATE-----\n";
+          //SimpleSAML_Logger::debug("********** cert with headers?: ".$certPem);
+      }
+      //SimpleSAML_Logger::debug("********** cert at the end: ".$certPem);
       @openssl_x509_read($certPem) or $this->fail(__FUNCTION__, self::ERR_X509_CERT_READ);
-    }
-    catch(Exception $e){
-      $certPem = str_replace("\n","",$certPem);
-      $certPem =
-        "-----BEGIN CERTIFICATE-----\n"
-        . chunk_split($certPem,64,"\n")
-        . "-----END CERTIFICATE-----\n";
-      //SimpleSAML_Logger::debug("********** cert with headers?: ".$certPem);
-    }
-    //SimpleSAML_Logger::debug("********** cert at the end: ".$certPem);
-    @openssl_x509_read($certPem) or $this->fail(__FUNCTION__, self::ERR_X509_CERT_READ);
-
-    return $certPem;
+      
+      return $certPem;
   }
   
   
@@ -1663,7 +1665,7 @@ class sspmod_clave_SPlib {
         
         self::debug("Parsing Attributes.");        
         //Get Attributes
-        $assertionInfo['Attributes'] = self::parseAssertionAttributes($assertion->AttributeStatement);
+        $assertionInfo['Attributes'] =  $this->parseAssertionAttributes($assertion->AttributeStatement);  // TODO SEGUIR he quitado el self porque no es static!
         
         self::trace("Assertion SimpleXMLNode:\n".print_r($assertion,true));
         self::trace("Assertion storkAuth inner Struct:\n".print_r($assertionInfo,true));
@@ -1681,9 +1683,10 @@ class sspmod_clave_SPlib {
   
   //Parses the attribute statement of an assertion.
   // $attributes: SimpleXML object representing the attribute statement
+  // $returnValueMeta: eIDAS has some xml attributes indicating the type/language, etc. of each value. If true, values will be arrays and not strings, containing the value and its metadata
   //Will return an array with the assertion data. 0n eIDAS, attribute
   //values have one more level of depth: access as ['value']['value]
-  private function parseAssertionAttributes($attributeStatement){
+  private function parseAssertionAttributes($attributeStatement, $returnValueMeta=false){
     
     self::debug(__CLASS__.".".__FUNCTION__."()");
     
@@ -1698,14 +1701,15 @@ class sspmod_clave_SPlib {
           $attrstatus = "".$attr->attributes(self::NS_STORK,false)->AttributeStatus;
       }
       if($this->mode === 1){ //eIDAS
-          $attrname = $attr->attributes()->FriendlyName;
+          $attrname = "".$attr->attributes()->FriendlyName;
           $attrstatus = NULL;
       }
       
       //Status is optional. default value is available
       if(!$attrstatus)
         $attrstatus = self::ATST_AVAIL;
-      
+
+      self::debug("********MODE: ".$this->mode);
       self::debug("Parsing Attribute: ".$attr->attributes()->Name." ($attrname)");
       
       $attribute = array(
@@ -1766,17 +1770,23 @@ class sspmod_clave_SPlib {
           //Also, now values is an array pof arrays, and not of
           //strings
           if($this->mode === 1){ //eIDAS
+
+              if ($returnValueMeta == true){
+                  $valueNode = array(   // TODO  ojo: revisar cuando pueda hacer pruebas reales. el prefijo podría cambiar si hay varios namespaces  y requeriría buscarlos todos o pasar el namespace tal cual.
+                      'value' => "".$attrval,
+                      'type'  => "".$attrval->attributes("xsi",TRUE)->type,
+                  );
               
-              $valueNode = array(   // TODO  ojo: revisar cuando pueda hacer pruebas reales. el prefijo podría cambiar si hay varios namespaces  y requeriría buscarlos todos o pasar el namespace tal cual.
-                  'value' => "".$attrval,
-                  'type'  => "".$attrval->attributes("xsi",TRUE)->type,
-              );
               
-              if($attrval->attributes()->languageID)
-                  $valueNode['languageID'] = "".$attrval->attributes()->languageID;
+                  if($attrval->attributes()->languageID)
+                      $valueNode['languageID'] = "".$attrval->attributes()->languageID;
               
-              if($attrval->attributes(self::NS_EIDASATT)->Transliterated)
-                  $valueNode['Transliterated'] = "".$attrval->attributes(self::NS_EIDASATT)->Transliterated;
+                  if($attrval->attributes(self::NS_EIDASATT)->Transliterated)
+                      $valueNode['Transliterated'] = "".$attrval->attributes(self::NS_EIDASATT)->Transliterated;
+              }
+              else{
+                  $valueNode = "".$attrval;
+              }
               
               $attribute['values'][] = $valueNode;
           }
@@ -1788,7 +1798,7 @@ class sspmod_clave_SPlib {
       
       $attrInfo []= $attribute;
     }
-    
+    self::trace("Attributes processed:".print_r($attrInfo,true));
     return $attrInfo;
   }
   

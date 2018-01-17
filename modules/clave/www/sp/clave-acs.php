@@ -34,6 +34,12 @@ SimpleSAML_Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true
 $spEntityId = $hostedSPmeta->getString('entityid', NULL);
 
 
+//Get the mode for the SP
+$SPdialect    = $hostedSPmeta->getString('dialect');
+$SPsubdialect = $hostedSPmeta->getString('subdialect');
+
+
+
 if(!isset($_REQUEST['SAMLResponse']))
    	throw new SimpleSAML_Error_BadRequest('No SAMLResponse POST param received.');
 
@@ -66,6 +72,9 @@ foreach ($_POST as $name => $value){
 
 
 $clave = new sspmod_clave_SPlib();
+
+if ($SPdialect === 'eidas')
+    $clave->setEidasMode();
 
 
 $id = $clave->getInResponseToFromReq($resp);
@@ -101,6 +110,7 @@ $onlyEncrypted   = $hostedSPmeta->getBoolean('assertions.encrypted.only', false)
 
 $clave->setDecipherParams($spkeypem,$expectEncrypted,$onlyEncrypted);
 // TODO
+//SimpleSAML_Logger::debug("****************Loaded private key: ".$spkeypem);
 
 
 
@@ -116,6 +126,8 @@ if($clave->isSuccess($errInfo)){
 
     //If later these attributes are passed from the POST to the SAML
     //token, the values coming on the token will prevail
+    SimpleSAML_Logger::debug('***************** RA'.print_r($returnedAttributes,true));
+    SimpleSAML_Logger::debug('***************** GA'.print_r($clave->getAttributes(),true));
     $returnedAttributes = array_merge($returnedAttributes, $clave->getAttributes());
 
     
