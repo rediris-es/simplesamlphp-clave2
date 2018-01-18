@@ -242,6 +242,10 @@ SimpleSAML_Logger::debug('Will encrypt assertions: '.$encryptAssertions);
 $encryptAlgorithm  = $spMetadata->getString('assertion.encryption.keyAlgorithm',
                                             $claveConfig->getString('assertion.encryption.keyAlgorithm',
                                                                     sspmod_clave_SPlib::AES256_CBC));
+$storkize = $spMetadata->getBoolean('assertion.storkize',
+                                    $claveConfig->getBoolean('assertion.storkize', true)); // TODO default true o false?
+
+
 // TODO read the overriding SP values
 $storkResp->setCipherParams($reqData['spCert'],$encryptAssertions,$encryptAlgorithm);
 
@@ -251,7 +255,7 @@ $storkResp->setResponseParameters($storkResp::CNS_OBT,
                                   $claveConfig->getString('issuer', 'NOT_SET')
                                   );
 
-$resp = $storkResp->generateStorkResponse($status,$assertions);
+$resp = $storkResp->generateStorkResponse($status,$assertions,true,true,$storkize);
 
 
 
