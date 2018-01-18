@@ -92,6 +92,14 @@ SimpleSAML_Logger::debug('Clave SP remote metadata ('.$spEntityId.'): '.print_r(
 
 
 
+//Get the mode for the IdP (remote SP specific or hosted IdP default)   // TODO ******
+$IdPdialect    = $spMetadata->getString('dialect',
+                                        $claveConfig->getString('dialect'));
+$IdPsubdialect = $spMetadata->getString('subdialect',
+                                        $claveConfig->getString('subdialect'));
+
+
+
 SimpleSAML_Logger::debug("Certificate in source: ".$idpData['cert']);
 $clave->addTrustedCert($idpData['cert']);
 
@@ -208,6 +216,12 @@ if($acs === NULL || $acs == "")
 
 
 $storkResp = new sspmod_clave_SPlib();
+
+
+if ($IdPdialect === 'eidas')  // TODO eIDAS // TODO ***** 
+    $storkResp->setEidasMode();
+
+
 
 
 $hikeypem  = sspmod_clave_Tools::readCertKeyFile($hiKeyPath);
