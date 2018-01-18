@@ -2294,14 +2294,37 @@ class sspmod_clave_SPlib {
 
   
 
-  public function generateAssertion($assertion,$isRaw=false){
+  public function generateAssertion($assertion,$isRaw=false, $storkize=true){
       
       //If raw, it is a string, return and we're done.
       if($isRaw){
           if(!is_string($assertion) || $assertion == "")
               $this->fail(__FUNCTION__, self::ERR_GENERIC,"Assertion should be a string.");
-          else
-              return $assertion;
+          
+          if($storkize === true){
+              //Wrap the object around a root with the used namespaces
+              $xml = '<root '
+                  .'xmlns:saml2p="'.self::NS_SAML2P.'" '
+                  .'xmlns:ds="'.self::NS_XMLDSIG.'" '
+                  .'xmlns:saml2="'.self::NS_SAML2.'" '
+                  .'xmlns:stork="'.self::NS_STORK.'" '
+                  .'xmlns:storkp="'.self::NS_STORKP.'" '
+                  .'xmlns:xsi="'.self::NS_XSI.'" '
+                  .'xmlns:eidas="'.self::NS_EIDASATT.'" '
+                  .'xmlns:xs="'.self::NS_XMLSCH.'">'
+                  .$assertion
+                  .'</root>';              
+              $rootObj = $this->parseXML($xml);
+              
+              //Add AttributeStatus to each assertion attribute
+              $assertionObj = $rootObj->children(self::NS_SAML2,false)->Assertion;
+              foreach ($assertionObj->AttributeStatement->Attribute as $attribute){
+                  $attribute->addAttribute('stork:AttributeStatus','Available',self::NS_STORK);
+              }
+              $assertion = $assertionObj->saveXML();
+          }
+          
+          return $assertion;
       }
       
       // TODO implement HERE parsing of the struct and building of the
@@ -2333,7 +2356,11 @@ class sspmod_clave_SPlib {
   // 
   // rawAssertions: true if assertions array
   // contains xml strings or false if it contains arrays
-  public function generateStorkResponse($status, $assertions, $rawStatus=true, $rawAssertions=true){  // TODO probar
+  //
+  // storkize: true if the assertion must be altered (thus breaking
+  // the possibly existing signature) to include the stork extension
+  // for available attributes
+  public function generateStorkResponse($status, $assertions, $rawStatus=true, $rawAssertions=true, $storkize=true){  // TODO probar
 
 
       $consent      = $this->consent;
@@ -2353,7 +2380,7 @@ class sspmod_clave_SPlib {
 
       //Build the response with the params
 
-      if($this->mode === 0){ //eIDAS  // TODO check
+      if($this->mode === 0 || $storkize === true){ //eIDAS  // TODO check
           $storkNamespaces =
                'xmlns:stork="'.self::NS_STORK.'" '
               .'xmlns:storkp="'.self::NS_STORKP.'" ';
@@ -2391,7 +2418,7 @@ class sspmod_clave_SPlib {
       
       $assertionList = "";
       foreach($assertions as $assertion){
-          $assertionList .= $this->generateAssertion($assertion,$rawAssertions);
+          $assertionList .= $this->generateAssertion($assertion,$rawAssertions,$storkize);  // TODO verify that storkize works
       }
       
       
