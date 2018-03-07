@@ -8,6 +8,10 @@
 
 
 
+//Obtain the full URL of the IdP Metadata page
+$metadataUrl = SimpleSAML_Module::getModuleURL('clave/idp/metadata.php');
+
+
 //Hosted IdP config
 $claveConfig = sspmod_clave_Tools::getMetadataSet("__DYNAMIC:1__","clave-idp-hosted");
 SimpleSAML_Logger::debug('Clave Idp hosted metadata: '.print_r($claveConfig,true));
@@ -243,7 +247,7 @@ $encryptAlgorithm  = $spMetadata->getString('assertion.encryption.keyAlgorithm',
                                             $claveConfig->getString('assertion.encryption.keyAlgorithm',
                                                                     sspmod_clave_SPlib::AES256_CBC));
 $storkize = $spMetadata->getBoolean('assertion.storkize',
-                                    $claveConfig->getBoolean('assertion.storkize', true)); // TODO default true o false?
+                                    $claveConfig->getBoolean('assertion.storkize', false)); // TODO default true o false? --> false y configurar SP a SP.
 
 
 // TODO read the overriding SP values
@@ -252,7 +256,7 @@ $storkResp->setCipherParams($reqData['spCert'],$encryptAssertions,$encryptAlgori
 $storkResp->setResponseParameters($storkResp::CNS_OBT,
                                   $acs,
                                   $reqData['id'],
-                                  $claveConfig->getString('issuer', 'NOT_SET')
+                                  $claveConfig->getString('issuer', $metadataUrl)
                                   );
 
 $resp = $storkResp->generateStorkResponse($status,$assertions,true,true,$storkize);
@@ -268,7 +272,7 @@ $status = array(
 
 $statsData = array(
     'spEntityID' => $spEntityId,
-    'idpEntityID' => $claveConfig->getString('issuer', 'NOT_SET'),
+    'idpEntityID' => $claveConfig->getString('issuer', $metadataUrl),
     'protocol' => 'saml2-clave',
     'status' => $status,
 );
@@ -280,7 +284,7 @@ if (isset($state['saml:AuthnRequestReceivedAt'])) {
 SimpleSAML_Stats::log('clave:idp:Response', $statsData);
 
 
-
+SimpleSAML_Logger::debug("Response to post: ".$resp);
 
 //Redirecting to Clave IdP (Only HTTP-POST binding supported)
 $post = array(

@@ -1155,8 +1155,17 @@ class sspmod_clave_SPlib {
     if ($insertAhead ===true)
         $objDSig->appendSignature($doc->documentElement, true); //Inserts the signature ahead
     else{
+        //On SAMLResponses, Signature above Status
+        $statusnode = $doc->getElementsByTagName('Status')->item(0);
+        
+        //On SAMLAuthnReqs, Signature above Extensions
         $extensions = $doc->getElementsByTagName('Extensions')->item(0);
-        $objDSig->insertSignature($doc->documentElement, $extensions); //Inserts signature before the Extensions
+        
+        $nextnode = $statusnode; //Inserts signature before the Status
+        if ($nextnode === NULL) // If there is no status, then it is an AuthnReq
+            $nextnode = $extensions;  //Inserts signature before the Extensions  // SEGUIR
+        
+        $objDSig->insertSignature($doc->documentElement, $nextnode);
     }
     
     self::debug("Marshalling signed document.");
@@ -2108,6 +2117,7 @@ class sspmod_clave_SPlib {
       $ext = $samlReq->children(self::NS_SAML2P,false)->Extensions;
       
       if($this->mode === 0){ //Stork
+          self::debug("Mode 0");
           
           $authAttrs = $ext->children(self::NS_STORKP,false)->AuthenticationAttributes->VIDPAuthenticationAttributes;
           $reqAttrs  =  $ext->children(self::NS_STORKP,false)->RequestedAttributes->children(self::NS_STORK,false);
@@ -2136,6 +2146,7 @@ class sspmod_clave_SPlib {
       }
       
       if($this->mode === 1){ //eIDAS
+          self::debug("Mode 1");
           
           $authContext  = $samlReq->children(self::NS_SAML2P,false)->RequestedAuthnContext;
           $nameIDPolicy = $samlReq->children(self::NS_SAML2P,false)->NameIDPolicy;
@@ -3101,7 +3112,7 @@ class sspmod_clave_SPlib {
 
   // TODO
   //Will generate a metadata signed document that must be published at
-  //the URL stated in <issuer>
+  //the URL stated in <issuer> of the SP
   public function generateSPMetadata() {
       
       self::debug(__CLASS__.".".__FUNCTION__."()");
@@ -3159,6 +3170,100 @@ class sspmod_clave_SPlib {
   
   
   
+
+
+
+
+
+  // TODO
+  //Will generate a metadata signed document that must be published at
+  //the URL stated in <issuer> of the IDP
+  public function generateIdPMetadata($SSOServiceURL="") {
+      
+      self::debug(__CLASS__.".".__FUNCTION__."()");
+      
+      self::info("Generating metadata for the IdP");
+      
+      //List of supported attributes
+      $supportedAttributes = '';
+      foreach (self::$eIdasAttributes as $FriendlyName => $Name){
+          $supportedAttributes .= '<saml2:Attribute'
+              .' xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion"'
+              .' FriendlyName="'.$FriendlyName.'"'
+              .' Name="'.$Name.'"'
+              .' NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri" />';
+      }
+      
+      
+      $metadata ='<?xml version="1.0" encoding="UTF-8"?>'          
+          .'<md:EntityDescriptor'
+          .'    xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata"'
+          .'    entityID="'.htmlspecialchars($this->Issuer).'"'
+          .'    validUntil="'.self::generateTimestamp(time()+(1*24*60*60)).'">'
+          .'  <md:Extensions>'
+          .'    <alg:DigestMethod xmlns:alg="urn:oasis:names:tc:SAML:metadata:algsupport"'
+          .'         Algorithm="http://www.w3.org/2001/04/xmldsig-more#sha384" />'
+          .'    <alg:DigestMethod xmlns:alg="urn:oasis:names:tc:SAML:metadata:algsupport"'
+          .'         Algorithm="http://www.w3.org/2001/04/xmlenc#sha512" />'
+          .'    <alg:DigestMethod xmlns:alg="urn:oasis:names:tc:SAML:metadata:algsupport"'
+          .'         Algorithm="http://www.w3.org/2001/04/xmlenc#sha256" />'
+          .'    <alg:SigningMethod xmlns:alg="urn:oasis:names:tc:SAML:metadata:algsupport"'
+          .'         Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha512" />'
+          .'    <alg:SigningMethod xmlns:alg="urn:oasis:names:tc:SAML:metadata:algsupport"'
+          .'         Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256" />'
+          .'    <alg:SigningMethod xmlns:alg="urn:oasis:names:tc:SAML:metadata:algsupport"'
+          .'         Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha384" />'
+          .'    <alg:SigningMethod xmlns:alg="urn:oasis:names:tc:SAML:metadata:algsupport"'
+          .'         Algorithm="http://www.w3.org/2007/05/xmldsig-more#sha256-rsa-MGF1" />'
+          .'  </md:Extensions>'
+          .'  <md:IDPSSODescriptor'
+          .'      WantAuthnRequestsSigned="true"'
+          .'      protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">'
+          .'    <md:KeyDescriptor use="signing">'
+          .'      <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">'
+          .'        <ds:X509Data>'
+          .'          <ds:X509Certificate>'.self::implodeCert($this->signCert).'</ds:X509Certificate>'
+          .'        </ds:X509Data>'
+          .'      </ds:KeyInfo>'
+          .'    </md:KeyDescriptor>'
+          .'    <md:KeyDescriptor use="encryption">'
+          .'      <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">'
+          .'        <ds:X509Data>'
+          .'          <ds:X509Certificate>'.self::implodeCert($this->signCert).'</ds:X509Certificate>'
+          .'        </ds:X509Data>'
+          .'      </ds:KeyInfo>'
+          .'      <md:EncryptionMethod Algorithm="http://www.w3.org/2001/04/xmlenc#aes192-cbc" />'
+          .'      <md:EncryptionMethod Algorithm="http://www.w3.org/2001/04/xmlenc#aes256-cbc" />'
+          .'      <md:EncryptionMethod Algorithm="http://www.w3.org/2001/04/xmlenc#aes128-cbc" />'
+          .'    </md:KeyDescriptor>'
+          .'    <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:persistent</md:NameIDFormat>'
+          .'    <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>'
+          .'    <md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>'
+          .'    <md:SingleSignOnService'
+          .'        Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"'
+          .'        Location="'.$SSOServiceURL.'" />'
+          .'    <md:SingleSignOnService'
+          .'        Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"'
+          .'        Location="'.$SSOServiceURL.'" />'
+          .$supportedAttributes
+          .'  </md:IDPSSODescriptor>'
+          .'  <md:Organization>'
+          .'    <md:OrganizationName xml:lang="en"/>'
+          .'    <md:OrganizationDisplayName xml:lang="en"/>'
+          .'    <md:OrganizationURL xml:lang="en"/>'
+          .'  </md:Organization>'
+          .'  <md:ContactPerson contactType="support"/>'
+          .'  <md:ContactPerson contactType="technical"/>'
+          .'</md:EntityDescriptor>';
+      
+      
+      //Sign the metadata (before extensions, but in this case, equals 'at the top')
+      self::info("Signing IdP metadata");
+      $metadata = $this->calculateXMLDsig($metadata, true);
+      
+      return $metadata;
+  }
+
   
   
   
