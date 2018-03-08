@@ -1887,55 +1887,54 @@ class sspmod_clave_SPlib {
       self::warn("No embedded key found. No keyinfo node.");
     }
     
-    //If an external key is provided, we double check the signature.
-    $extKey = $objXMLSecDSig->locateKey();
-    if($externalKey != "" && $externalKey != NULL){
-      self::debug("Loading external verification public key.");
-      $extKey->loadKey($externalKey);
-      self::trace("KEY: \n".$externalKey);
-      
-      //If it can't be loaded, we must fail.
-      if (!$extKey->key) {
-        $this->fail(__FUNCTION__, self::ERR_BAD_PUBKEY_CERT);
-      }
+    
+    //Check if signing algorithm is supported (DUE TO A BUG DETECTED
+    //BY SSPHP, ONLY THESE ARE DEEMED SAFE)
+    $algorithm = $objKey->getAlgorith();   
+    if (!in_array($algorithm, array(
+        XMLSecurityKey::RSA_1_5,
+        XMLSecurityKey::RSA_SHA1,
+        XMLSecurityKey::RSA_SHA256,
+        XMLSecurityKey::RSA_SHA384,
+        XMLSecurityKey::RSA_SHA512
+    ))) {
+        $this->fail(__FUNCTION__, self::ERR_GENERIC,"Unsupported signing algorithm.");               
     }
     
-    if (!$objKeyInfo->key && !$extKey->key) {
-      $this->fail(__FUNCTION__, self::ERR_NO_INT_EXT_CERT);
+    //Build the key object for the external validation key
+    $extKey = new XMLSecurityKey($algorithm, array('type'=>'public'));
+    
+    if($externalKey === NULL || $externalKey === ""){
+        $this->fail(__FUNCTION__, self::ERR_GENERIC,"Missing external validation key.");
     }
     
-    //We store the certificate that came with the request, for the
-    //user to compare with his trustlist
-    self::debug("Storing embedded key.");
+    //Load the validation key
+    self::debug("Loading external verification public key material.");
+    self::trace("KEY: \n".$externalKey);    
+    $extKey->loadKey($externalKey);
+    
+    
+    //We store the certificate that came with the request, for
+    //debugging purposes
+    self::trace("Storing embedded key.");
     $this->signingCert = $objKeyInfo->getX509Certificate();
     self::trace("KEY: \n".$this->signingCert);
-
-    $verified = true;
-    //Try to validate with included key (if any)
-    if ($objKey->key){
-      self::debug("Verifying signature with embedded key.");
-      if ($objXMLSecDSig->verify($objKey)){
-        self::debug("Success. Double checking wth external key if any.");
-        $verified = true;
-      }
-      else{
-        self::debug("Failure. Quitting.");
-        $verified = false;
-      }
+    
+    
+    //Try to validate with the external key
+    if ($extKey->key === NULL){
+        $this->fail(__FUNCTION__, self::ERR_BAD_PUBKEY_CERT);
+        return false;
     }
     
-    //Try to validate with external key
-    //[external result has priority]
-    if ($verified && $extKey->key){
-      self::debug("Verifying signature with external key.");
-      if($objXMLSecDSig->verify($extKey)){
+    self::debug("Verifying signature with external key.");
+    $verified = false;
+    if($objXMLSecDSig->verify($extKey) === 1){
         self::debug("Success.");
         $verified = true;
-      }
-      else{
+    }
+    else{
         self::debug("Failure.");
-        $verified = false;
-      }
     }
     
     return $verified;
@@ -1951,9 +1950,10 @@ class sspmod_clave_SPlib {
     if($xml == null)
       $this->fail(__FUNCTION__, self::ERR_SAMLRESP_EMPTY);
     
-    //Only self validation.
+    //Test self validation.
+    /*
     if(count($this->trustedCerts) <=0){
-      self::debug("Only self validation.");
+      self::debug("self validation.");
       if(!$this->verifySignature($xml)){
         self::debug("Self validation failure.");
         $this->fail(__FUNCTION__, self::ERR_SIG_VERIF_FAIL,$this->signingCert);
@@ -1961,6 +1961,7 @@ class sspmod_clave_SPlib {
       self::debug("Self validation success.");
       return True;
     }
+    */
     
     //Check all trusted issuer certificates.
     //If response has embedded key, always does a signature
