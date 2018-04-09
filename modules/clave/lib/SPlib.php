@@ -139,6 +139,7 @@ class sspmod_clave_SPlib {
           "afirmaResponse"	          => "http://www.stork.gov.eu/1.0/afirmaResponse",
           "isdnie"			          => "http://www.stork.gov.eu/1.0/isdnie",
           "registerType"			  => "http://www.stork.gov.eu/1.0/registerType",
+          "citizenQAALevel"           => "http://www.stork.gov.eu/1.0/citizenQAALevel",
   );
 
 
@@ -2770,13 +2771,14 @@ class sspmod_clave_SPlib {
       self::debug("Recipient certificate to cipher: ".$this->encryptCert);
       
       //Parse the input saml token XML
-      $doc = new DOMDocument();   
+      $doc = new DOMDocument();
       if (!$doc->loadXML($samlToken))
           $this->fail(__FUNCTION__, self::ERR_GENERIC,"Bad XML in input saml token.");
       
       //Get the recipient public key from the certificate for encryption
       $key = new XMLSecurityKey(XMLSecurityKey::RSA_OAEP_MGF1P, array('type'=>'public'));
       $key->loadKey($this->encryptCert);
+      
       
       //Find any plain assertions in the Response and encrypt them
       $assertions = $doc->getElementsByTagName('Assertion');
@@ -2785,40 +2787,104 @@ class sspmod_clave_SPlib {
           
           //Grab the first assertion
           $assertion = $assertions->item(0);
-        
+          
           //Create the encoding context
           $enc = new XMLSecEnc();
           $enc->setNode($assertion);
           $enc->type = XMLSecEnc::Element;
-    
+          
           //Generate AES symmetric key
           self::debug("Generating symmetric key (".$this->keyAlgorithm.")...");
           $symmetricKey = new XMLSecurityKey($this->keyAlgorithm);
           $symmetricKey->generateSessionKey();
-
+          
           //Encrypt symmetric key with recipient public key
           self::debug("Encrypting symmetric key with public key...");
           $enc->encryptKey($key, $symmetricKey);
-    
+          
           //Encrypt the Assertion with the symmetric key (will generate an
           //independent document)
           self::debug("Encrypting assertion with symmetric key...");
           $encData = $enc->encryptNode($symmetricKey,FALSE);
-        
-          //Transfer the node tree to the document to space of the original
+
+          /* 
+          echo "LLEGA";
+          //We need to attach the certificate used to encrypt to the token
+          //(due to the reference SP eIDAS implementation failing if the
+          //certificate used to encrypt is not attached)
+          $encryptedKeyKeyInfoNode  = $doc->createElement('ds:KeyInfo');
+          $encryptedKeyX509DataNode = $doc->createElement('ds:X509Data');
+          $encryptedKeyX509CertNode = $doc->createElement('ds:X509Certificate');
+          $encryptedKeyX509CertNode->appendChild($doc->createTextNode($this->encryptCert));
+          $encryptedKeyX509DataNode->appendChild($encryptedKeyX509CertNode);
+          $encryptedKeyKeyInfoNode->appendChild($encryptedKeyX509DataNode);
+          
+          //Add the certificate used to encrypt the cipher key to the keyinfo node          // TODO eIDAS
+          $encryptedKeyNode = $encData->getElementsByTagName('EncryptedKey');
+          $cipherDataNode = $encData->getElementsByTagName('CipherData');
+          
+          $cipherDataNode->parentNode->insertBefore($encryptedKeyKeyInfoNode,$cipherDataNode);
+          
+          echo "PASA";
+
+
+    #Decrypt the assertion
+          $assertion = $this->decryptXMLNode($encData,$objKey);  // TODO parece que estoy desencriptando con la llave privada rsa
+          if ($assertion === NULL)
+              $this->fail(__FUNCTION__, self::ERR_GENERIC,"Decrypted content is null.");
+          
+          #To parse the resulting xml, we need to add all the possible namespaces
+          $xml = '<root '
+              .'xmlns:saml2p="'.self::NS_SAML2P.'" '
+              .'xmlns:ds="'.self::NS_XMLDSIG.'" '
+              .'xmlns:saml2="'.self::NS_SAML2.'" '
+              .'xmlns:stork="'.self::NS_STORK.'" '
+              .'xmlns:storkp="'.self::NS_STORKP.'" '
+              .'xmlns:xsi="'.self::NS_XSI.'" >'
+              .$assertion
+              .'</root>';
+    
+          #Parse the decrypted assertion to check its integrity
+          self::debug("Parsing decrypted assertion...");
+          $newDoc = new DOMDocument();
+          if (!$newDoc->loadXML($xml))
+              $this->fail(__FUNCTION__, self::ERR_GENERIC,"Error parsing decrypted XML. Possibly Bad symmetric key.");
+                    
+          #Check if the decrypted content was empty
+          $decryptedElement = $newDoc->firstChild->firstChild;
+          if ($decryptedElement === NULL)
+              $this->fail(__FUNCTION__, self::ERR_GENERIC,"Decrypted content is empty.");
+          
+          #Check if the decrypted content is a valid DOM Node
+          if (!($decryptedElement instanceof \DOMElement))
+              $this->fail(__FUNCTION__, self::ERR_GENERIC,"Decrypted element is not a DOMElement.");
+          
+          //Parse the decrypted node to be attached to the document
+          self::debug("Replacing encrypted assertion with plain one...");
+          $f = $doc->createDocumentFragment();
+          $f->appendXML($xml);
+          
+          //Replace the encrypted assertion with the plain one (warning!
+          //this will void the saml token signature)
+          $encAssertion->parentNode->replaceChild($f->firstChild->firstChild, $encAssertion);
+
+          */
+
+
+          //Transfer the node tree to the document space of the original
           //document
           $encData2 = $doc->importNode($encData,TRUE);
-    
+          
           //Create the container for the encrypted data
           $encAssertion = $doc->createElement('saml2:EncryptedAssertion');    
-
+          
           //Append the encrypted data to the container
           $encAssertion->appendChild($encData2);
-
+          
           //Replace the plain assertion with the encrypted one
           self::debug("Replacing plain assertion with encrypted one...");
           $assertion->parentNode->replaceChild($encAssertion,$assertion);
-        
+          
           //Search for any remaining plain assertions
           $assertions = $doc->getElementsByTagName('Assertion');
       }
