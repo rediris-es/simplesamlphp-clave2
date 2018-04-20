@@ -70,7 +70,6 @@ foreach ($_POST as $name => $value){
         $returnedAttributes[$name] = $value;
 }
 
-
 $clave = new sspmod_clave_SPlib();
 
 if ($SPdialect === 'eidas')
@@ -122,13 +121,18 @@ $clave->validateStorkResponse($resp);
 //Authentication was successful
 $errInfo = "";
 if($clave->isSuccess($errInfo)){
-
-
+    
+    //Add the Issuer as an attribute (as it tells which idpp was used)
+    SimpleSAML_Logger::debug('***************** Adding issuer as attribute usedIdP:'.$clave->getRespIssuer());
+    $returnedAttributes['usedIdP'] = array($clave->getRespIssuer());
+    
+    
     //If later these attributes are passed from the POST to the SAML
     //token, the values coming on the token will prevail
     SimpleSAML_Logger::debug('***************** RA'.print_r($returnedAttributes,true));
     SimpleSAML_Logger::debug('***************** GA'.print_r($clave->getAttributes(),true));
     $returnedAttributes = array_merge($returnedAttributes, $clave->getAttributes());
+    SimpleSAML_Logger::debug('***************** MERGE'.print_r($returnedAttributes,true));
 
     
     //Log for statistics: received successful Response from remote clave IdP

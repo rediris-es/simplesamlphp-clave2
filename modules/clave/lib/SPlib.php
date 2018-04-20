@@ -140,6 +140,9 @@ class sspmod_clave_SPlib {
           "isdnie"			          => "http://www.stork.gov.eu/1.0/isdnie",
           "registerType"			  => "http://www.stork.gov.eu/1.0/registerType",
           "citizenQAALevel"           => "http://www.stork.gov.eu/1.0/citizenQAALevel",
+
+          //Defined for the websso interface
+          "usedIdP"                   => "http://www.stork.gov.eu/1.0/usedIdP",
   );
 
 
@@ -548,6 +551,8 @@ class sspmod_clave_SPlib {
     
     $this->spType = NULL;
     $this->nameIdFormat = self::NAMEID_FORMAT_PERSISTENT;
+
+    $this->responseSuccess = false;
     
     //request ID is randomly generated
     $this->ID = self::generateID();
