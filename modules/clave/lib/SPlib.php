@@ -2397,13 +2397,14 @@ class sspmod_clave_SPlib {
 
 
       //Build the response with the params
-
+      $storkNamespaces = '';
       if($this->mode === 0 || $storkize === true){ //eIDAS  // TODO check
           $storkNamespaces =
                'xmlns:stork="'.self::NS_STORK.'" '
               .'xmlns:storkp="'.self::NS_STORKP.'" ';
           
       }
+      $eIDASNamespaces = '';
       if($this->mode === 1){ //eIDAS  // TODO check
           $eIDASNamespaces = 'xmlns:eidas="'.self::NS_EIDASATT.'" ';
       }
