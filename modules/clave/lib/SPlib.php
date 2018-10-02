@@ -140,7 +140,8 @@ class sspmod_clave_SPlib {
           "isdnie"			          => "http://www.stork.gov.eu/1.0/isdnie",
           "registerType"			  => "http://www.stork.gov.eu/1.0/registerType",
           "citizenQAALevel"           => "http://www.stork.gov.eu/1.0/citizenQAALevel",
-
+          
+          
           //Defined for the websso interface
           "usedIdP"                   => "http://www.stork.gov.eu/1.0/usedIdP",
   );
@@ -193,6 +194,17 @@ class sspmod_clave_SPlib {
       "RepresentativePersonIdentifier"  => "http://eidas.europa.eu/attributes/naturalperson/representative/PersonIdentifier",
       "RepresentativePlaceOfBirth"      => "http://eidas.europa.eu/attributes/naturalperson/representative/PlaceOfBirth",
       
+      
+      //Clave 2 Attributes
+      "AFirmaIdP"                 => "http://es.minhafp.clave/AFirmaIdP",
+      "GISSIdP"                   => "http://es.minhafp.clave/GISSIdP",
+      "AEATIdP"                   => "http://es.minhafp.clave/AEATIdP",
+      "EIDASIdP"                  => "http://es.minhafp.clave/EIDASIdP",
+      "PartialAfirma"             => "http://es.minhafp.clave/PartialAfirma",
+      "RelayState"                => "http://es.minhafp.clave/RelayState",
+
+      //Defined for the websso interface
+      "usedIdP"                   => "http://es.minhafp.clave/usedIdP",
   );
 
 
