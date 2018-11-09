@@ -643,11 +643,21 @@ class sspmod_clave_SPlib {
       $transformedValue = $value;
       if($escape)
         $transformedValue = htmlspecialchars($value);
+
+
+
+      $valueType = 'xs:string';
+
+      //TODO: Workaround for terrible clave-2.0 design. still not definitive
+      if($friendlyName === 'RelayState' )
+          $valueType = 'eidas-natural:PersonIdentifierType';
+      
+          
       
       $valueAddition .= '<'.$prefix.':AttributeValue '
         .'xmlns:xs="'.self::NS_XMLSCH.'" '
         .'xmlns:xsi="'.self::NS_XSI.'" '
-        .'xsi:type="xs:string">'
+        .'xsi:type="'.$valueType.'">'
         .$transformedValue.'</'.$prefix.':AttributeValue>';
     }
     
@@ -869,7 +879,7 @@ class sspmod_clave_SPlib {
     
     $specificNamespaces = 'xmlns:stork="'.self::NS_STORK.'" '.'xmlns:storkp="'.self::NS_STORKP.'" ';
     if($this->mode === 1)
-        $specificNamespaces = 'xmlns:eidas="'.self::NS_EIDAS.'" ';
+        $specificNamespaces = 'xmlns:eidas="'.self::NS_EIDAS.'" '.'xmlns:eidas-natural="http://eidas.europa.eu/attributes/naturalperson" ';
     
     $assertionConsumerServiceURL = 'AssertionConsumerServiceURL="'.htmlspecialchars($this->ReturnAddr).'" ';
     if($this->mode === 1)  //On eIDAS, this SHOULD NOT be sent.

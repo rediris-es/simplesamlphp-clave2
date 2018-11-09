@@ -3,55 +3,76 @@
 class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
   
   
-  private static $mandatoryConfigParams = array('providerName','entityid','QAA','certificate','privatekey',
-  'idpEntityID','SingleSignOnService','certData','hostedSP');
-
+    private static $mandatoryConfigParams = array('providerName','entityid','QAA',
+    'certificate','privatekey','idpEntityID','SingleSignOnService','certData',
+    'hostedSP','dialect','subdialect');
+    
 	/**
 	 * The entity ID of this SP.
 	 *
 	 * @var string
 	 */
 	private $entityId;
-
-
-
-
+    
+    
 	/**
-	 * The metadata of this SP.
+	 * The metadata of this SP (the authSource cofngi file entry content).
 	 *
 	 * @var SimpleSAML_Configuration.
 	 */
 	private $metadata;
-
-
+    
+    
+    /**
+	 * The entityID of the remote IdP we will be contacting.
+	 *
+	 * @var string  The IdP the user will log into.
+	 */
+	private $idp;
+    
+    
 	/**
-	 * The clave metadata of this SP.
+	 * URL to discovery service.
+	 *
+	 * @var string|NULL
+	 */
+	private $discoURL;
+    
+    
+	/**
+	 * The metadata of the hosted SP configured in the authSource.
 	 *
 	 * @var SimpleSAML_Configuration.
 	 */
-    private $claveConfig;
-
-
+    private $spMetadata;
+    
     
    	/**
-	 * The metadata of the remote clave IdP.
+	 * The metadata of the remote IdP.
 	 *
 	 * @var SimpleSAML_Configuration.
 	 */ 
     private $idpMetadata;
-
-
-    /**
-	 * The IdP the user is allowed to log into (a bit reduntant variable, delete).
-	 *
-	 * @var string  The clave IdP entityId.
-	 */
-	private $idp;
-
-
+    
     
 	/**
-	 * The Certificate that will be used to sign the Clave AuthnReq.
+	 * The Dialect this SP will use to contact the remote IdP
+	 *
+	 * @var string Dialect identifier.
+	 */
+    private $dialect;
+    
+    
+	/**
+	 * The Sub-Dialect this SP will use to contact the remote IdP
+	 *
+	 * @var string Sub-Dialect identifier.
+	 */
+    private $subdialect;
+    
+    
+	/**
+	 * The Certificate that will be used to sign the AuthnReq.
 	 *
 	 * @var string PEM encoded without headers.
 	 */
@@ -59,7 +80,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
 
 
 	/**
-	 * The Private Key that will be used to sign the Clave AuthnReq.
+	 * The Private Key that will be used to sign the AuthnReq.
 	 *
 	 * @var string PEM encoded without headers.
 	 */
@@ -67,7 +88,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
 
 
 	/**
-	 * Constructor for Clave-Stork-SAML SP authentication source.
+	 * Constructor for SAML2-eIDAS SP authentication source.
 	 *
 	 * @param array $info  Information about this authentication source (contains AuthId, the id of this auth source).
 	 * @param array $config  Configuration block of this authsource in authsources.php.
@@ -76,57 +97,80 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         assert('is_array($info)');
         assert('is_array($config)');
         
-        /* Call the parent constructor first, as required by the interface. */
+        // Call the parent constructor first, as required by the interface.
         parent::__construct($info, $config);
         
         
-        SimpleSAML_Logger::debug('--> Calling clave auth source constructor');
+        SimpleSAML_Logger::debug('Called sspmod_clave_Auth_Source_SP constructor');
         //SimpleSAML_Logger::debug('info: '.print_r($info, true));
         SimpleSAML_Logger::debug('config: '.print_r($config, true));
         
         
+        
+        //Load the metadata of the authsource (from the authsources file)
         $this->metadata = SimpleSAML_Configuration::loadFromArray($config, 
         'authsources['.var_export($this->authId,true).']');
         
         
-        //Get hosted sp info from clave-sp-hosted metadata set
+        //Get the hosted sp metadata
         $spConfId = $this->metadata->getString('hostedSP', NULL);
-        $this->claveConfig = sspmod_clave_Tools::getMetadataSet($spConfId,"clave-sp-hosted");
+        if($spConfId == NULL)
+            throw new SimpleSAML_Error_Exception("hostedSP field not defined for eIDAS auth source.");
+        $this->spMetadata = sspmod_clave_Tools::getMetadataSet($spConfId,"clave-sp-hosted");
+        SimpleSAML_Logger::debug('eIDAS SP hosted metadata: '.print_r($this->spMetadata,true));
         
         
-        $this->entityId = $this->claveConfig->getString('entityid');
-        
-        $this->dialect    = $this->claveConfig->getString('dialect');
-        $this->subdialect = $this->claveConfig->getString('subdialect');
-        
-        
-        //Get idp info from clave-idp-remote metadata set
-        $idpEntityId = $this->metadata->getString('idpEntityID', NULL);
+        //Get the remote idp metadata  //TODO: moved from hosted-idp/authsource to hosted-sp
+        $idpEntityId = $this->spMetadata->getString('idpEntityID', NULL);
+        if($idpEntityId == NULL)
+            throw new SimpleSAML_Error_Exception("idpEntityID field not defined for eIDAS auth source.");
         $this->idpMetadata = sspmod_clave_Tools::getMetadataSet($idpEntityId,"clave-idp-remote");
+        SimpleSAML_Logger::debug('eIDAS IDP remote metadata ('.$idpEntityId.'): '.print_r($this->idpMetadata,true));
         
-
-        //Check if mandatory config is available   
+        
+        
+        //Check if all mandatory config is available (in any of the sets) // TODO review this, as there might be collisions, and review the list of mandatory
         foreach (self::$mandatoryConfigParams as $mandParam) {
             $value = $this->metadata->getValue($mandParam, NULL);
             if ($value == NULL)
-                $value = $this->claveConfig->getValue($mandParam, NULL);
+                $value = $this->spMetadata->getValue($mandParam, NULL);
             if ($value == NULL)
                 $value = $this->idpMetadata->getValue($mandParam, NULL);
             if ($value == NULL)
-                throw new SimpleSAML_Error_Exception("No $mandParam defined in auth source config."); 
+                throw new SimpleSAML_Error_Exception("$mandParam field not defined for eIDAS auth source."); 
         }
         
-        $this->idp = array('endpoint' => $this->idpMetadata->getString('SingleSignOnService', NULL),
-                           'cert'     => $this->idpMetadata->getString('certData', NULL));
         
-        //Get SP request signing info
-        $this->certData = sspmod_clave_Tools::readCertKeyFile($this->claveConfig->getString('certificate', NULL));
-        $this->keyData  = sspmod_clave_Tools::readCertKeyFile($this->claveConfig->getString('privatekey', NULL)); 
-   
+        //Set the class properties
+        $this->discoURL   = $this->metadata->getString('discoURL', 'clave/sp/countryselector.php'); // TODO: default value. can be moved elsewhere? can module name be parametrised? anyway, remember to change module name
+        $this->entityId   = $this->spMetadata->getString('entityid');
+        $this->idp        = $idpEntityId;
+        $this->dialect    = $this->spMetadata->getString('dialect');
+        $this->subdialect = $this->spMetadata->getString('subdialect');
+        
+        $this->certData = sspmod_clave_Tools::readCertKeyFile($this->spMetadata->getString('certificate', NULL));
+        $this->keyData  = sspmod_clave_Tools::readCertKeyFile($this->spMetadata->getString('privatekey', NULL)); 
+                
+        // TODO: to delete as ssphp impl has changed. seek if this data needs to be passed elsewhere
+        //      $this->idp = array('endpoint' => $this->idpMetadata->getString('SingleSignOnService', NULL),
+        //                   'cert'     => $this->idpMetadata->getString('certData', NULL));
     }
- 
-
-
+    
+    
+    
+	/**
+	 * Retrieve the URL to the metadata of this SP (eIDAS).
+	 *
+	 * @return string  The metadata URL.
+	 */
+	public function getMetadataURL() {
+        
+        $spConfId = $this->metadata->getString('hostedSP', NULL);
+        return SimpleSAML\Module::getModuleURL('clave/sp/metadata.php/'.'clave/'.urlencode($spConfId).'/'.urlencode($this->authId));
+	}
+    
+    
+    
 	/**
 	 * Retrieve the entity id of this SP.
 	 *
@@ -134,38 +178,77 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
 	 */
 	public function getEntityId() {
 
-   return $this->entityId;
+        return $this->entityId;
 	}
-    
+       
     
     
 	/**
-	 * Retrieve the Clave IdP information.
+	 * Retrieve the metadata of this SP (the authSource content).
 	 *
-	 * @return array The endpoint and certificate of the Clave IdP.
+	 * @return SimpleSAML_Configuration  The metadata of this SP.
 	 */
-	public function getIdP() {
-   
-   return $this->idp;
+	public function getMetadata() {
+        
+        return $this->metadata;
 	}
+    
+    
+
+	/**
+	 * Retrieve the metadata of an IdP.
+	 *
+	 * @param string $entityId  The entity id of the IdP.
+	 * @return SimpleSAML_Configuration  The metadata of the IdP.
+	 */
+	public function getIdPMetadata($entityId) {
+		assert('is_string($entityId)');
+        
+        //Here we have just a fixed IdP, eIDAS does not support the list of allowed IDPs        
+        return $this->idpMetadata;
+    }
     
     
     
 	/**
-	 * Start a discovery service operation, country selector for eIDAS.
+	 * Start a discovery service operation, (country selector in eIDAS).
 	 *
 	 * @param array $state  The state array.
 	 */
-	private function startDisco(array $state) {  // TODO eIDAS
+	private function startDisco(array $state) {
 
+        SimpleSAML_Logger::debug('Called sspmod_clave_Auth_Source_SP startDisco');
+        
+        //Whether to show the country selctor
+        $showCountrySelector = $this->spMetadata->getBoolean('showCountrySelector', false);
+        
+        //Go on with the authentication
+        if($showCountrySelector === false){
+            return true;
+        }
+        
+        //If we have to show selector but country code already set on the request, go on too
+        foreach($state['sp:postParams'] as $postParam => $value)
+            if($postParam === 'country' && $value !== NULL
+            && is_string($value) && $value !== ""){
+                return true;
+            }
+        
+        
+        //Show country selector
 		$id = SimpleSAML_Auth_State::saveState($state, 'clave:sp:sso');
-
+        
 		$config = SimpleSAML_Configuration::getInstance();
 
-        //Use clave-eIDAs country selector
-        $discoURL = SimpleSAML_Module::getModuleURL('clave/sp/countryselector.php');
-        $returnTo = SimpleSAML_Module::getModuleURL('clave/sp/discoresp.php', array('AuthID' => $id));
-		
+        //Use country selector url defined in config (internal or absolute)
+        $discoURL = $this->discoURL;        
+        if (!preg_match('/^\s*https?:/',$this->discoURL)) {
+            //It is relative to the module
+            $discoURL = SimpleSAML_Module::getModuleURL($this->discoURL);
+        }
+        
+        $returnTo = SimpleSAML_Module::getModuleURL('clave/sp/discoresp.php', array('AuthID' => $id)); // TODO: remove clave reference. make the module name a global or something
+        
 		$params = array( // TODO ver si son necesarios y describirlos
 			//'entityID' => $this->entityId,     //The clave hosted SP entityID
 			'return' => $returnTo,             //The script to go on with the auth process (contains the authsource ID)
@@ -174,21 +257,10 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         
 		\SimpleSAML\Utils\HTTP::redirectTrustedURL($discoURL, $params);
 	}
+ 
     
+
     
-    
-	/**
-	 * Retrieve the metadata of this SP.
-	 *
-	 * @return SimpleSAML_Configuration  The metadata of this SP.
-	 */
-	public function getMetadata() {
-   
-   return $this->metadata;
-	}
-
-
-
 	/**
 	 * Start login.
 	 *
@@ -198,27 +270,22 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
 	 */
 	public function authenticate(&$state) {
         assert('is_array($state)');
-   
-        SimpleSAML_Logger::info("clave auth filter authenticate!!");
-   
-   
+        
+        SimpleSAML_Logger::debug('Called sspmod_clave_Auth_Source_SP authenticate');
+                
         // We are going to need the authId in order to retrieve this authentication source later.
         $state['clave:sp:AuthId']      = $this->authId;
         
         //And the clave idp remote to go on with the sso after the country selector discovery
-        $state['clave:sp:idpEntityID'] = $this->metadata->getString('idpEntityID', NULL);
+        $state['clave:sp:idpEntityID'] = $this->spMetadata->getString('idpEntityID', NULL);
         
         
         SimpleSAML_Logger::info("state: ".print_r($state,true));
         SimpleSAML_Logger::info("metadata: ".print_r($this->metadata,true));
         
         
-        //Redirect to the Country Selector (if enabled)
-        $showCountrySelector = $this->claveConfig->getBoolean('showCountrySelector', false);
-        if($showCountrySelector === true){
-            $this->startDisco($state);
-            assert('FALSE');
-        }
+        //Redirect to the Country Selector (if enabled and needed)
+        $this->startDisco($state);
         
         //Go on with the authentication
         $this->startSSO( $this->idp, $state);
@@ -228,70 +295,111 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
  
 
  
+
 	/**
-	 * Send a SSO request to Clave IdP.
+	 * Send a SSO request to an IdP.
 	 *
-	 * @param array $idp  The endpoint and certificate of the IdP.
+	 * @param string $idp  The entity ID of the IdP.
 	 * @param array $state  The state array for the current authentication.
 	 */
-	public function startSSO(array $idp, array $state) {
+	public function startSSO($idp, array $state) {
+        assert('is_string($idp)');
         
-        SimpleSAML_Logger::info("clave auth filter startSSO");
+        SimpleSAML_Logger::debug('Called sspmod_clave_Auth_Source_SP startSSO');
         
-        SimpleSAML_Logger::info("SP sign cert: ".$this->certData);
+        SimpleSAML_Logger::debug("Hosted SP Certificate: ".$this->certData);
+        
+        //We get the Remote SP Metadata
+        $remoteSpMeta  = SimpleSAML_Configuration::loadFromArray($state['SPMetadata']);
         
         
-        $spConf  = SimpleSAML_Configuration::loadFromArray($state['SPMetadata']);
+        $showCountrySelector = $this->spMetadata->getBoolean('showCountrySelector', false);
+
+        $endpoint = $this->idpMetadata->getString('SingleSignOnService', NULL);
         
-        
-        $showCountrySelector = $this->claveConfig->getBoolean('showCountrySelector', false);
         
         $sectorShare      = "";
         $crossSectorShare = "";
         $crossBorderShare = "";
-        if ($this->dialect === 'stork'){ //On Stork, might be fixed (clave) or country selector (stork)
+        if ($this->dialect === 'stork'){
             
-            //These params are read from the SP remote config and if not set, from the IdP hosted config.
-            $SPCountry = $spConf->getString('spCountry',$this->claveConfig->getString('spCountry', 'NOTSET'));
-            $SPsector  = $spConf->getString('spSector',$this->claveConfig->getString('spSector', 'ANY'));
-            $SPinstitution = $spConf->getString('spInstitution',$this->claveConfig->getString('spInstitution', 'ANY'));
-            $SPapp = $spConf->getString('spApplication',$this->claveConfig->getString('spApplication', 'ANY'));
+            //These params are set, in order of preference:
+            // 1. From the remote SP metadata (if set)
+            // 2. From the hosted SP metadata (if set)
+            // 3. From the request (if it specified any values, else, empty string)
+            $SPCountry = $remoteSpMeta->getString('spCountry',$this->spMetadata->getString('spCountry', ''.$state['eidas:requestData']['spCountry']));
+            $SPsector  = $remoteSpMeta->getString('spSector',$this->spMetadata->getString('spSector', ''.$state['eidas:requestData']['spSector']));
+            $SPinstitution = $remoteSpMeta->getString('spInstitution',$this->spMetadata->getString('spInstitution', ''.$state['eidas:requestData']['spInstitution']));
+            $SPapp = $remoteSpMeta->getString('spApplication',$this->spMetadata->getString('spApplication', ''.$state['eidas:requestData']['spApplication']));
             //$SpId="$SPCountry-$SPsector-$SPinstitution-$SPapp";
-            $SpId = $spConf->getString('spID',$this->claveConfig->getString('spID', 'NOTSET'));
-            
-            
-            if ($this->subdialect === 'clave-2.0'){
-            $CitizenCountry = $spConf->getString('citizenCountryCode',
-                                                 $this->claveConfig->getString('citizenCountryCode', 'NOTSET'));
-            }
-            
+            $SpId = $remoteSpMeta->getString('spID',$this->spMetadata->getString('spID', ''.$state['eidas:requestData']['spID']));
+            $sectorShare      = $remoteSpMeta->getBoolean('eIDSectorShare', $this->spMetadata->getBoolean('eIDSectorShare',
+                                                 sspmod_clave_SPlib::stb($state['eidas:requestData']['eIDSectorShare'])));
+            $crossSectorShare = $remoteSpMeta->getBoolean('eIDCrossSectorShare', $this->spMetadata->getBoolean('eIDCrossSectorShare',
+                                                 sspmod_clave_SPlib::stb($state['eidas:requestData']['eIDCrossSectorShare'])));
+            $crossBorderShare = $remoteSpMeta->getBoolean('eIDCrossBorderShare', $this->spMetadata->getBoolean('eIDCrossBorderShare',
+                                                 sspmod_clave_SPlib::stb($state['eidas:requestData']['eIDCrossBorderShare'])));
+                        
             $CitizenCountry = "";
+            //For Spain's Clave based on stork, country is fixed
+            if ($this->subdialect === 'clave-1.0'){
+                $CitizenCountry = $remoteSpMeta->getString('citizenCountryCode',$this->spMetadata->getString('citizenCountryCode', ''.$state['eidas:requestData']['citizenCountryCode']));
+            }
             if ($this->subdialect === 'stork')
                 if($showCountrySelector === true)
-                    $CitizenCountry = $idp['country'];
+                    $CitizenCountry = $state['country'];
             
             
-            $sectorShare      = $spConf->getBoolean('eIDSectorShare', $this->claveConfig->getBoolean('eIDSectorShare', true));
-            $crossSectorShare = $spConf->getBoolean('eIDCrossSectorShare', $this->claveConfig->getBoolean('eIDCrossSectorShare', true));
-            $crossBorderShare = $spConf->getBoolean('eIDCrossBorderShare', $this->claveConfig->getBoolean('eIDCrossBorderShare', true));
-   
-            $reqIssuer = $spConf->getString('issuer', $this->claveConfig->getString('issuer', $this->entityId));   
+            //Issuer is set in this order:
+            // 1. Hosted SP metadata issuer field (if set)
+            // 2. Remote SP metadata issuer field (if set)
+            // 3. Issuer Field specified on the remote SP request
+            // (Dropped using the entityId of the hosted SP)
+            $reqIssuer = $this->spMetadata->getString('issuer', $remoteSpMeta->getString('issuer', $state['eidas:requestData']['issuer']));
+
+            if(!array_key_exists('QAA',$state['eidas:requestData'])
+            || $state['eidas:requestData']['QAA'] === NULL
+            || $state['eidas:requestData']['QAA'] === "")
+                $state['eidas:requestData']['QAA'] = 1;
+            $QAA =  $this->spMetadata->getInteger('QAA', $remoteSpMeta->getInteger('QAA', $state['eidas:requestData']['QAA'] ));
         }
         
-        if ($this->dialect === 'eidas'){ //On eIDAS, always get the country selector value
-
+        if ($this->dialect === 'eidas'){ //On eIDAS, we always get the country selector value.
+            
+            //Set defaults for when the remote SP was in Stork mode
+            if(!array_key_exists('IdFormat',$state['eidas:requestData'])
+            || $state['eidas:requestData']['IdFormat'] === NULL
+            || $state['eidas:requestData']['IdFormat'] === "")
+                $state['eidas:requestData']['IdFormat'] = sspmod_clave_SPlib::NAMEID_FORMAT_PERSISTENT;
+            
+            if(!array_key_exists('SPType',$state['eidas:requestData'])
+            || $state['eidas:requestData']['SPType'] === NULL
+            || $state['eidas:requestData']['SPType'] === "")
+                $state['eidas:requestData']['SPType'] = sspmod_clave_SPlib::EIDAS_SPTYPE_PUBLIC;
+            
+            if(!array_key_exists('LoA',$state['eidas:requestData'])
+            || $state['eidas:requestData']['LoA'] === NULL
+            || $state['eidas:requestData']['LoA'] === "")
+                $state['eidas:requestData']['LoA'] = sspmod_clave_SPlib::qaaToLoA($state['eidas:requestData']['QAA']);
+            
+            $SPType       = $this->spMetadata->getString('SPType', $state['eidas:requestData']['SPType']);
+            $NameIDFormat = $this->spMetadata->getString('NameIDFormat', $state['eidas:requestData']['IdFormat']);
+            $LoA          = $this->spMetadata->getString('LoA', $state['eidas:requestData']['LoA']);
+            $state['eidas:requestData']['QAA'] = $LoA; //We overwrite it to avoid it overwriting the LoA later when the remote SP spoke stork
+            
             $CitizenCountry = '';
             if($showCountrySelector === true)
-                $CitizenCountry = $idp['country'];
+                $CitizenCountry = $state['country'];
             
-            //Metadata URL for eIDAS   // TODO Here biuld the metadata url with the proper 
-            $spConfId = $this->metadata->getString('hostedSP', NULL);
-            $metadataURL = SimpleSAML_Module::getModuleURL('clave/sp/metadata.php/'.'clave/'.$spConfId.'/'.$this->authId);
-            
-            $reqIssuer = $metadataURL;// TODO eIDAS
+            //Get the metadata URL of this hosted SP
+            $metadataURL = $this->getMetadataURL();
+
+            //On eIDAS, the issuer is always the metadata URL
+            $reqIssuer = $metadataURL;
         }
-        
-        $QAA =  $spConf->getInteger('QAA', $this->metadata->getInteger('QAA', 1));
+
+        //Hosted SP providerName
+        $providerName = $this->spMetadata->getString('providerName', NULL);
         
         //Get address of assertion consumer service for this module (it
         //ends with the id of the authsource, so we can retrieve the
@@ -300,85 +408,137 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         $returnPage = SimpleSAML_Module::getModuleURL('clave/sp/clave-acs.php/'.$this->authId);// TODO eIDAS
         
         
-        $clave = new sspmod_clave_SPlib();
+        //Build the authn request
+        $eidas = new sspmod_clave_SPlib();
         
-        if ($this->dialect === 'eidas'){  // TODO eIDAS
-            $clave->setEidasMode();
-            $clave->setEidasRequestParams(sspmod_clave_SPlib::EIDAS_SPTYPE_PUBLIC,
-                                          sspmod_clave_SPlib::NAMEID_FORMAT_PERSISTENT,
-                                          $QAA);
+        if ($this->dialect === 'eidas'){
+            $eidas->setEidasMode();
+            $eidas->setEidasRequestParams($SPType,
+                                          $NameIDFormat,
+                                          $LoA);
         }
         
         
-        //We get the forceAuthn of the AuthnReq and reproduce it, default is false
-        //if($this->metadata->getInteger('ForceAuthn', 0) == 1)
-        //if (isset($state['ForceAuthn']) && $state['ForceAuthn'] === 1)
-// Both in stork and eIDAS, always true. Otherwise, it fails
-//SimpleSAML_Logger::debug("************************FA:".$state['ForceAuthn']);
-//if( ((bool)$state['ForceAuthn']) === true)
-        $clave->forceAuthn();
+        //eIDAS always forces authn
+        //if($state['eidas:requestData']['forceAuthn'])
+        $eidas->forceAuthn();
         
-        $clave->setSignatureKeyParams($this->certData, $this->keyData, sspmod_clave_SPlib::RSA_SHA512);
-        $clave->setSignatureParams(sspmod_clave_SPlib::SHA512,sspmod_clave_SPlib::EXC_C14N);
+        $eidas->setSignatureKeyParams($this->certData, $this->keyData, sspmod_clave_SPlib::RSA_SHA512);
+        $eidas->setSignatureParams(sspmod_clave_SPlib::SHA512,sspmod_clave_SPlib::EXC_C14N);
         
-        $clave->setServiceProviderParams($this->claveConfig->getString('providerName', NULL), 
+        $eidas->setServiceProviderParams($providerName, 
                                          $reqIssuer,
                                          $returnPage);
-
+        
         if ($this->dialect === 'stork'){
-            $clave->setSPLocationParams($SPCountry,$SPsector,$SPinstitution,$SPapp);  
-            $clave->setSPVidpParams($SpId,$CitizenCountry);
+            $eidas->setSPLocationParams($SPCountry,$SPsector,
+                                        $SPinstitution,$SPapp);  
+            $eidas->setSPVidpParams($SpId,$CitizenCountry);
         }
         
-        $clave->setSTORKParams ($idp['endpoint'], $QAA, $sectorShare, $crossSectorShare, $crossBorderShare);
+        $eidas->setSTORKParams ($endpoint,
+                                $QAA,
+                                $sectorShare,
+                                $crossSectorShare,
+                                $crossBorderShare);
+
+        //List of mandatory attribute names requested
+        $mandatory  = array();
+        //Unified list of attributes to request
+        $attributes = array();
         
-        //Get remote sp metadata and get attributes to request 
-        $attrsToRequest = $state['SPMetadata']['attributes'];
+        //If the remote SP request carried attributes (was an eIDAs request)
+        if(array_key_exists('requestedAttributes', $state['eidas:requestData'])
+        && is_array($state['eidas:requestData']['requestedAttributes'])
+        //&& count($state['eidas:requestData']['requestedAttributes']) > 0 //If the requesting remote SP does this wrong, not my problem
+        ){
+            
+            foreach($state['eidas:requestData']['requestedAttributes'] as $attr){
+                
+                if ($this->dialect === 'stork'){
+                    $name = sspmod_clave_SPlib::getFriendlyName($attr['name']);
+                }
+                if ($this->dialect === 'eidas'){//el dialecto del SP hosted
         
-        //Default request parameters (minimum dataset)
-        if($attrsToRequest == NULL || count($attrsToRequest)<=0){
-            if ($this->dialect === 'stork')
-                $attrsToRequest = array("eIdentifier","givenName","surname");    // TODO eIDAS
-            if ($this->dialect === 'eidas')
-                $attrsToRequest = array("PersonIdentifier","FirstName","FamilyName","DateOfBirth");
+                    //If the remote SP uses stork dialect but is requestin eIDAs
+                    //attributes, it will send the full name of the eIDAS attributes, and
+                    //not the friendly name, so we try to get the friendly name, and if
+                    //it fails, we consider it already is a friendly name
+                    if(array_key_exists('friendlyName', $attr)){
+                        $name = $attr['friendlyName'];
+                    }
+                    else{
+                        $name = sspmod_clave_SPlib::getEidasFriendlyName($attr['name']); //We are expecting eIDAS attribute full names, so 1
+                        if($name === "")
+                            $name = $attr['name'];
+                    }
+                }
+                $attributes []= array($name, $attr['isRequired']);
+                
+                //We store the list of mandatory attributes for response validation
+                if(sspmod_clave_SPlib::stb($attr['isRequired']) === true){
+                    $mandatory []= $name;
+                }
+            }
+            
+        }
+        else{ //No attributes came on the remote SP request
+            
+            //Get fixed list of attributes to request from remote sp
+            //metadata
+            $attrsToRequest = $state['SPMetadata']['attributes'];
+            
+            //If not set, default to minimum dataset
+            if($attrsToRequest == NULL || count($attrsToRequest)<=0){
+                if ($this->dialect === 'stork')
+                    $attrsToRequest = array("eIdentifier","givenName","surname");
+                if ($this->dialect === 'eidas')
+                    $attrsToRequest = array("PersonIdentifier","FirstName","FamilyName","DateOfBirth");
+            }
+            
+            //Set default mandatoriness
+            foreach($attrsToRequest as $attr){
+                $mandatory = false;
+                
+                if ($this->dialect === 'eidas')
+                    if (in_array($attr, array("PersonIdentifier","FirstName","FamilyName","DateOfBirth"))){
+                        $mandatory = true;   //minimum dataset always mandatory.
+                        $mandatory []= $attr;
+                    }
+                
+                $attributes []= array($attr, $mandatory);
+            }
+        }        
+        
+        //Add the attributes to request
+        foreach($attributes as $attribute){
+            $eidas->addRequestAttribute($attribute[0], $attribute[1]);
         }
         
-        foreach($attrsToRequest as $attr){
-            $mandatory = false;
-            
-            if ($this->dialect === 'eidas')
-                if (in_array($attr, array("PersonIdentifier","FirstName","FamilyName","DateOfBirth")))
-                    $mandatory = true;   //minimum dataset always mandatory.
-            
-            $clave->addRequestAttribute ($attr, $mandatory);    // TODO eIDAS 
-            
-            // TODO change metadata structure: allow to define individually each attribute mandatoriness
-        }
         
         
         //Save information needed for the comeback
-        //   $state['clave:sp:reqTime']        = $clave->getRequestTimestamp();
+        //   $state['clave:sp:reqTime']        = $eidas->getRequestTimestamp();
         $state['clave:sp:returnPage']     = $returnPage;
-        $state['clave:sp:mandatoryAttrs'] = array();
+        $state['clave:sp:mandatoryAttrs'] = $mandatory;
         $id = SimpleSAML_Auth_State::saveState($state, 'clave:sp:req', true);
         SimpleSAML_Logger::debug("Generated Req ID: ".$id);
         
         
         //Set the id of the request, it must be the id of the saved state.
-        $clave->setRequestId($id);
+        $eidas->setRequestId($id);
         
         
-        //Build authn request
-        $req = base64_encode($clave->generateStorkAuthRequest());
-        SimpleSAML_Logger::debug("Generated AuthnReq: ".$req);
+        //Build Authn Request
+        $req = base64_encode($eidas->generateStorkAuthRequest());
+        SimpleSAML_Logger::debug("sspmod_clave_Auth_Source_SP Generated AuthnReq: ".$req);
         
         
-        
-        //Log for statistics: sent AuthnRequest to remote clave IdP
+        //Log for statistics: sent AuthnRequest to remote IdP  // TODO: Log any other interesting field?
         SimpleSAML_Stats::log('clave:sp:AuthnRequest', array(
-            'spEntityID' =>  $this->entityId,
-            'idpEntityID' => $idp['endpoint'],
-            'forceAuthn' => TRUE,//$state['ForceAuthn'],
+            'spEntityID' =>  $this->entityId,  // TODO: put the entityId or the issuer?
+            'idpEntityID' => $this->spMetadata->getString('idpEntityID', NULL),
+            'forceAuthn' => TRUE,//$state['eidas:requestData']['forceAuthn'],
             'isPassive' => FALSE,
             'protocol' => 'saml2-'.$this->dialect,
             'idpInit' => FALSE,
@@ -386,87 +546,180 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         
         
         
+        
         //Perform redirection
-        $this->redirect($idp['endpoint'],$req, $state);
+        $this->redirect($endpoint,$req, $state);
         
         assert('FALSE');   
     }
     
  
+ 	/**
+	 * Handle a response from a SSO operation.
+	 *
+	 * @param array $state  The authentication state.
+	 * @param string $idp  The entity id of the remote IdP.
+	 * @param array $attributes  The attributes.
+	 */
+	public function handleResponse(array $state, $idp, array $attributes) {
+        assert('is_string($idp)');
+        
+        $idpMetadata = $this->getIdpMetadata($idp);
+        
+        $spMetadataArray  = $this->metadata->toArray();
+        $idpMetadataArray = $idpMetadata->toArray();
+        
+        
+        //Save the state before calling the chain of AuthProcess filters
+		$state['saml:sp:IdP'] = $idp;
+		$state['PersistentAuthData'][] = 'saml:sp:IdP';
+        
+        $authProcState = array(
+			'saml:sp:IdP' => $idp,
+			'saml:sp:State' => $state,
+			'ReturnCall' => array('sspmod_clave_Auth_Source_SP', 'onProcessingCompleted'),
+            
+			'Attributes' => $attributes, //Add received attributes to the state that will, in the end, be returned to the IdP
+			'Destination' => $spMetadataArray,
+			'Source' => $idpMetadataArray,
+		);
+        
+		if (isset($state['saml:sp:NameID'])) {
+			$authProcState['saml:sp:NameID'] = $state['saml:sp:NameID'];
+		}
+		if (isset($state['saml:sp:SessionIndex'])) {
+			$authProcState['saml:sp:SessionIndex'] = $state['saml:sp:SessionIndex'];
+		}
+        $pc = new SimpleSAML_Auth_ProcessingChain($idpMetadataArray, $spMetadataArray, 'sp');
+		$pc->processState($authProcState);
+        
+		self::onProcessingCompleted($authProcState);
+        
+        //$state['Attributes'] = $attributes;
+        //Return control to the hosted IDP
+        //SimpleSAML_Auth_Source::completeAuth($state);
+    }
+
+
+
+	/**
+	 * Called when we have completed the processing chain.
+	 *
+	 * @param array $authProcState  The processing chain state.
+	 */
+	public static function onProcessingCompleted(array $authProcState) {
+		assert('array_key_exists("saml:sp:IdP", $authProcState)');
+		assert('array_key_exists("saml:sp:State", $authProcState)');
+		assert('array_key_exists("Attributes", $authProcState)');
+        
+		$idp = $authProcState['saml:sp:IdP'];
+		$state = $authProcState['saml:sp:State'];
+        
+		$sourceId = $state['clave:sp:AuthId'];
+		$source = SimpleSAML_Auth_Source::getById($sourceId);
+		if ($source === NULL) {
+			throw new Exception('Could not find authentication source with id ' . $sourceId);
+		}
+        
+		//Register a callback that we can call if we receive a logout request from the IdP. // TODO: review when implementing SLO
+		//$source->addLogoutCallback($idp, $state);
+        
+		$state['Attributes'] = $authProcState['Attributes'];
+        
+		if (isset($state['saml:sp:isUnsolicited']) && (bool)$state['saml:sp:isUnsolicited']) {
+			if (!empty($state['saml:sp:RelayState'])) {
+				$redirectTo = $state['saml:sp:RelayState'];
+			} else {
+				$redirectTo = $source->getMetadata()->getString('RelayState', '/');
+			}
+			self::handleUnsolicitedAuth($sourceId, $state, $redirectTo);
+		}
+        
+		SimpleSAML_Auth_Source::completeAuth($state);
+	}
+
     
-  /**
-   * Handle a response from a Clave request.
-   *
-   * @param array $state  The authentication state.
-   * @param array $attributes  The attributes.
-   */
-  public function handleResponse(array $state, array $attributes) {
+  
+  //Do the POST redirection.
+  //Will forward authorised POST parameters, if any
+  //Some parameters are configurable, but also can be forwarded:
+  // - If they came by POST, then that copy is sent to the remote IdP
+  // - Else, if they are specifically defined in remote SP metadata, those are sent
+  // - Else, if they are specifically defined in tthe authSource metadata, those are sent
+  // - Else, not sent
+  private function redirect($destination, $req, $state){
       
-      $spMetadataArray = $this->metadata->toArray();
+      //Get the remote SP metadata
+      $remoteSpMeta  = SimpleSAML_Configuration::loadFromArray($state['SPMetadata']);
       
-      //Add received attributes to the state that will be returned to the IdP
-      $state['Attributes'] = $attributes;
+      //Get the POST parameters forwarded from the remote SP request
+      $forwardedParams = $state['sp:postParams'];
+      
+      //Post params to send
+      $post = array('SAMLRequest'  => $req);
+      
+      if ($this->subdialect === 'clave-1.0'){
+          
+          if(!array_key_exists('idpList',$forwardedParams)){
+              //IdP config values are the default if sp values not found, else not sent
+              $idpList = $remoteSpMeta->getArray('idpList', $this->metadata->getArray('idpList', array()));
+              if(count($idpList)>0)
+                  $post['idpList'] = sspmod_clave_Tools::serializeIdpList($idpList);
+          }
 
-      //Return control to the ssp IdP part
-      SimpleSAML_Auth_Source::completeAuth($state);
+          if(!array_key_exists('excludedIdPList',$forwardedParams)){
+              $idpExcludedList = $remoteSpMeta->getArray('idpExcludedList', $this->metadata->getArray('idpExcludedList', array()));
+              if(count($idpExcludedList)>0)
+                  $post['excludedIdPList'] = sspmod_clave_Tools::serializeIdpList($idpExcludedList);  
+          }
+          
+          
+          if(!array_key_exists('forcedIdP',$forwardedParams)){
+              //Force a certain auth source
+              $force = $remoteSpMeta->getString('force', $this->metadata->getString('force', NULL));
+              if ($force != NULL)
+                  $post['forcedIdP'] = $force;
+          }
+          
+          
+          if(!array_key_exists('allowLegalPerson',$forwardedParams)){
+              //Allow legal person certificates to be used
+              $legal = $remoteSpMeta->getBoolean('allowLegalPerson', false);
+              if ($legal === true)
+                  $post['allowLegalPerson'] = 'true';
+          }
+      }
+
+      // TODO eIDAS
+      if ($this->subdialect === 'eidas'
+      || $this->subdialect === 'stork'){
+          
+          if(!array_key_exists('country',$forwardedParams)){
+              //The state variable country will be set on the return page of the
+              //discovery service (country selector)
+              if (isset($state['country']))
+                  $post['country'] = $state['country'];
+          }
+      }
+      
+
+      //Include the forwarded parameters in the POST [priority values. Will override any prior one]
+      foreach($forwardedParams as $param => $value){
+          $post[$param] = $value;
+      }
+      SimpleSAML_Logger::debug("forwarded: ".print_r($forwardedParams, true));
+      SimpleSAML_Logger::debug("post: ".print_r($post, true));
+      
+      
+      //Redirecting to Clave IdP (Only HTTP-POST binding supported)
+      SimpleSAML_Utilities::postRedirect($destination, $post);
+   
   }
-  
-  
-  
- private function redirect($destination, $req, $state){
-   
-   // If set per SP, this value is prioritised.
-   $spConf  = SimpleSAML_Configuration::loadFromArray($state['SPMetadata']);
-   $idpConf = $this->metadata;
-
-
-   $post = array('SAMLRequest'  => $req);
-   
-   
-   if ($this->subdialect === 'clave-2.0'){
-       
-       //IdP config values are the default if sp values not found, else all is default
-       $idpList = $spConf->getArray('idpList', $idpConf->getArray('idpList', array()));
-       if(count($idpList)>0)
-           $post['idpList'] = sspmod_clave_Tools::serializeIdpList($idpList);
-
-
-       $idpExcludedList = $spConf->getArray('idpExcludedList', $idpConf->getArray('idpExcludedList', array()));
-       if(count($idpExcludedList)>0)
-           $post['excludedIdPList'] = sspmod_clave_Tools::serializeIdpList($idpExcludedList);    
-   
-       //Force a certain auth source
-       $force = $spConf->getString('force', $idpConf->getString('force', NULL));
-       if ($force != NULL)
-           $post['forcedIdP'] = $force;
-
-
-       //Allow legal person certificates to be used
-       $legal = $spConf->getBoolean('allowLegalPerson', false);
-       if ($legal === true)
-           $post['allowLegalPerson'] = 'true';
-   }
-
-   // TODO eIDAS
-   if ($this->subdialect === 'eidas'
-   || $this->subdialect === 'stork'){
-       
-       //The state variable country will be set on the return page of the
-       //discovery service (country selector)
-       if (isset($state['country']))
-           $post['country'] = $state['country'];
-   }
-   
-   
-   //Redirecting to Clave IdP (Only HTTP-POST binding supported)
-   SimpleSAML_Utilities::postRedirect($destination, $post);
-   
- }
 
 
 
 
-
+  // TODO: review and merge/refactor all the logout part. Not now. At the end, as it only is useful for clave1 (maybe in the future for clave2).
 
 
 	/**
@@ -490,7 +743,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
 	public function startSLO2(&$state) {
 		assert('is_array($state)');
         
-        $providerName = $this->claveConfig->getString('providerName', NULL);
+        $providerName = $this->spMetadata->getString('providerName', NULL);
         
 		$endpoint = $this->idpMetadata->getString('SingleLogoutService', NULL);
         if ($endpoint === NULL) {
@@ -504,11 +757,11 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         $returnPage = SimpleSAML_Module::getModuleURL('clave/sp/logout-return.php/'.$this->authId);
 
 
-        $clave = new sspmod_clave_SPlib();
+        $eidas = new sspmod_clave_SPlib();
    
-        $clave->setSignatureKeyParams($this->certData, $this->keyData,
+        $eidas->setSignatureKeyParams($this->certData, $this->keyData,
                                       sspmod_clave_SPlib::RSA_SHA512);
-        $clave->setSignatureParams(sspmod_clave_SPlib::SHA512,sspmod_clave_SPlib::EXC_C14N);
+        $eidas->setSignatureParams(sspmod_clave_SPlib::SHA512,sspmod_clave_SPlib::EXC_C14N);
         
         
         //Save information needed for the comeback
@@ -518,7 +771,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         
         
         //Generate the logout requestx
-        $req = base64_encode($clave->generateSLORequest($providerName,
+        $req = base64_encode($eidas->generateSLORequest($providerName,
                                                         $endpoint,
                                                         $returnPage,
                                                         $id));
@@ -534,10 +787,10 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         /*
         //Stork SLO doesn't use standard SAML2, so we must reimplement it
         
-		$lr = sspmod_saml_Message::buildLogoutRequest($this->claveConfig, $this->idpMetadata);
+		$lr = sspmod_saml_Message::buildLogoutRequest($this->spMetadata, $this->idpMetadata);
         //Stork does not use nameID
 		$lr->setNameId(array(
-            'Value' => $this->claveConfig->getString('providerName', NULL),
+            'Value' => $this->spMetadata->getString('providerName', NULL),
             //'NameQualifier' => '',
             //'SPNameQualifier' => '',
             'Format' => 'urn:oasis:names:tc:SAML:1.0:nameid-format:unspecified',
@@ -560,3 +813,6 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
  
  
 }
+
+
+assert('FALSE');

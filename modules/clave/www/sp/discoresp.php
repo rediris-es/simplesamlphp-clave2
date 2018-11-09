@@ -40,17 +40,22 @@ if (!($source instanceof sspmod_clave_Auth_Source_SP)) {
 }
 
 
+//Save the country code
+$state['country'] = $_REQUEST['country'];  // TODO SEGUIR usar este country en el startSSO, adaptar tb el discovery en el bridge.  // TODO: on startSSO, make sure this attr is not duplicated in the forwarded ones.
 
-$state['country'] = $_REQUEST['country'];  // TODO SEGUIR usar este country en el startSSO, adaptar tb el discovery en el bridge
 
 
-
+/*
 //Get the destination remote IDP metadata
 $idpMetadata = sspmod_clave_Tools::getMetadataSet($idpEntityId,"clave-idp-remote");
 
 $idp = array('endpoint' => $idpMetadata->getString('SingleSignOnService', NULL),
              'cert'     => $idpMetadata->getString('certData', NULL),
              'country'  => $_REQUEST['country']);
+*/ // TODO: REMOVE. now only this:
+$idp = $idpEntityId;
+
+
 
 //Return to the AuthSource and call the function that performs the request
 $source->startSSO($idp, $state);
