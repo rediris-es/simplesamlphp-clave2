@@ -261,6 +261,7 @@ class sspmod_clave_IdP_eIDAS
     }
     
     
+    
     /**
      * Build a authentication response based on information in the metadata.
      *

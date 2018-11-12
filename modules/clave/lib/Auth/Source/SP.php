@@ -120,7 +120,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         SimpleSAML_Logger::debug('eIDAS SP hosted metadata: '.print_r($this->spMetadata,true));
         
         
-        //Get the remote idp metadata  //TODO: moved from hosted-idp/authsource to hosted-sp
+        //Get the remote idp metadata
         $idpEntityId = $this->spMetadata->getString('idpEntityID', NULL);
         if($idpEntityId == NULL)
             throw new SimpleSAML_Error_Exception("idpEntityID field not defined for eIDAS auth source.");
@@ -657,18 +657,21 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
       
       //Post params to send
       $post = array('SAMLRequest'  => $req);
-      
+
+
+
+      //Specific needs for Clave-1.0 STORK implementation
       if ($this->subdialect === 'clave-1.0'){
           
           if(!array_key_exists('idpList',$forwardedParams)){
               //IdP config values are the default if sp values not found, else not sent
-              $idpList = $remoteSpMeta->getArray('idpList', $this->metadata->getArray('idpList', array()));
+              $idpList = $remoteSpMeta->getArray('idpList', $this->spMetadata->getArray('idpList', array()));  
               if(count($idpList)>0)
                   $post['idpList'] = sspmod_clave_Tools::serializeIdpList($idpList);
           }
 
           if(!array_key_exists('excludedIdPList',$forwardedParams)){
-              $idpExcludedList = $remoteSpMeta->getArray('idpExcludedList', $this->metadata->getArray('idpExcludedList', array()));
+              $idpExcludedList = $remoteSpMeta->getArray('idpExcludedList', $this->spMetadata->getArray('idpExcludedList', array()));
               if(count($idpExcludedList)>0)
                   $post['excludedIdPList'] = sspmod_clave_Tools::serializeIdpList($idpExcludedList);  
           }
@@ -676,7 +679,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
           
           if(!array_key_exists('forcedIdP',$forwardedParams)){
               //Force a certain auth source
-              $force = $remoteSpMeta->getString('force', $this->metadata->getString('force', NULL));
+              $force = $remoteSpMeta->getString('force', $this->spMetadata->getString('force', NULL));
               if ($force != NULL)
                   $post['forcedIdP'] = $force;
           }
