@@ -649,8 +649,9 @@ class sspmod_clave_SPlib {
       $valueType = 'xs:string';
 
       //TODO: Workaround for terrible clave-2.0 design. still not definitive
-      if($friendlyName === 'RelayState' )
-          $valueType = 'eidas-natural:PersonIdentifierType';
+      //Seems it is not necessary. Will leave it commented just in case.
+      //if($friendlyName === 'RelayState' )
+      //    $valueType = 'eidas-natural:PersonIdentifierType';
       
           
       
@@ -882,8 +883,8 @@ class sspmod_clave_SPlib {
         $specificNamespaces = 'xmlns:eidas="'.self::NS_EIDAS.'" '.'xmlns:eidas-natural="http://eidas.europa.eu/attributes/naturalperson" ';
     
     $assertionConsumerServiceURL = 'AssertionConsumerServiceURL="'.htmlspecialchars($this->ReturnAddr).'" ';
-    if($this->mode === 1)  //On eIDAS, this SHOULD NOT be sent.
-        $assertionConsumerServiceURL = "";
+//    if($this->mode === 1)  //On eIDAS, this SHOULD NOT be sent. // TODO: but on Clave-2.0, it must. eIDAS supports sending it just as the address stated in the metadata. We'll do so.
+//        $assertionConsumerServiceURL = "";
     
     $protocolBinding = 'ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" ';
     if($this->mode === 1)  //On eIDAS, this SHOULD NOT be sent.
@@ -2163,7 +2164,7 @@ class sspmod_clave_SPlib {
           $ret['spID'] = "".$authAttrs->SPInformation->SPID;
           
           
-          $ret['requestedAttributes'] = array();
+          $ret['requestedAttributes'] = array();  // TODO: SEGUIR soportar aquí que se lean y retransmitan los values de los attr solicitados
           foreach($reqAttrs as $reqAttr){
               $ret['requestedAttributes'] []= array(
                   'name'         => "".$reqAttr->attributes()->Name,

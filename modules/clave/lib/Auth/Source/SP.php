@@ -385,6 +385,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
             $SPType       = $this->spMetadata->getString('SPType', $state['eidas:requestData']['SPType']);
             $NameIDFormat = $this->spMetadata->getString('NameIDFormat', $state['eidas:requestData']['IdFormat']);
             $LoA          = $this->spMetadata->getString('LoA', $state['eidas:requestData']['LoA']);
+            $QAA          = sspmod_clave_SPlib::loaToQaa($LoA);
             $state['eidas:requestData']['QAA'] = $LoA; //We overwrite it to avoid it overwriting the LoA later when the remote SP spoke stork
             
             $CitizenCountry = '';
@@ -405,12 +406,12 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         //ends with the id of the authsource, so we can retrieve the
         //correct authsource config on the acs)
         //For eIDAS, this has no effect, as the ACS is read from the eIDAS SP metadata
-        $returnPage = SimpleSAML_Module::getModuleURL('clave/sp/clave-acs.php/'.$this->authId);// TODO eIDAS
+        $returnPage = SimpleSAML_Module::getModuleURL('clave/sp/clave-acs.php/'.$this->authId);
         
         
         //Build the authn request
         $eidas = new sspmod_clave_SPlib();
-        
+        SimpleSAML_Logger::debug("******************************+LoA: ".$LoA);
         if ($this->dialect === 'eidas'){
             $eidas->setEidasMode();
             $eidas->setEidasRequestParams($SPType,
@@ -447,6 +448,25 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         //Unified list of attributes to request
         $attributes = array();
         
+        
+        //Workaround for Clave-2.0. It requires the
+        //RelayState attribute to be passed (with its
+        //value), but if not passed, it needs to be there
+        //anyway (not in the specs, but they implemented
+        //them wrong), so we set it as empty.
+        if ($this->subdialect === 'clave-2.0'){
+            
+            $found=false;
+            foreach($state['eidas:requestData']['requestedAttributes'] as $attr)
+                if ($attr['friendlyName'] === 'RelayState')
+                    $found=true;
+            
+            if(!$found)
+                $attributes []= array('RelayState', false);  // TODO SEGUIR
+            // TODO: implement for all eIDAS and STORK to forward the reuqest attr values, if existing
+        }
+        
+        
         //If the remote SP request carried attributes (was an eIDAs request)
         if(array_key_exists('requestedAttributes', $state['eidas:requestData'])
         && is_array($state['eidas:requestData']['requestedAttributes'])
@@ -459,7 +479,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
                     $name = sspmod_clave_SPlib::getFriendlyName($attr['name']);
                 }
                 if ($this->dialect === 'eidas'){//el dialecto del SP hosted
-        
+                    
                     //If the remote SP uses stork dialect but is requestin eIDAs
                     //attributes, it will send the full name of the eIDAS attributes, and
                     //not the friendly name, so we try to get the friendly name, and if
@@ -473,7 +493,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
                             $name = $attr['name'];
                     }
                 }
-                $attributes []= array($name, $attr['isRequired']);
+                $attributes []= array($name, $attr['isRequired']);  // TODO: add the values array here
                 
                 //We store the list of mandatory attributes for response validation
                 if(sspmod_clave_SPlib::stb($attr['isRequired']) === true){
@@ -654,6 +674,23 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
       
       //Get the POST parameters forwarded from the remote SP request
       $forwardedParams = $state['sp:postParams'];
+      
+      
+      //Workaround for Clave-2.0 nonsense. If RelayState POST param
+      //not set, add it (emtpy).
+      if ($this->subdialect === 'clave-2.0'){
+          
+          $found=false;
+          foreach($forwardedParams as $param => $value){
+              if ($param === 'RelayState')
+                  $found=true;
+              
+          }
+          
+          if(!$found)
+              $forwardedParams['RelayState'] = "";
+      }
+      
       
       //Post params to send
       $post = array('SAMLRequest'  => $req);
