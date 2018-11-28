@@ -401,6 +401,37 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
 
         //Hosted SP providerName
         $providerName = $this->spMetadata->getString('providerName', NULL);
+
+
+        //Another terrible thing for clave: provider name has two
+        //parts: the first one is the friendlyname of the certificate
+        //to validate this request, the second part, the providerName
+        //of the remote SP we are proxying, for statistics (we get it
+        //from spApplication if set on remote sp metadata, or we get
+        //it from the request if available)
+        if ($this->subdialect === 'clave-1.0'
+        || $this->subdialect === 'clave-2.0'){
+            
+            $remoteProviderName = null;
+            
+            //Search the value on the request
+            if (isset($state['eidas:requestData']['ProviderName'])
+            && $state['eidas:requestData']['ProviderName'] !== "") {
+                $remoteProviderName = $state['eidas:requestData']['ProviderName'];
+            }
+            
+            //Search the value on the metadata (will overwrite request
+            //value. If not found, request value to be used)
+            $remoteProviderName = $remoteSpMeta->getString('spApplication',$remoteProviderName);
+            
+            
+            //If we finally found something, attach it
+            if ($remoteProviderName !== null)
+                $providerName = $providerName."_".$remoteProviderName;
+        }
+        
+        
+        
         
         //Get address of assertion consumer service for this module (it
         //ends with the id of the authsource, so we can retrieve the
