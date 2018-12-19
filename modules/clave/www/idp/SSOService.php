@@ -107,8 +107,7 @@ if ($IdPdialect === 'eidas')
 
 //Trust the alleged requester certificate we have in local metadata
 $certs = sspmod_clave_Tools::findX509SignCertOnMetadata($spMetadata);
-foreach($certs as $cert)
-    $eidas->addTrustedRequestIssuer($spEntityId, $cert);
+$eidas->addTrustedRequestIssuer($spEntityId, $certs);
 
 
 
@@ -154,7 +153,7 @@ $state = array(
     //Standard by SSPHP    
     'Responder'                                   => array('sspmod_clave_IdP_eIDAS', 'sendResponse'), //The callback to send the response for this request
     SimpleSAML_Auth_State::EXCEPTION_HANDLER_FUNC => array('sspmod_clave_IdP_eIDAS', 'handleAuthError'),
-    SimpleSAML_Auth_State::RESTART                => SimpleSAML_Utils_HTTP::getSelfURLNoQuery(),
+    SimpleSAML_Auth_State::RESTART                => SimpleSAML\Utils\HTTP::getSelfURLNoQuery(),
 
     'SPMetadata'                  => $spMetadata->toArray(),
     'saml:RelayState'             => $relayState,

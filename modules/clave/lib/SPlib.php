@@ -336,7 +336,7 @@ class sspmod_clave_SPlib {
   /*********** Request attributes **************/
 
   // All the SPs authorised to send requests. key is the issuer and
-  //value is the certificate used to sign the request
+  //value is the array of certificates that can use to sign the request
   private $trustedIssuers;
 
   // The received SamlAuthnReq token (xml string)
@@ -2063,17 +2063,19 @@ class sspmod_clave_SPlib {
 
 
   // Adds a trusted request issuer to the list. Must 
-  public function addTrustedRequestIssuer($issuer, $cert){
+  public function addTrustedRequestIssuer($issuer, $certs){
         
     self::debug(__CLASS__.".".__FUNCTION__."()");
     
     if($issuer == null || $issuer == "")
       $this->fail(__FUNCTION__, self::ERR_GENERIC,"Missing or empty issuer entityId.");
 
-    if($cert == null || $cert == "")
+    if($certs == null || $certs == array())
       $this->fail(__FUNCTION__, self::ERR_EMPTY_CERT);
-    
-    $this->trustedIssuers[$issuer] = $this->checkCert($cert); 
+
+    $this->trustedIssuers[$issuer] = array();
+    foreach($certs as $cert)
+        $this->trustedIssuers[$issuer] []= $this->checkCert($cert); 
   }
   
   
@@ -2102,14 +2104,20 @@ class sspmod_clave_SPlib {
 
     //Validates the signature
     self::debug("Checking request signature. Issuer: ".$issuer);
-    
-    $cert = $this->trustedIssuers[$issuer];
-    if($cert == NULL || $cert == "")
-      $this->fail(__FUNCTION__, self::ERR_NONAUTH_ISSUER);
-    
-    if(!$this->verifySignature($storkSamlRequestToken,$cert)){
-      self::trace("Cert validation failure.");
-      $this->fail(__FUNCTION__, self::ERR_SIG_VERIF_FAIL);
+
+
+    $verified = false;
+    foreach($this->trustedIssuers[$issuer] as $cert){
+        
+        if($cert == NULL || $cert == "")
+            $this->fail(__FUNCTION__, self::ERR_NONAUTH_ISSUER);
+        
+        if($this->verifySignature($storkSamlRequestToken,$cert))
+            $verified = true;
+    } 
+    if(!$verified){
+        self::trace("Cert validation failure.");
+        $this->fail(__FUNCTION__, self::ERR_SIG_VERIF_FAIL);
     }
         
     $this->SAMLAuthnReqToken = $storkSamlRequestToken;
@@ -2681,15 +2689,17 @@ class sspmod_clave_SPlib {
     //Validates the signature against all trusted (no issuer here)
     self::debug("Checking slorequest signature against: ".print_r($this->trustedIssuers,true));
     $verified = false;
-    foreach($this->trustedIssuers as $cert){
-        self::debug("Trying with: ".$cert);
-        if($cert == NULL || $cert == "")
-            continue;
-        self::debug("Chk1");
-        if($this->verifySignature($logoutReqToken,$cert)){
-            self::trace("Cert validation successful");
-            $verified = true;
-            break;
+    foreach($this->trustedIssuers as $trustedIssuer){
+        foreach($trustedIssuer as $cert){
+            self::debug("Trying with: ".$cert);
+            if($cert == NULL || $cert == "")
+                continue;
+            self::debug("Chk1");
+            if($this->verifySignature($logoutReqToken,$cert)){
+                self::trace("Cert validation successful");
+                $verified = true;
+                break;
+            }
         }
     }
     if(!$verified){
