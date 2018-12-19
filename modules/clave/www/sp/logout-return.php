@@ -47,13 +47,13 @@ SimpleSAML_Logger::debug('State on logout-return:'.print_r($state,true));
 
 
 
-$idpData = $source->getIdP();
+$remoteIdPMeta = $source->getIdPMetadata();
 
 //Not properly set by Clave, so ignoring it.
 $expectedIssuers = NULL;
 
-SimpleSAML_Logger::debug("Certificate in source: ".$idpData['cert']);
-$clave->addTrustedCert($idpData['cert']);
+SimpleSAML_Logger::debug("Certificate in source: ".$remoteIdPMeta->getString('certData', NULL));
+$clave->addTrustedCert($remoteIdPMeta->getString('certData', NULL));
 
 
 
