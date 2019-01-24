@@ -21,7 +21,7 @@ SimpleSAML_Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true
 
 
 //Which clave IdP to use
-$idpEntityId = $claveConfig->getString('claveIdP', NULL);
+$idpEntityId = $hostedSPmeta->getString('idpEntityID', NULL);
 if($idpEntityId == NULL)
     throw new SimpleSAML_Error_Exception("No clave IdP configuration defined in clave bridge configuration.");
 
@@ -81,8 +81,7 @@ SimpleSAML_Logger::debug('Clave SP remote metadata ('.$spEntityId.'): '.print_r(
 
 $certs = sspmod_clave_Tools::findX509SignCertOnMetadata($spMetadata);
 
-foreach($certs as $cert)
-    $claveIdP->addTrustedRequestIssuer($spEntityId, $cert);
+$claveIdP->addTrustedRequestIssuer($spEntityId, $certs);
 
 
 //Log for statistics: received LogoutRequest at the clave IdP

@@ -123,9 +123,31 @@ if($state['idp:postParams:mode'] == 'forward'){
 $expectedIssuers = NULL;
 
 
-//Add the certificate of the remote IdP to validate the signature and (possibly) decrypt the assertion
-SimpleSAML_Logger::debug("Remote IdP Certificate as stored in the metadata: ".$remoteIdPMeta->getString('certData', NULL));
-$eidas->addTrustedCert($remoteIdPMeta->getString('certData', NULL));
+//Add the certificate(s) of the remote IdP to validate the signature and (possibly) decrypt the assertion
+//We support the old single entry, and also the new list of certificates
+$keys = $remoteIdPMeta->getArray('keys',NULL);
+if($keys !== NULL){
+    foreach($keys as $key){
+        //Here we should be selecting signature/encryption certs, but
+        //as the library uses the same ones for both purposes, we just
+        //ignore this check.
+        if(!$key['X509Certificate'] || $key['X509Certificate'] == "")
+            continue;
+        
+        $eidas->addTrustedCert($key['X509Certificate']);
+    }
+}
+
+$certData = $remoteIdPMeta->getString('certData', NULL);
+if($certData !== NULL){
+    SimpleSAML_Logger::debug("Remote IdP Certificate as stored in the metadata (legacy parameter): ".$certData);
+    $eidas->addTrustedCert($certData);
+}
+
+
+
+
+
 
 $eidas->setValidationContext($id,
                              $state['clave:sp:returnPage'],

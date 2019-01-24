@@ -29,7 +29,6 @@ $spEntityId = $hostedSPmeta->getString('entityid', NULL);
 
 
 //Response validation parameters
-$idpValidationCertPem = $idpMetadata->getString('certData', NULL);
 $expectedIssuers = NULL;
 
 
@@ -72,8 +71,24 @@ SimpleSAML_Logger::debug('State on slo-return:'.print_r($state,true));
 
 
 //Adding IdP trusted certificate for validation
-SimpleSAML_Logger::debug("Certificate in source: ".$idpValidationCertPem);
-$claveSP->addTrustedCert($idpValidationCertPem);
+$keys = $idpMetadata->getArray('keys',NULL);
+if($keys !== NULL){
+    foreach($keys as $key){
+        //Here we should be selecting signature/encryption certs, but
+        //as the library uses the same ones for both purposes, we just
+        //ignore this check.
+        if(!$key['X509Certificate'] || $key['X509Certificate'] == "")
+            continue;
+        
+        $claveSP->addTrustedCert($key['X509Certificate']);
+    }
+}
+
+$certData = $idpMetadata->getString('certData', NULL);
+if($certData !== NULL){
+    SimpleSAML_Logger::debug("Certificate in source (legacy parameter): ".$certData);
+    $claveSP->addTrustedCert($certData);
+}
 
 
 $claveSP->setValidationContext($id,

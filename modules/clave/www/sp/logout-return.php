@@ -52,8 +52,29 @@ $remoteIdPMeta = $source->getIdPMetadata();
 //Not properly set by Clave, so ignoring it.
 $expectedIssuers = NULL;
 
-SimpleSAML_Logger::debug("Certificate in source: ".$remoteIdPMeta->getString('certData', NULL));
-$clave->addTrustedCert($remoteIdPMeta->getString('certData', NULL));
+
+
+
+
+$keys = $remoteIdPMeta->getArray('keys',NULL);
+if($keys !== NULL){
+    foreach($keys as $key){
+        //Here we should be selecting signature/encryption certs, but
+        //as the library uses the same ones for both purposes, we just
+        //ignore this check.
+        if(!$key['X509Certificate'] || $key['X509Certificate'] == "")
+            continue;
+        
+        $clave->addTrustedCert($key['X509Certificate']);
+    }
+}
+
+$certData = $remoteIdPMeta->getString('certData', NULL);
+if($certData !== NULL){
+    SimpleSAML_Logger::debug("Certificate in source (legacy parameter): ".$certData);
+    $clave->addTrustedCert($certData);
+}
+
 
 
 
