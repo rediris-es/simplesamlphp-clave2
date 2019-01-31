@@ -313,6 +313,7 @@ class sspmod_clave_SPlib {
 
   private $inResponseTo;        // The id of the request associated to this response
   private $responseIssuer;      // The issuer ID of the S-PEPS (who produced the response)
+  private $responseNameId;
   private $responseDestination; // The URL where this resp is addressed.
   
   private $responseSuccess;    // Whether if the request was successful or not.
@@ -1398,7 +1399,7 @@ class sspmod_clave_SPlib {
         self::parseAssertions($assertions);          
       
         self::debug("Checking validity dates for each assertion.");
-        $now = time();      
+        $now = time();
         foreach($assertions as $assertion){
         
             //Validate validity dates for each assertion
@@ -1481,6 +1482,17 @@ class sspmod_clave_SPlib {
       $this->fail(__FUNCTION__, self::ERR_SAMLRESP_EMPTY);
     
     return $this->responseIssuer;
+  }
+
+
+  public function getRespNameID(){
+      
+      self::debug(__CLASS__.".".__FUNCTION__."()");
+      
+      if($this->SAMLResponseToken == null)
+          $this->fail(__FUNCTION__, self::ERR_SAMLRESP_EMPTY);
+      
+      return $this->responseNameId;
   }
 
   // Returns the ID of the request this response is addressed to.
@@ -2343,13 +2355,17 @@ class sspmod_clave_SPlib {
 
   
 
-  public function generateAssertion($assertion,$isRaw=false, $storkize=true){
+  public function generateAssertion($assertionData,$isRaw=false, $storkize=true){
       
-      //If raw, it is a string, return and we're done.
+      $assertion = NULL;
+      $now = time();
+      
+      //If raw, it is a string, return as is or add the namespaces if needed.
       if($isRaw){
-          if(!is_string($assertion) || $assertion == "")
+          if(!is_string($assertionData) || $assertionData == "")
               $this->fail(__FUNCTION__, self::ERR_GENERIC,"Assertion should be a string.");
           
+          $assertion = $assertionData;
           if($storkize === true){
               //Wrap the object around a root with the used namespaces
               $xml = '<root '
@@ -2361,7 +2377,7 @@ class sspmod_clave_SPlib {
                   .'xmlns:xsi="'.self::NS_XSI.'" '
                   .'xmlns:eidas="'.self::NS_EIDASATT.'" '
                   .'xmlns:xs="'.self::NS_XMLSCH.'">'
-                  .$assertion
+                  .$assertionData
                   .'</root>';              
               $rootObj = $this->parseXML($xml);
               
@@ -2373,22 +2389,159 @@ class sspmod_clave_SPlib {
               $assertion = $assertionObj->saveXML();
           }
           
-          return $assertion;
       }
-      
-      // TODO implement HERE parsing of the struct and building of the
-      // XML , also implement the eIDAS assertion:
-      // * eID on the nameID
-      // * attr value attrs: transliterated, languageID, type, codificado en B64 de los attrs complejos
-      // * authnStatement:
-      /*
-        <saml2:AuthnStatement AuthnInstant="2015-04-30T19:27:20.159Z"
-        SessionIndex="_5eeb319253e2d7d125e3dcc72806209a">
-        <saml2:AuthnContext>
-        <saml2:AuthnContextClassRef>http://eidas.europa.eu/LoA/high</saml2:AuthnContextClassRef>
-        </saml2:AuthnContext>
-        </saml2:AuthnStatement>
-      */
+
+      else{
+          //Default values for optional inputs
+          $NameID              = '';
+          $nameQualifier       = '';
+          $clientAddress       = '';
+          $inResponseTo        = '';
+          $recipient           = '';
+          $audienceRestriction = '';
+          
+          //Default values for other inputs
+          $id           = self::generateID();
+          $IssueInstant = self::generateTimestamp($now);
+          $NotBefore    = $IssueInstant;
+          $NotOnOrAfter = self::generateTimestamp($now+300);
+          $AuthnInstant = $IssueInstant;
+          
+          $AuthnContextClassRef = self::LOA_LOW;
+          $NameIDFormat = self::NAMEID_FORMAT_UNSPECIFIED;
+          
+          
+          
+          //Check mandatory inputs
+          if(!isset($assertionData['Issuer']))
+              $this->fail(__FUNCTION__, self::ERR_GENERIC,"Issuer not defined on assertion input.");
+          $Issuer = $assertionData['Issuer'];
+          
+          
+          
+          //Override defaults with the received values if any
+          if(isset($assertionData['ID']))
+              $id = $assertionData['ID'];
+          
+          if(isset($assertionData['IssueInstant']))
+              $IssueInstant = $assertionData['IssueInstant'];
+          
+          if(isset($assertionData['NotBefore']))
+              $NotBefore = $assertionData['NotBefore'];
+          
+          if(isset($assertionData['NotOnOrAfter']))
+              $NotOnOrAfter = $assertionData['NotOnOrAfter'];
+          
+          if(isset($assertionData['AuthnInstant']))
+              $AuthnInstant = $assertionData['AuthnInstant'];
+          
+          if(isset($assertionData['AuthnContextClassRef']))
+              $AuthnContextClassRef = $assertionData['AuthnContextClassRef'];
+          
+          if(isset($assertionData['NameIDFormat']))
+              $NameIDFormat = $assertionData['NameIDFormat'];
+          
+          
+          
+          //Build the optional parts of the assertion, if inputs are available
+          if(isset($assertionData['NameID']))
+              $NameID = $assertionData['NameID'];
+          if(isset($assertionData['NameQualifier']))
+              $nameQualifier = 'NameQualifier="'.htmlspecialchars($assertionData['NameQualifier']).'" ';
+          if(isset($assertionData['Address']))
+              $clientAddress = 'Address="'.htmlspecialchars($assertionData['Address']).'" ';
+          if(isset($assertionData['InResponseTo']))
+              $inResponseTo  = 'InResponseTo="'.htmlspecialchars($assertionData['InResponseTo']).'" ';
+          if(isset($assertionData['Recipient']))
+              $recipient     = 'Recipient="'.htmlspecialchars($assertionData['Recipient']).'" ';
+          
+          if(isset($assertionData['Audience']))                                
+              $audienceRestriction = '<saml2:AudienceRestriction>'
+                  .'            <saml2:Audience>'.htmlspecialchars($assertionData['Audience']).'</saml2:Audience>' //EntityID of the AuthnReq issuer
+                  .'        </saml2:AudienceRestriction>';
+          
+
+          $subject = '';
+          if($NameID !== ''){
+              $subject = '<saml2:Subject>'
+                  .'        <saml2:NameID Format="'.htmlspecialchars($NameIDFormat).'" ' //persistent, transient, unspecified
+                  .'               '.$nameQualifier.'>'.htmlspecialchars($NameID).'</saml2:NameID>' //namequalifier: the domain of the idp, nameid: the value of the personIdentifier attribute
+                  .'        <saml2:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer">'
+                  .'           <saml2:SubjectConfirmationData '
+                  .'               '.$clientAddress
+                  .'               '.$inResponseTo        //tokenID of the AuthnReq that we are responding to       
+                  .'               NotOnOrAfter="'.htmlspecialchars($NotOnOrAfter).'" '  //now+5min
+                  .'               '.$recipient.'/>'      //EntityID of the AuthnReq issuer
+                  .'        </saml2:SubjectConfirmation>'
+                  .'    </saml2:Subject>';
+          }
+
+
+
+          
+          
+          //Now we build the attribute statement based on the received attribute list for this assertion
+          $attribs = '';
+          foreach($assertionData['attributes'] as $attr){
+              
+              $values = '';
+              foreach($attr['values'] as $val){
+                  $values .= '    <saml2:AttributeValue '
+                      // TODO: for the moment we don't set the data
+                      // type (as eIDAs implementations seem to ignore
+                      // it and SAML2 deems it as optional). Pass it
+                      // on $attr['valueType'] if any (if there is
+                      // more than one value, SAML2 says all must have
+                      // the same type, so do it on the attribute
+                      // section, not per value).
+                      
+                      //.'        xsi:type="eidas-natural:PersonIdentifierType">'
+                      .htmlspecialchars($val)
+                      .'    </saml2:AttributeValue>';
+              }
+              
+              $attribs .= '<saml2:Attribute '
+                  .'    FriendlyName="'.$attr['friendlyName'].'" '
+                  .'    Name="'.$attr['name'].'" '
+                  .'    NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">'
+                  .'    '.$values
+                  .'</saml2:Attribute>';
+              
+          }
+          
+          $attributeStatement = '';
+          if($attribs !== '')
+              $attributeStatement = '<saml2:AttributeStatement>'
+                  .$attribs
+                  .'</saml2:AttributeStatement>';
+          
+          
+          
+          
+          //Finally, assemble the assertion
+          $assertion = '<saml2:Assertion '
+              .'ID="'.htmlspecialchars($id).'" ' //Random UUID for the assertion
+              .'IssueInstant="'.htmlspecialchars($IssueInstant).'" ' //now
+              .'Version="2.0">'
+              .'    <saml2:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">'.htmlspecialchars($Issuer).'</saml2:Issuer>' //Entity ID of IDP
+              .'    '.$subject
+              .'    <saml2:Conditions '
+              .'        NotBefore="'.htmlspecialchars($NotBefore).'" '  //now
+              .'        NotOnOrAfter="'.htmlspecialchars($NotOnOrAfter).'">' //now+5min
+              .'        '.$audienceRestriction
+              .'    </saml2:Conditions>'
+              .'    <saml2:AuthnStatement AuthnInstant="'.htmlspecialchars($AuthnInstant).'">' //now
+              .'        <saml2:AuthnContext>'
+              .'            <saml2:AuthnContextClassRef>'.htmlspecialchars($AuthnContextClassRef).'</saml2:AuthnContextClassRef>' //LoA
+              .'            <saml2:AuthnContextDecl/>'
+              .'        </saml2:AuthnContext>'
+              .'    </saml2:AuthnStatement>'
+              .'    '.$attributeStatement
+              .'</saml2:Assertion>';
+          
+      }
+
+      return $assertion;
   }
   
   
@@ -2615,6 +2768,7 @@ class sspmod_clave_SPlib {
     $this->inResponseTo        = "".$samlResponse["InResponseTo"];
     $this->responseDestination = "".$samlResponse["Destination"];
     $this->responseIssuer      = "".$samlResponse->children(self::NS_SAML2,false)->Issuer;
+    $this->responseNameId      = "".$samlResponse->children(self::NS_SAML2,false)->Assertion[0]->Subject->NameID;
 
     self::trace("inResponseTo:        ".$this->inResponseTo);
     self::trace("responseDestination: ".$this->responseDestination);

@@ -213,6 +213,10 @@ if($eidas->isSuccess($statusInfo)){
     );
     
     
+    //Set the nameID of the response
+    $nameID = $eidas->getRespNameID();
+    if($nameID !== null && $nameID !== '')
+        $state['saml:sp:NameID'] = $nameID;
     
     
     //Pass the response state to the WebSSO SP

@@ -54,21 +54,22 @@ class sspmod_clave_IdP_eIDAS
         //Get the hosted IdP metadata
         $idpMetadata = $idp->getConfig();
         
-
-
-
-
         
-
-        //Build the assertion
-        // TODO: de momento, leer las assertion raw del state, pero más adelante, construirlas de forma normal como hace el IdP SAML, porque puedo recibir authnReqs del AuthSource SAML estándar. De hecho, va a pasar. Así que implementar el generar una assertion desde un array con cosas en SPLib. Ver qué me da el SAML estándar y basarme en eso. añadir cosas de eIDAS si las necesito. Si veo que sólo hace falta el status, generar la assertion en XML y pasarla para storkizar. PEro creo qu en eIDAs hace falta nameId, etc. Ver cómo lo hace el SAML estándar de ssphp y luego imitarlo e implementar la stork-eidaszación en SPLib.
-
-        //We build a status response with the status codes returned by Clave
-        $status = $state['eidas:raw:status'];
-                
-        //We clone the assertions on the response, as they are signed
-        //on source (signature kept for legal reasons).    // TODO: make this dialect dependent, and create a mehtod to build assertions from scratch imitating what the SAML idp and authsource do. (see sspmod_saml_IdP_SAML2::buildAssertion )
-        $assertions = $state['eidas:raw:assertions'];
+        //We clone the assertions on the response, as they are signed // TODO: decission needs to be taken later. move to a specific variable.
+        //on source (signature kept for legal reasons).    // TODO: make this dialect dependent? or just hierachize assertion building as I did below?
+        $rawassertions = null;
+        if(isset($state['eidas:raw:assertions']))
+            $rawassertions = $state['eidas:raw:assertions'];
+        
+        //Special structure to build the assertions from scratch if a multi-assertion response is required. No standard AuthFilters may apply here
+        $structassertions = null;
+        if(isset($state['eidas:struct:assertions']))
+            $structassertions = $state['eidas:struct:assertions'];
+        
+        //The standard ssp attributes. These may have gone through any standard AuthFilter modification
+        $singleassertion = null;
+        if(isset($state['Attributes']))
+            $singleassertion = $state['Attributes'];
         
         //Original request Data
         $reqData = $state['eidas:requestData'];
@@ -153,6 +154,84 @@ class sspmod_clave_IdP_eIDAS
                                           $reqData['id'],
                                           $idpMetadata->getString('issuer', $metadataUrl)
                                           );
+
+        
+        //Build the assertions, based on the existing variables
+        //(generate the xml and pass it as it were raw):
+        // * if struct, we prefer struct, but if only one assertion, use standard, if >1 use struct
+        // * if no struct but raw, use raw
+        // * if no struct nor raw, use standard
+        $assertions = '';
+        
+        if($structassertions !== null){
+            
+            
+            foreach($structassertions as $assertionData){
+                
+                
+                //Set the NameID of the response
+                if(isset($state['saml:sp:NameID'])){
+                    $assertionData['NameID'] = $state['saml:sp:NameID'];
+                    
+                    if(!isset($assertionData['NameIDFormat']))
+                        $assertionData['NameIDFormat'] = sspmod_clave_SPlib::NAMEID_FORMAT_PERSISTENT;
+                }
+                
+                //TODO: If we want to add conditions, these must be set here by the IdP
+                //$assertionData['Address'];
+                //$assertionData['Recipient'];          
+                //$assertionData['Audience'];  
+                
+                $assertions .= $storkResp->generateAssertion($assertionData);            
+            }
+            
+        }
+        else if($rawassertions !== null){
+            
+            $assertions = $rawassertions;
+            
+        }else{ //This was called from a standard AuthSource and only has the standard attribute list
+            
+            //Build transfer object from the standard attribute list
+            $assertionData = array();
+            $assertionData['Issuer'] = $idpMetadata->getString('issuer', $metadataUrl);
+            if(isset($state['saml:sp:NameID'])){
+                $assertionData['NameID'] = $state['saml:sp:NameID'];
+                $assertionData['NameIDFormat'] = sspmod_clave_SPlib::NAMEID_FORMAT_PERSISTENT;
+            }
+            
+            $assertionData['attributes'] = array();
+            foreach($singleassertion as $attributename => $values){
+                $assertionData['attributes'] []= array(
+                    'values'       => $values,
+                    'friendlyName' => $attributename,
+                    'name'         => $attributename,
+                );
+            }
+            
+            $assertions = $storkResp->generateAssertion($assertionData);            
+            
+        }
+        
+        // TODO SEGUIR MAÑANA: when this part is done, it should be functional. tried test env for clave and it does not work. recreate it also. first test the clave lib over clave with normal functioning, then start testing over esmo specific env-----> create test env (and create special script to deploy both modules), Integrate last version of the lib? and deploy in test environment in stork.uji.es (and devel mockups as needed)
+        
+        
+        //We build a status response with the status codes returned by Clave
+        if(isset($state['eidas:raw:status']))
+            $status = $state['eidas:raw:status'];
+        else if (isset($state['eidas:status'])){
+            $status = $storkResp->generateStatus( array(
+                'Code' => $state['eidas:status']['MainStatusCode'],
+                'SubCode' => $state['eidas:status']['SecondaryStatusCode'],
+                'Message' => $state['eidas:status']['StatusMessage'],
+            ));
+        }else{ //The AuthSource was standard, so a call here can only happen on success
+            $status = $storkResp->generateStatus( array(
+                'Code' => sspmod_clave_SPlib::ST_SUCCESS,
+            ));
+        }
+        
+        
         
         $resp = $storkResp->generateStorkResponse($status,$assertions,true,true,$storkize);
         SimpleSAML_Logger::debug("Response to send to the remote SP: ".$resp);        
@@ -204,7 +283,7 @@ class sspmod_clave_IdP_eIDAS
 
 
 
- //Get the remote SP metadata
+        //Get the remote SP metadata
         $spMetadata  = SimpleSAML_Configuration::loadFromArray($state['SPMetadata']);
         $spEntityId = $spMetadata->getString('entityid',NULL);
         SimpleSAML_Logger::debug('eIDAS SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
