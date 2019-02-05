@@ -147,6 +147,15 @@ if(isset($ret['LoA']))
     );
 
 
+$idFormat = sspmod_clave_SPlib::NAMEID_FORMAT_UNSPECIFIED;
+if(isset($reqData['IdFormat']))
+    $idFormat = $reqData['IdFormat'];
+
+$idAllowCreate = FALSE;
+if(isset($reqData['IdAllowCreate']))
+    $idAllowCreate = $reqData['IdAllowCreate'];
+
+
 //Set the state to be kept during the procedure    // TODO: if implementing multiple dialect classes, make the callback classnames depend on the dialect/subdialect
 $state = array(
 
@@ -165,8 +174,8 @@ $state = array(
     'isPassive'                   => $reqData['isPassive'],
     'saml:ConsumerURL'            => $reqData['assertionConsumerService'],
     'saml:Binding'                => SAML2_Constants::BINDING_HTTP_POST, // TODO: support HTTP_REDIRECT
-    'saml:NameIDFormat'           => $reqData['IdFormat'],
-    'saml:AllowCreate'            => $reqData['IdAllowCreate'],
+    'saml:NameIDFormat'           => $idFormat,
+    'saml:AllowCreate'            => $idAllowCreate,
     'saml:Extensions'             => $reqData,
     'saml:AuthnRequestReceivedAt' => microtime(true),
     'saml:RequestedAuthnContext'  => $authnContext,

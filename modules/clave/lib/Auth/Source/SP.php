@@ -321,6 +321,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         $sectorShare      = "";
         $crossSectorShare = "";
         $crossBorderShare = "";
+        $LoA = 1;
         if ($this->dialect === 'stork'){
             
             //These params are set, in order of preference:
@@ -361,7 +362,8 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
             || $state['eidas:requestData']['QAA'] === NULL
             || $state['eidas:requestData']['QAA'] === "")
                 $state['eidas:requestData']['QAA'] = 1;
-            $QAA =  $this->spMetadata->getInteger('QAA', $remoteSpMeta->getInteger('QAA', $state['eidas:requestData']['QAA'] ));
+            $QAA = $this->spMetadata->getInteger('QAA', $remoteSpMeta->getInteger('QAA', $state['eidas:requestData']['QAA'] ));
+            $LoA = sspmod_clave_SPlib::qaaToLoA($QAA);
         }
         
         if ($this->dialect === 'eidas'){ //On eIDAS, we always get the country selector value.
