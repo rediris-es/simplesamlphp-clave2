@@ -161,7 +161,7 @@ class sspmod_clave_IdP_eIDAS
         // * if struct, we prefer struct, but if only one assertion, use standard, if >1 use struct
         // * if no struct but raw, use raw
         // * if no struct nor raw, use standard
-        $assertions = '';
+        $assertions = array();
         
         if($structassertions !== null){
             
@@ -182,7 +182,7 @@ class sspmod_clave_IdP_eIDAS
                 //$assertionData['Recipient'];          
                 //$assertionData['Audience'];  
                 
-                $assertions .= $storkResp->generateAssertion($assertionData);            
+                $assertions []= $storkResp->generateAssertion($assertionData);               
             }
             
         }
@@ -209,11 +209,10 @@ class sspmod_clave_IdP_eIDAS
                 );
             }
             
-            $assertions = $storkResp->generateAssertion($assertionData);            
+            $assertions = array($storkResp->generateAssertion($assertionData));
             
         }
         
-        // TODO SEGUIR MAÑANA: when this part is done, it should be functional. tried test env for clave and it does not work. recreate it also. first test the clave lib over clave with normal functioning, then start testing over esmo specific env-----> create test env (and create special script to deploy both modules), Integrate last version of the lib? and deploy in test environment in stork.uji.es (and devel mockups as needed)
         
         
         //We build a status response with the status codes returned by Clave
@@ -221,13 +220,13 @@ class sspmod_clave_IdP_eIDAS
             $status = $state['eidas:raw:status'];
         else if (isset($state['eidas:status'])){
             $status = $storkResp->generateStatus( array(
-                'Code' => $state['eidas:status']['MainStatusCode'],
-                'SubCode' => $state['eidas:status']['SecondaryStatusCode'],
-                'Message' => $state['eidas:status']['StatusMessage'],
+                'MainStatusCode' => $state['eidas:status']['MainStatusCode'],
+                'SecondaryStatusCode' => $state['eidas:status']['SecondaryStatusCode'],
+                'StatusMessage' => $state['eidas:status']['StatusMessage'],
             ));
         }else{ //The AuthSource was standard, so a call here can only happen on success
             $status = $storkResp->generateStatus( array(
-                'Code' => sspmod_clave_SPlib::ST_SUCCESS,
+                'MainStatusCode' => sspmod_clave_SPlib::ST_SUCCESS,
             ));
         }
         
@@ -280,9 +279,9 @@ class sspmod_clave_IdP_eIDAS
         assert('isset($state["saml:ConsumerURL"])');
         assert('array_key_exists("saml:RequestId", $state)'); // Can be NULL.
         assert('array_key_exists("saml:RelayState", $state)'); // Can be NULL.
-
-
-
+        
+        
+        
         //Get the remote SP metadata
         $spMetadata  = SimpleSAML_Configuration::loadFromArray($state['SPMetadata']);
         $spEntityId = $spMetadata->getString('entityid',NULL);

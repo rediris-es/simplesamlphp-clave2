@@ -2495,7 +2495,8 @@ class sspmod_clave_SPlib {
                       // the same type, so do it on the attribute
                       // section, not per value).
                       
-                      //.'        xsi:type="eidas-natural:PersonIdentifierType">'
+                      //.'        xsi:type="eidas-natural:PersonIdentifierType"'
+                      .'>'
                       .htmlspecialchars($val)
                       .'    </saml2:AttributeValue>';
               }
