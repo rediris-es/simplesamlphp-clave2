@@ -526,7 +526,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
                             $name = $attr['name'];
                     }
                 }
-                $attributes []= array($name, $attr['isRequired']);  // TODO: add the values array here
+                $attributes []= array($name, $attr['isRequired'],$attr['values']);  // TODO: add the values array here
                 
                 //We store the list of mandatory attributes for response validation
                 if(sspmod_clave_SPlib::stb($attr['isRequired']) === true){
@@ -565,7 +565,15 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         
         //Add the attributes to request
         foreach($attributes as $attribute){
-            $eidas->addRequestAttribute($attribute[0], $attribute[1]);
+            
+            $values = NULL;
+            
+            if(isset($attribute[2])
+            && is_array($attribute[2])
+            && sizeof($attribute[2])>0)
+                $values = $attribute[2];
+            
+            $eidas->addRequestAttribute($attribute[0], $attribute[1],$values);
         }
         
         

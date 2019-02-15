@@ -2186,11 +2186,18 @@ class sspmod_clave_SPlib {
           
           $ret['requestedAttributes'] = array();  // TODO: SEGUIR soportar aquí que se lean y retransmitan los values de los attr solicitados
           foreach($reqAttrs as $reqAttr){
+              
+              $values = array();
+              foreach ($reqAttr->AttributeValue as $val){
+                  $values []= $val;
+              }
+              
               $ret['requestedAttributes'] []= array(
                   'name'         => "".$reqAttr->attributes()->Name,
                   //'friendlyName' => "".$reqAttr->attributes()->Name,
                   //Also empty string will be evaluated to false
-                  'isRequired'   => strtolower("".$reqAttr->attributes()->isRequired) === 'true'? true : false
+                  'isRequired'   => strtolower("".$reqAttr->attributes()->isRequired) === 'true'? true : false,
+                  'values'       => $values
               ); 
           }
       }
@@ -2223,11 +2230,18 @@ class sspmod_clave_SPlib {
 
           $ret['requestedAttributes'] = array();
           foreach($reqAttrs as $reqAttr){
+              
+              $values = array();
+              foreach ($reqAttr->AttributeValue as $val){
+                  $values []= $val;
+              }
+              
               $ret['requestedAttributes'] []= array(
                   'friendlyName' => "".$reqAttr->attributes()->FriendlyName,
                   'name'         => "".$reqAttr->attributes()->Name,
                   //Also empty string will be evaluated to false
-                  'isRequired'   => strtolower("".$reqAttr->attributes()->isRequired) === 'true'? true : false
+                  'isRequired'   => strtolower("".$reqAttr->attributes()->isRequired) === 'true'? true : false,
+                  'values'       => $values
               ); 
           }
           
