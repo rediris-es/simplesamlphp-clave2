@@ -2189,7 +2189,7 @@ class sspmod_clave_SPlib {
               
               $values = array();
               foreach ($reqAttr->AttributeValue as $val){
-                  $values []= $val;
+                  $values []= "".$val;
               }
               
               $ret['requestedAttributes'] []= array(
@@ -2233,7 +2233,7 @@ class sspmod_clave_SPlib {
               
               $values = array();
               foreach ($reqAttr->AttributeValue as $val){
-                  $values []= $val;
+                  $values []= "".$val;
               }
               
               $ret['requestedAttributes'] []= array(
