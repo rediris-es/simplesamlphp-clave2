@@ -276,13 +276,30 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         // We are going to need the authId in order to retrieve this authentication source later.
         $state['clave:sp:AuthId']      = $this->authId;
         
-        //And the clave idp remote to go on with the sso after the country selector discovery
-        $state['clave:sp:idpEntityID'] = $this->spMetadata->getString('idpEntityID', NULL);
+        
+        
+        //Remote IdP might be fixed by the hosted IdP calling (overrides the value on the authsource metadata)
+        //This variable is the same for the SAML2 authsource
+		if (isset($state['saml:idp'])
+        && $state['saml:idp'] != ""){
+            $idpEntityId = $state['saml:idp'];
+            
+            SimpleSAML_Logger::debug('eIDAS IDP remote fixed by hosted IDP: ('.$idpEntityId.'): ');
+            $this->idp = $idpEntityId;
+            
+            $this->idpMetadata = sspmod_clave_Tools::getMetadataSet($idpEntityId,"clave-idp-remote");
+            SimpleSAML_Logger::debug('eIDAS IDP remote metadata ('.$idpEntityId.'): '.print_r($this->idpMetadata,true));
+        }
+        
+        
+        
+        //We will also need the clave idp remote to go on with the sso after the country selector discovery
+        $state['clave:sp:idpEntityID'] = $this->idp;
         
         
         SimpleSAML_Logger::info("state: ".print_r($state,true));
         SimpleSAML_Logger::info("metadata: ".print_r($this->metadata,true));
-        
+
         
         //Redirect to the Country Selector (if enabled and needed)
         $this->startDisco($state);
@@ -598,7 +615,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         //Log for statistics: sent AuthnRequest to remote IdP  // TODO: Log any other interesting field?
         SimpleSAML_Stats::log('clave:sp:AuthnRequest', array(
             'spEntityID' =>  $this->entityId,  // TODO: put the entityId or the issuer?
-            'idpEntityID' => $this->spMetadata->getString('idpEntityID', NULL),
+            'idpEntityID' => $this->idp,
             'forceAuthn' => TRUE,//$state['eidas:requestData']['forceAuthn'],
             'isPassive' => FALSE,
             'protocol' => 'saml2-'.$this->dialect,
