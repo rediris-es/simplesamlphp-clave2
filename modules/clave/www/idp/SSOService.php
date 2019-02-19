@@ -140,10 +140,10 @@ SimpleSAML_Stats::log('clave:idp:AuthnRequest', array(
 
 
 $authnContext = null;
-if(isset($ret['LoA']))
+if(isset($reqData['LoA']))
     $authnContext = array(
-        'AuthnContextClassRef' => array($ret['LoA']),
-        'Comparison'           => $ret['Comparison'],
+        'AuthnContextClassRef' => array($reqData['LoA']),
+        'Comparison'           => $reqData['Comparison'],
     );
 
 
