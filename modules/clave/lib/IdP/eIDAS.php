@@ -147,7 +147,8 @@ class sspmod_clave_IdP_eIDAS
         
         $storkResp->setSignatureParams(sspmod_clave_SPlib::SHA256,sspmod_clave_SPlib::EXC_C14N);
         
-        $storkResp->setCipherParams($reqData['spCert'],$encryptAssertions,$encryptAlgorithm);
+        if($encryptAssertions === TRUE)
+            $storkResp->setCipherParams($reqData['spCert'],$encryptAssertions,$encryptAlgorithm);
         
         $storkResp->setResponseParameters($storkResp::CNS_OBT,
                                           $acs,
