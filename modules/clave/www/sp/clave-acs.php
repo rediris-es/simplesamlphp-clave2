@@ -203,7 +203,16 @@ if($eidas->isSuccess($statusInfo)){
     
 
     //Data needed to process the response // TODO: this is specific for this AuthSource. Harmonise with the others, so I can support standard SAML authsource (or offer two ways and try both of them)
-
+    
+    //SAML standard return state values
+    
+    if(isset($_POST['RelayState']))
+        $state['saml:RelayState'] = $_POST['RelayState'];
+    
+    $state['AuthnInstant'] = $eidas->getAuthnInstant();
+    $state['saml:Binding'] = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST";
+    $state['saml:AuthnContextClassRef'] =  $eidas->getAuthnContextClassRef();
+    
     $state['eidas:raw:assertions'] =  $eidas->getRawAssertions();
     $state['eidas:raw:status']     =  $eidas->generateStatus($statusInfo);
     $state['eidas:status']         =  array(
@@ -217,6 +226,12 @@ if($eidas->isSuccess($statusInfo)){
     $nameID = $eidas->getRespNameID();
     if($nameID !== null && $nameID !== '')
         $state['saml:sp:NameID'] = $nameID;
+
+    //Set the nameIDFormat
+    $nameIDFormat = $eidas->getRespNameIDFormat();
+    if($nameIDFormat !== null && $nameIDFormat !== '')
+        $state['saml:NameIDFormat'] = $nameIDFormat;
+    
     
     
     //Pass the response state to the WebSSO SP

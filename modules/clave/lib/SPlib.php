@@ -314,6 +314,9 @@ class sspmod_clave_SPlib {
   private $inResponseTo;        // The id of the request associated to this response
   private $responseIssuer;      // The issuer ID of the S-PEPS (who produced the response)
   private $responseNameId;
+  private $responseNameIdFrm;
+  private $AuthnInstant;
+  private $AuthnContextClassRef;
   private $responseDestination; // The URL where this resp is addressed.
   
   private $responseSuccess;    // Whether if the request was successful or not.
@@ -1331,13 +1334,22 @@ class sspmod_clave_SPlib {
       $this->fail(__FUNCTION__, self::ERR_UNEXP_ROOT_NODE);
     
         
-    $this->inResponseTo        = "".$samlResponse["InResponseTo"];
-    $this->responseDestination = "".$samlResponse["Destination"];
-    $this->responseIssuer      = "".$samlResponse->children(self::NS_SAML2,false)->Issuer;
+    $this->inResponseTo         = "".$samlResponse["InResponseTo"];
+    $this->responseDestination  = "".$samlResponse["Destination"];
+    $this->responseIssuer       = "".$samlResponse->children(self::NS_SAML2,false)->Issuer;
+    $this->responseNameId       = "".$samlResponse->children(self::NS_SAML2,false)->Assertion[0]->Subject->NameID;
+    $this->responseNameIdFrm    = "".$samlResponse->children(self::NS_SAML2,false)->Assertion[0]->Subject->NameID->attributes()->Format;
+    $this->AuthnInstant         = "".$samlResponse->children(self::NS_SAML2,false)->Assertion[0]->AuthnStatement->attributes()->AuthnInstant;
+    $this->AuthnContextClassRef = "".$samlResponse->children(self::NS_SAML2,false)->Assertion[0]->AuthnStatement->AuthnContext->AuthnContextClassRef;
+    
+    self::trace("inResponseTo:         ".$this->inResponseTo);
+    self::trace("responseDestination:  ".$this->responseDestination);
+    self::trace("responseIssuer:       ".$this->responseIssuer);
+    self::trace("responseNameId:       ".$this->responseNameId);
+    self::trace("responseNameIdFrm:    ".$this->responseNameIdFrm);
+    self::trace("AuthnInstant:         ".$this->AuthnInstant);
+    self::trace("AuthnContextClassRef: ".$this->AuthnContextClassRef);
 
-    self::trace("inResponseTo:        ".$this->inResponseTo);
-    self::trace("responseDestination: ".$this->responseDestination);
-    self::trace("responseIssuer:      ".$this->responseIssuer);
 
     //Check existance of mandatory elements/attributes
     if(!$this->inResponseTo || $this->inResponseTo == ""){
@@ -1495,6 +1507,41 @@ class sspmod_clave_SPlib {
       return $this->responseNameId;
   }
 
+
+  public function getRespNameIDFormat(){
+      
+      self::debug(__CLASS__.".".__FUNCTION__."()");
+      
+      if($this->SAMLResponseToken == null)
+          $this->fail(__FUNCTION__, self::ERR_SAMLRESP_EMPTY);
+      
+      return $this->responseNameIdFrm;
+  }
+  
+
+  public function getAuthnInstant(){
+      
+      self::debug(__CLASS__.".".__FUNCTION__."()");
+      
+      if($this->SAMLResponseToken == null)
+          $this->fail(__FUNCTION__, self::ERR_SAMLRESP_EMPTY);
+      
+      return $this->AuthnInstant;
+  }
+
+
+  public function getAuthnContextClassRef(){
+      
+      self::debug(__CLASS__.".".__FUNCTION__."()");
+      
+      if($this->SAMLResponseToken == null)
+          $this->fail(__FUNCTION__, self::ERR_SAMLRESP_EMPTY);
+      
+      return $this->AuthnContextClassRef;
+  }
+  
+  
+  
   // Returns the ID of the request this response is addressed to.
   public function  getInResponseTo (){
     
