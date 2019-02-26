@@ -213,14 +213,6 @@ if($eidas->isSuccess($statusInfo)){
     $state['saml:Binding'] = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST";
     $state['saml:AuthnContextClassRef'] =  $eidas->getAuthnContextClassRef();
     
-    $state['eidas:raw:assertions'] =  $eidas->getRawAssertions();
-    $state['eidas:raw:status']     =  $eidas->generateStatus($statusInfo);
-    $state['eidas:status']         =  array(
-        'MainStatusCode' => $statusInfo['MainStatusCode'],
-        'SecondaryStatusCode' => $statusInfo['SecondaryStatusCode'],
-        'StatusMessage' => $statusInfo['StatusMessage'],
-    );
-    
     
     //Set the nameID of the response
     $nameID = $eidas->getRespNameID();
@@ -232,6 +224,17 @@ if($eidas->isSuccess($statusInfo)){
     if($nameIDFormat !== null && $nameIDFormat !== '')
         $state['saml:NameIDFormat'] = $nameIDFormat;
     
+
+
+    //eIDAS specific
+    $state['eidas:attr:names']     = $eidas->getAttributeNames(); //Gets a dict of friendlyNames - Names
+    $state['eidas:raw:assertions'] =  $eidas->getRawAssertions();
+    $state['eidas:raw:status']     =  $eidas->generateStatus($statusInfo);
+    $state['eidas:status']         =  array(
+        'MainStatusCode' => $statusInfo['MainStatusCode'],
+        'SecondaryStatusCode' => $statusInfo['SecondaryStatusCode'],
+        'StatusMessage' => $statusInfo['StatusMessage'],
+    );
     
     
     //Pass the response state to the WebSSO SP

@@ -203,10 +203,17 @@ class sspmod_clave_IdP_eIDAS
             
             $assertionData['attributes'] = array();
             foreach($singleassertion as $attributename => $values){
+
+                //In some cases, I might have stored the full names here:
+                $attributefullname = $attributename;
+                if(isset($state['eidas:attr:names']))
+                    if(isset($state['eidas:attr:names'][$attributename]))
+                        $attributefullname = $state['eidas:attr:names'][$attributename];
+                
                 $assertionData['attributes'] []= array(
                     'values'       => $values,
                     'friendlyName' => $attributename,
-                    'name'         => $attributename,
+                    'name'         => $attributefullname,
                 );
             }
             

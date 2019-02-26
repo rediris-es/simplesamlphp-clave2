@@ -1612,6 +1612,30 @@ class sspmod_clave_SPlib {
     
     return $attributes;
   }
+
+
+
+  // Returns a list containing the pairing between attribute names and
+  // friendly anmes, if available
+  public function getAttributeNames(){
+      
+      self::debug(__CLASS__.".".__FUNCTION__."()");
+      
+      if($this->SAMLResponseToken == null || $this->responseAssertions == NULL)
+          $this->fail(__FUNCTION__, self::ERR_SAMLRESP_EMPTY);
+      
+      $pairings = array();
+      foreach($this->responseAssertions as $assertion){
+          foreach($assertion['Attributes'] as $attr){
+              if(isset($attr['friendlyName'])
+              && isset($attr['Name'])){
+                  $pairings[$attr['friendlyName']] = $attr['Name'];
+              }
+          }
+      }
+      
+      return $pairings;
+  }
   
   
   
