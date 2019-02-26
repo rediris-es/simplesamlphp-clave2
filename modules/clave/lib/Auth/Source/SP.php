@@ -284,7 +284,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         && $state['saml:idp'] != ""){
             $idpEntityId = $state['saml:idp'];
             
-            SimpleSAML_Logger::debug('eIDAS IDP remote fixed by hosted IDP: ('.$idpEntityId.'): ');
+            SimpleSAML_Logger::debug('eIDAS IDP remote fixed by hosted IDP: ('.$idpEntityId.')');
             $this->idp = $idpEntityId;
             
             $this->idpMetadata = sspmod_clave_Tools::getMetadataSet($idpEntityId,"clave-idp-remote");

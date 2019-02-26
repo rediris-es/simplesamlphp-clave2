@@ -210,6 +210,11 @@ class sspmod_clave_IdP_eIDAS
                 );
             }
             
+            //Set the effective LoA that was used:
+            if (isset($state['saml:AuthnContextClassRef'])){
+                $assertionData['AuthnContextClassRef'] = $state['saml:AuthnContextClassRef'];
+            }
+                        
             $assertions = array($storkResp->generateAssertion($assertionData));
             
         }
