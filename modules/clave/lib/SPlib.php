@@ -1337,19 +1337,11 @@ class sspmod_clave_SPlib {
     $this->inResponseTo         = "".$samlResponse["InResponseTo"];
     $this->responseDestination  = "".$samlResponse["Destination"];
     $this->responseIssuer       = "".$samlResponse->children(self::NS_SAML2,false)->Issuer;
-    $this->responseNameId       = "".$samlResponse->children(self::NS_SAML2,false)->Assertion[0]->Subject->NameID;
-    $this->responseNameIdFrm    = "".$samlResponse->children(self::NS_SAML2,false)->Assertion[0]->Subject->NameID->attributes()->Format;
-    $this->AuthnInstant         = "".$samlResponse->children(self::NS_SAML2,false)->Assertion[0]->AuthnStatement->attributes()->AuthnInstant;
-    $this->AuthnContextClassRef = "".$samlResponse->children(self::NS_SAML2,false)->Assertion[0]->AuthnStatement->AuthnContext->AuthnContextClassRef;
-    
+
     self::trace("inResponseTo:         ".$this->inResponseTo);
     self::trace("responseDestination:  ".$this->responseDestination);
     self::trace("responseIssuer:       ".$this->responseIssuer);
-    self::trace("responseNameId:       ".$this->responseNameId);
-    self::trace("responseNameIdFrm:    ".$this->responseNameIdFrm);
-    self::trace("AuthnInstant:         ".$this->AuthnInstant);
-    self::trace("AuthnContextClassRef: ".$this->AuthnContextClassRef);
-
+    
 
     //Check existance of mandatory elements/attributes
     if(!$this->inResponseTo || $this->inResponseTo == ""){
@@ -1423,7 +1415,18 @@ class sspmod_clave_SPlib {
             }
         
         }
-      
+        
+        
+        //Get data from the first assertion
+        $this->responseNameId       = "".$samlResponse->children(self::NS_SAML2,false)->Assertion[0]->Subject->NameID;
+        $this->responseNameIdFrm    = "".$samlResponse->children(self::NS_SAML2,false)->Assertion[0]->Subject->NameID->attributes()->Format;
+        $this->AuthnInstant         = "".$samlResponse->children(self::NS_SAML2,false)->Assertion[0]->AuthnStatement->attributes()->AuthnInstant;
+        $this->AuthnContextClassRef = "".$samlResponse->children(self::NS_SAML2,false)->Assertion[0]->AuthnStatement->AuthnContext->AuthnContextClassRef;
+        
+        self::trace("responseNameId:       ".$this->responseNameId);
+        self::trace("responseNameIdFrm:    ".$this->responseNameIdFrm);
+        self::trace("AuthnInstant:         ".$this->AuthnInstant);
+        self::trace("AuthnContextClassRef: ".$this->AuthnContextClassRef);
     }
     
 
