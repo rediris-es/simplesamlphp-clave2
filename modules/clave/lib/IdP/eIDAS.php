@@ -173,10 +173,23 @@ class sspmod_clave_IdP_eIDAS
                 //Set the NameID of the response
                 if(isset($state['saml:sp:NameID'])){
                     $assertionData['NameID'] = $state['saml:sp:NameID'];
-                    
-                    if(!isset($assertionData['NameIDFormat']))
-                        $assertionData['NameIDFormat'] = sspmod_clave_SPlib::NAMEID_FORMAT_PERSISTENT;
                 }
+                else{
+                    //Set the NameID from the eIDAS ID attribute
+                    //$idAttrName = 'eIdentifier';  // TODO: is this mandatory in STORK? fro the moment, leave it out
+                    $idAttrName = 'PersonIdentifier';
+                    foreach($assertionData['attributes'] as $attr){
+                        if($attr['friendlyName'] == $idAttrName
+                        || $attr['name'] == $idAttrName){
+                            $assertionData['NameID'] = $attr['values'][0];
+                            break;
+                        }
+                    }
+                }
+                    
+                if(!isset($assertionData['NameIDFormat']))
+                    $assertionData['NameIDFormat'] = sspmod_clave_SPlib::NAMEID_FORMAT_PERSISTENT;
+                
                 
                 //TODO: If we want to add conditions, these must be set here by the IdP
                 //$assertionData['Address'];
@@ -195,11 +208,7 @@ class sspmod_clave_IdP_eIDAS
             
             //Build transfer object from the standard attribute list
             $assertionData = array();
-            $assertionData['Issuer'] = $idpMetadata->getString('issuer', $metadataUrl);
-            if(isset($state['saml:sp:NameID'])){
-                $assertionData['NameID'] = $state['saml:sp:NameID'];
-                $assertionData['NameIDFormat'] = sspmod_clave_SPlib::NAMEID_FORMAT_PERSISTENT;
-            }
+            $assertionData['Issuer'] = $idpMetadata->getString('issuer', $metadataUrl);            
             
             $assertionData['attributes'] = array();
             foreach($singleassertion as $attributename => $values){
@@ -216,6 +225,25 @@ class sspmod_clave_IdP_eIDAS
                     'name'         => $attributefullname,
                 );
             }
+
+
+            if(isset($state['saml:sp:NameID'])){
+                $assertionData['NameID'] = $state['saml:sp:NameID'];
+            }
+            else{
+                //Set the NameID from the eIDAS ID attribute
+                //$idAttrName = 'eIdentifier';  // TODO: is this mandatory in STORK? fro the moment, leave it out
+                $idAttrName = 'PersonIdentifier';
+                foreach($assertionData['attributes'] as $attr){
+                    if($attr['friendlyName'] == $idAttrName
+                    || $attr['name'] == $idAttrName){
+                        $assertionData['NameID'] = $attr['values'][0];
+                        break;
+                    }
+                }
+            }
+            $assertionData['NameIDFormat'] = sspmod_clave_SPlib::NAMEID_FORMAT_PERSISTENT;
+            
             
             //Set the effective LoA that was used:
             if (isset($state['saml:AuthnContextClassRef'])){
