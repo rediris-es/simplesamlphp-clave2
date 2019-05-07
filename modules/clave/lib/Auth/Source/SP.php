@@ -740,13 +740,16 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
           
           $found=false;
           foreach($forwardedParams as $param => $value){
-              if ($param === 'RelayState')
+              if ($param === 'RelayState'){
                   $found=true;
-              
+                  break;
+              }
           }
           
           if(!$found)
-              $forwardedParams['RelayState'] = "dummyvalue"; //A value is always required to ensure eIDAS node response includes a relay state and is accepted by Clave2 
+              $forwardedParams['RelayState'] = "dummyvalue"; //A value is always required to ensure eIDAS node response includes a relay state and is accepted by Clave2
+          else if($value == NULL || $value == "")
+              $forwardedParams['RelayState'] = "dummyvalue";
       }
       
       
