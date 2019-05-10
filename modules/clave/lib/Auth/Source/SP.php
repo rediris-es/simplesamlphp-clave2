@@ -401,11 +401,11 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
             || $state['eidas:requestData']['LoA'] === "")
                 $state['eidas:requestData']['LoA'] = sspmod_clave_SPlib::qaaToLoA($state['eidas:requestData']['QAA']);
             
-            $SPType       = $this->spMetadata->getString('SPType', $state['eidas:requestData']['SPType']);
-            $NameIDFormat = $this->spMetadata->getString('NameIDFormat', $state['eidas:requestData']['IdFormat']);
-            $LoA          = $this->spMetadata->getString('LoA', $state['eidas:requestData']['LoA']);
+            $SPType       = $this->spMetadata->getString('SPType', $remoteSpMeta->getString('SPType', $state['eidas:requestData']['SPType']));
+            $NameIDFormat = $this->spMetadata->getString('NameIDFormat', $remoteSpMeta->getString('NameIDFormat', $state['eidas:requestData']['IdFormat']));
+            $LoA          = $this->spMetadata->getString('LoA', $remoteSpMeta->getString('LoA', $state['eidas:requestData']['LoA']));
             $QAA          = sspmod_clave_SPlib::loaToQaa($LoA);
-            $state['eidas:requestData']['QAA'] = $LoA; //We overwrite it to avoid it overwriting the LoA later when the remote SP spoke stork
+            $state['eidas:requestData']['QAA'] = sspmod_clave_SPlib::loaToQaa($LoA); //We overwrite it to avoid it overwriting the LoA later when the remote SP spoke stork
             
             $CitizenCountry = '';
             if($showCountrySelector === true)
