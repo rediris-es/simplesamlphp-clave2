@@ -208,10 +208,13 @@ if($eidas->isSuccess($statusInfo)){
     
     if(isset($_POST['RelayState']))
         $state['saml:RelayState'] = $_POST['RelayState'];
-    
-    $state['AuthnInstant'] = $eidas->getAuthnInstant();
+
+    $authInstant = new DateTime($eidas->getAuthnInstant()); 
+    $state['AuthnInstant'] = $authInstant->getTimestamp(); //Integer required
     $state['saml:Binding'] = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST";
-    $state['saml:AuthnContextClassRef'] =  $eidas->getAuthnContextClassRef();
+    if( $eidas->getAuthnContextClassRef() != null
+    && $eidas->getAuthnContextClassRef() != "")
+        $state['saml:AuthnContextClassRef'] =  $eidas->getAuthnContextClassRef();
     
     
     //Set the nameID of the response
