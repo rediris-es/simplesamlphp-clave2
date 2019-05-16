@@ -201,7 +201,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
 	 * @param string $entityId  The entity id of the IdP.
 	 * @return SimpleSAML_Configuration  The metadata of the IdP.
 	 */
-	public function getIdPMetadata($entityId) {
+	public function getIdPMetadata($entityId="") {
 		assert('is_string($entityId)');
         
         //Here we have just a fixed IdP, eIDAS does not support the list of allowed IDPs        
