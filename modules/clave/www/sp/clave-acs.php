@@ -279,10 +279,12 @@ SimpleSAML_Stats::log('clave:sp:Response:error', $statsData);
 
 
 //Forward the Clave IdP error to our remote SP.
+//SimpleSAML_Auth_State::throwException($state,
+//                                      new sspmod_saml_Error($statusInfo['MainStatusCode'],
+//                                                            $statusInfo['SecondaryStatusCode'],
+//                                                            $statusInfo['StatusMessage']));
 SimpleSAML_Auth_State::throwException($state,
-                                      new sspmod_saml_Error($statusInfo['MainStatusCode'],
-                                                            $statusInfo['SecondaryStatusCode'],
-                                                            $statusInfo['StatusMessage']));
+                                      new SimpleSAML_Error_Exception("IdP returned failed status: ".$statusInfo['StatusMessage']));
 
 
 assert('FALSE');
