@@ -879,7 +879,9 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         SimpleSAML_Logger::debug("Generated LogoutRequest: ".$req);
         
         //Perform redirection
-        $post = array('samlRequestLogout'  => $req);
+        $post = array('samlRequestLogout' => $req,
+                      'RelayState'        => 'dummy',));
+    //'logoutRequest'? 'SAMLRequest'? 'samlRequestLogout'?
      
         //Redirecting to Clave IdP (Only HTTP-POST binding supported)
         SimpleSAML_Utilities::postRedirect($endpoint, $post);
