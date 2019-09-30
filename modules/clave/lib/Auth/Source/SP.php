@@ -733,6 +733,11 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
       //Get the POST parameters forwarded from the remote SP request
       $forwardedParams = $state['sp:postParams'];
       
+      //Add the relay state to the list of forwarded parameters (this way, if the user sent it from the SAML2Int interface, it will work) // TODO check
+      if (isset($state['saml:RelayState']) ){
+          $forwardedParams['RelayState'] = $state['saml:RelayState'];
+      }
+      
       
       //Workaround for Clave-2.0 nonsense. If RelayState POST param
       //not set, add it (emtpy).
@@ -880,7 +885,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         
         //Perform redirection
         $post = array('samlRequestLogout' => $req,
-                      'RelayState'        => 'dummy',));
+                      'RelayState'        => 'dummy');
     //'logoutRequest'? 'SAMLRequest'? 'samlRequestLogout'?
      
         //Redirecting to Clave IdP (Only HTTP-POST binding supported)
