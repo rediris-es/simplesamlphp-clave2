@@ -2464,6 +2464,7 @@ class sspmod_clave_SPlib {
                   .'xmlns:storkp="'.self::NS_STORKP.'" '
                   .'xmlns:xsi="'.self::NS_XSI.'" '
                   .'xmlns:eidas="'.self::NS_EIDASATT.'" '
+                  .'xmlns:eidas-natural="'.self::NS_EIDASATT.'" '
                   .'xmlns:xs="'.self::NS_XMLSCH.'">'
                   .$assertionData
                   .'</root>';              
@@ -2679,7 +2680,9 @@ class sspmod_clave_SPlib {
       }
       $eIDASNamespaces = '';
       if($this->mode === 1){ //eIDAS  // TODO check
-          $eIDASNamespaces = 'xmlns:eidas="'.self::NS_EIDASATT.'" ';
+          $eIDASNamespaces =
+                           'xmlns:eidas="'.self::NS_EIDASATT.'" '
+                          .'xmlns:eidas-natural="'.self::NS_EIDASATT.'" ';
       }
       
       
