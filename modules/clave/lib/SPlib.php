@@ -2804,6 +2804,7 @@ class sspmod_clave_SPlib {
   public function generateSLORequest($spID,$destination,$returnTo,$id=NULL){
       self::debug(__CLASS__.".".__FUNCTION__."()");
       
+      
       if($id != NULL){
           self::debug("ID provided. Overriding".$this->ID." with ".$id);
           $this->ID = $id;
@@ -2815,6 +2816,13 @@ class sspmod_clave_SPlib {
           .'</saml:Issuer>';
       
       $nameId = '<saml:NameID>'.htmlspecialchars($spID).'</saml:NameID>';
+      if($this->mode === 1){
+          $nameId = '<saml:NameID'
+                  .' Format="urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified"'
+                  .' SPNameQualifier="'.htmlspecialchars($returnTo).'"'
+                  .'>'.htmlspecialchars($spID).'</saml:NameID>';
+      }
+      
       
       $sloReq = '<?xml version="1.0" encoding="UTF-8"?>'
           .'<samlp:LogoutRequest'

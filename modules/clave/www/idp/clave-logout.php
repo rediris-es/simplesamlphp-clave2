@@ -79,6 +79,26 @@ SimpleSAML_Logger::info("SLO request Issuer (SP): ".$spEntityId);
 $spMetadata = sspmod_clave_Tools::getSPMetadata($claveConfig,$spEntityId);
 SimpleSAML_Logger::debug('Clave SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
 
+
+
+
+//Get the mode of operation this IdP must expect (based on the remote
+//SP specific or the hosted IdP default)
+$IdPdialect    = $spMetadata->getString('dialect',
+                                        $claveConfig->getString('dialect'));
+$IdPsubdialect = $spMetadata->getString('subdialect',
+                                        $claveConfig->getString('subdialect'));
+
+SimpleSAML_Logger::debug('---------------------->dialect: '.$IdPdialect);
+SimpleSAML_Logger::debug('---------------------->subdialect: '.$IdPsubdialect);
+
+if ($IdPdialect === 'eidas')
+    $eidas->setEidasMode();
+
+
+
+
+
 $certs = sspmod_clave_Tools::findX509SignCertOnMetadata($spMetadata);
 
 $claveIdP->addTrustedRequestIssuer($spEntityId, $certs);

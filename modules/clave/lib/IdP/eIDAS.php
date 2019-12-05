@@ -176,7 +176,7 @@ class sspmod_clave_IdP_eIDAS
                 }
                 else{
                     //Set the NameID from the eIDAS ID attribute
-                    //$idAttrName = 'eIdentifier';  // TODO: is this mandatory in STORK? fro the moment, leave it out
+                    //$idAttrName = 'eIdentifier';  // TODO: is this mandatory in STORK? fro the moment, leave it out // TODO: maybe define a param to mark the ID attr line in AdAS?
                     $idAttrName = 'PersonIdentifier';
                     foreach($assertionData['attributes'] as $attr){
                         if($attr['friendlyName'] == $idAttrName
