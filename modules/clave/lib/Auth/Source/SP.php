@@ -442,7 +442,17 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
             //Search the value on the metadata (will overwrite request
             //value. If not found, request value to be used)
             $remoteProviderName = $remoteSpMeta->getString('spApplication',$remoteProviderName);
-            
+
+
+            //The geniuses at Spanish Clave 2.0 only added this
+            //feature for the RedIRIS proxy!!! if we try to use it for
+            //any other administration it fails to identify the SP!!
+            //So, I've parametrised this behaviour, to be able to
+            //disable it on othe deployments
+            $forwardPN = $this->spMetadata->getBoolean('providerName.forward', true);
+            if(!$forwardPN)
+                $remoteProviderName = null;
+
             
             //If we finally found something, attach it
             if ($remoteProviderName !== null)
