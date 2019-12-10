@@ -93,7 +93,7 @@ SimpleSAML_Logger::debug('---------------------->dialect: '.$IdPdialect);
 SimpleSAML_Logger::debug('---------------------->subdialect: '.$IdPsubdialect);
 
 if ($IdPdialect === 'eidas')
-    $eidas->setEidasMode();
+    $claveIdP->setEidasMode();
 
 
 
@@ -126,6 +126,8 @@ SimpleSAML_Logger::debug("SP SLO Request data: ".print_r($reqData,true));
 
 $claveSP = new sspmod_clave_SPlib();
 
+if ($IdPdialect === 'eidas')
+    $claveSP->setEidasMode();
 
 $claveSP->setSignatureKeyParams($spcertpem, $spkeypem, sspmod_clave_SPlib::RSA_SHA256);
 $claveSP->setSignatureParams(sspmod_clave_SPlib::SHA256,sspmod_clave_SPlib::EXC_C14N);
