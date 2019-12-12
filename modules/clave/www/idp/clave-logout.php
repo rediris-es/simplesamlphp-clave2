@@ -97,6 +97,15 @@ if ($IdPdialect === 'eidas')
 
 
 
+//Another part of the dirty patch to go around Clave devlopers
+//madness: If subdialect is clave 2, the return page for the SLO
+//response must be the same as for the SSO acs, not the proper one, so
+//smash it
+if ($IdPdialect === 'eidas'){
+    //Calculate return page for the new request in clave 2, which is SSO ACM
+    $returnPage = SimpleSAML_Module::getModuleURL('clave/sp/clave-acs.php/'.$claveConfig->getString('auth','')); // TODO: works?
+
+}
 
 
 $certs = sspmod_clave_Tools::findX509SignCertOnMetadata($spMetadata);

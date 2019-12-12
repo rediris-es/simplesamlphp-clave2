@@ -6,6 +6,26 @@
  */
 
 
+
+
+// In another display of genius by Clave developers, they force us for
+// the acs and logout return endpoints to be the same, so if a logout
+// response is received here, we kick it to its proper endpoint
+if (isset($_POST['samlResponseLogout'])){
+    
+    SimpleSAML_Logger::info('eIDAS - SP.ACS: Accessing SAML 2.0 - eIDAS SP Assertion Consumer Service -- CALLED FOR SLO');
+    
+    SimpleSAML_Utilities::postRedirect(SimpleSAML_Module::getModuleURL('clave/sp/bridge-logout.php'), $_POST);
+    //header('Location: '.SimpleSAML_Module::getModuleURL('clave/sp/bridge-logout.php'));
+    die();
+}
+
+
+
+
+
+
+
 SimpleSAML_Logger::info('eIDAS - SP.ACS: Accessing SAML 2.0 - eIDAS SP Assertion Consumer Service');
 
 
