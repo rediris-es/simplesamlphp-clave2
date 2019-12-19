@@ -6,7 +6,7 @@
  */
 
 
-
+// TODO: creo que esto no es obligtorio. Cuando funcione, probar a quitarlo
 
 // In another display of genius by Clave developers, they force us for
 // the acs and logout return endpoints to be the same, so if a logout
