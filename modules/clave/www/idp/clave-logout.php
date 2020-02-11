@@ -41,8 +41,6 @@ $endpoint = $idpMeta->getString('SingleLogoutService', NULL);
 $returnPage = SimpleSAML_Module::getModuleURL('clave/sp/bridge-logout.php/');
 
 
-if($endpoint == NULL)
-    throw new SimpleSAML_Error_Exception("No clave SLO endpoint defined in clave bridge configuration.");
 if($providerName == NULL)
     throw new SimpleSAML_Error_Exception("No provider Name defined in clave bridge configuration.");
 if($certPath == NULL || $keyPath == NULL)
@@ -51,6 +49,7 @@ if($certPath == NULL || $keyPath == NULL)
 
 
 
+//Get the hosted SP cert and key
 $spcertpem = sspmod_clave_Tools::readCertKeyFile($certPath);
 $spkeypem  = sspmod_clave_Tools::readCertKeyFile($keyPath);
 
@@ -127,6 +126,84 @@ $claveIdP->validateLogoutRequest($request);
 $reqData = $claveIdP->getSloRequestData();
 
 SimpleSAML_Logger::debug("SP SLO Request data: ".print_r($reqData,true));
+
+
+
+
+
+
+
+
+
+
+
+//Now, if no SLO endpoint is defined,  we make it just go back silently to the SP
+if($endpoint == NULL){
+    //throw new SimpleSAML_Error_Exception("No clave SLO endpoint defined in clave bridge configuration.");
+
+
+    // ****** Build response for the SP *******
+
+    //Certificate and key to sign the response directed to the remote SP.
+    $idpCertPath = $claveConfig->getString('certificate', NULL);
+    $idpKeyPath  = $claveConfig->getString('privatekey', NULL);
+    $idpcertpem = sspmod_clave_Tools::readCertKeyFile($idpCertPath);
+    $idpkeypem  = sspmod_clave_Tools::readCertKeyFile($idpKeyPath);
+    if($idpCertPath == NULL || $idpKeyPath == NULL)
+        throw new SimpleSAML_Error_Exception("No clave SSO response signing certificate or key defined for the IdP interface in clave bridge configuration.");
+
+
+    $issuer = $claveConfig->getString('issuer', 'NOT_SET');
+    
+
+    //Get the endpoint from the SP request, not from the metadata (stork
+    //always does this). Also, the endopint is in the issuer field.
+    $destination = $reqData['issuer'];
+    $inResponseTo = $reqData['id'];
+
+    $claveIdPresp = new sspmod_clave_SPlib();
+
+    $claveIdPresp->setSignatureKeyParams($idpcertpem, $idpkeypem, sspmod_clave_SPlib::RSA_SHA256);
+    $claveIdPresp->setSignatureParams(sspmod_clave_SPlib::SHA256,sspmod_clave_SPlib::EXC_C14N);
+    
+    
+    $respStatus = array();
+    $respStatus ["MainStatusCode"] = sspmod_clave_SPlib::ST_SUCCESS;
+    $respStatus ["SecondaryStatusCode"] = NULL;
+    
+    
+    $spResponse = $claveIdPresp->generateSLOResponse($inResponseTo,$issuer,$respStatus,$destination);
+
+
+    //Log for statistics: sent LogoutResponse to the remote SP
+    SimpleSAML_Stats::log('saml:idp:LogoutResponse:sent', array(
+        'spEntityID' => $destination,
+        'idpEntityID' => $issuer,
+        'partial' => TRUE
+    ));
+    //Se refiere a si se han desconectado todos los SP o no. En este
+    //caso, como no clave no mantiene ningún listado de ello, ponemos que
+    //es parcial siempre
+
+
+    //Redirecting to Clave IdP (Only HTTP-POST binding supported, also Stork-flavoured)
+    $post = array(
+        'samlResponseLogout'  => base64_encode($spResponse),
+    );
+    SimpleSAML_Utilities::postRedirect($destination, $post);
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
