@@ -270,6 +270,8 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
 	 */
 	public function authenticate(&$state) {
         assert('is_array($state)');
+
+        SimpleSAML_Logger::debug('------------------STATE at SP.authenticate (start): '.print_r($state,true));
         
         SimpleSAML_Logger::debug('Called sspmod_clave_Auth_Source_SP authenticate');
                 
@@ -303,6 +305,8 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         
         //Redirect to the Country Selector (if enabled and needed)
         $this->startDisco($state);
+
+        SimpleSAML_Logger::debug('------------------STATE at SP.authenticate (end): '.print_r($state,true));
         
         //Go on with the authentication
         $this->startSSO( $this->idp, $state);
@@ -321,6 +325,9 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
 	 */
 	public function startSSO($idp, array $state) {
         assert('is_string($idp)');
+
+
+        SimpleSAML_Logger::debug('------------------STATE at SP.authenticate (end): '.print_r($state,true));
         
         SimpleSAML_Logger::debug('Called sspmod_clave_Auth_Source_SP startSSO');
         

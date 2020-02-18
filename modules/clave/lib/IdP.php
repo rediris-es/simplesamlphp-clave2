@@ -165,6 +165,8 @@ class sspmod_clave_IdP
     {
         assert('isset($state["Responder"])');
 
+        SimpleSAML_Logger::debug('------------------STATE at idp.handleauthreq (start): '.print_r($state,true));
+
         $state['core:IdP'] = $this->id;
 
         if (isset($state['SPMetadata']['entityid'])) {
@@ -186,6 +188,8 @@ class sspmod_clave_IdP
         
         $state['IdPMetadata'] = $this->getConfig()->toArray();
         $state['ReturnCallback'] = array('sspmod_clave_IdP', 'postAuth');  // TODO: when sure it's working, switch for get_class(). Also, try to change it on the ssp code to see if my patch would work
+
+        SimpleSAML_Logger::debug('------------------STATE at idp.handleauthreq (end): '.print_r($state,true));
         
         try {
             if ($needAuth) {
@@ -290,7 +294,7 @@ class sspmod_clave_IdP
         if (isset($state['isPassive']) && (bool) $state['isPassive']) {
             throw new SimpleSAML_Error_NoPassive('Passive authentication not supported.');
         }
-
+        SimpleSAML_Logger::debug('------------------STATE at idp.authenticate: '.print_r($state,true));
         $this->authSource->login($state);
     }
 

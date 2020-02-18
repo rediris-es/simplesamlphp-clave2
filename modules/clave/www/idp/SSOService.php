@@ -191,6 +191,8 @@ $state = array(
 );
 
 
+SimpleSAML_Logger::debug('------------------STATE at SSOService: '.print_r($state,true));
+
 // Invoke the IdP Class handler.
 $idp->handleAuthenticationRequest($state);
 
