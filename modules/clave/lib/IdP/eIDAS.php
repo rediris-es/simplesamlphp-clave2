@@ -45,6 +45,7 @@ class sspmod_clave_IdP_eIDAS
         
         $requestId = $state['saml:RequestId'];
         $relayState = $state['saml:RelayState'];
+        SimpleSAML_Logger::debug('------------------Relay State on sendResponse: '.$state['saml:RelayState']);
         $consumerURL = $state['saml:ConsumerURL'];
         
         
@@ -302,6 +303,10 @@ class sspmod_clave_IdP_eIDAS
         $post = array(
             'SAMLResponse'  => base64_encode($resp),
         ) + $forwardedParams;
+        
+        if($relayState != NULL)
+            $post['RelayState'] = $relayState;
+        
         SimpleSAML_Utilities::postRedirect($acs, $post);
     }
     
@@ -331,10 +336,12 @@ class sspmod_clave_IdP_eIDAS
         
         
         SimpleSAML\Logger::info('Sending eIDAS Response to '.var_export($spEntityId, true));
-        
+
+        $relayState = NULL;
+        if(isset($state['saml:RelayState']))
+            $relayState = $state['saml:RelayState'];
         
         $requestId = $state['saml:RequestId'];
-        $relayState = $state['saml:RelayState'];
         $consumerURL = $state['saml:ConsumerURL'];
         $protocolBinding = $state['saml:Binding'];        
         

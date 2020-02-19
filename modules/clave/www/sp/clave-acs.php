@@ -229,6 +229,15 @@ if($eidas->isSuccess($statusInfo)){
     if(isset($_POST['RelayState']))
         $state['saml:RelayState'] = $_POST['RelayState'];
 
+    // If the remote IDP or SP needed the Relay State to be stopped
+    // here and returned back, we get it from the state and send it
+    // back, ignoring the one that was propagated
+    SimpleSAML_Logger::debug('------------------------held relay state?: '.$state['saml:HeldRelayState']);
+    if (isset($state['saml:HeldRelayState'])){
+        $state['saml:RelayState'] = $state['saml:HeldRelayState'];
+        SimpleSAML_Logger::debug('------------------------set held relay state: '.$state['saml:RelayState']);
+    }
+    
     $authInstant = new DateTime($eidas->getAuthnInstant()); 
     $state['AuthnInstant'] = $authInstant->getTimestamp(); //Integer required
     $state['saml:Binding'] = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST";

@@ -610,6 +610,27 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
             $eidas->addRequestAttribute($attribute[0], $attribute[1],$values);
         }
         
+
+
+
+    // TODO Seguir
+
+        //If SP sent a RelayState
+        if (isset($state['saml:RelayState']) ){
+
+            //Check if the remote SP or the hosted SP need us to keep the
+            //RelayState (because it exceeds the standard size of 80)
+            $holdRelayState = $this->spMetadata->getBoolean('holdRelayState',
+                                                            $remoteSpMeta->getBoolean('holdRelayState', false));
+            SimpleSAML_Logger::debug('------------------------hold relay state?: '.$holdRelayState);
+            
+            if ($holdRelayState){
+                $state['saml:HeldRelayState'] = $state['saml:RelayState'];
+                $state['saml:RelayState'] = "RS_held_at_Bridge";
+                SimpleSAML_Logger::debug('------------------------curr value: '.$state['saml:RelayState']);
+                SimpleSAML_Logger::debug('------------------------held value: '.$state['saml:HeldRelayState']);
+            }
+        }
         
         
         //Save information needed for the comeback
@@ -754,7 +775,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
       if (isset($state['saml:RelayState']) ){
           $forwardedParams['RelayState'] = $state['saml:RelayState'];
       }
-      
+            
       
       //Workaround for Clave-2.0 nonsense. If RelayState POST param
       //not set, add it (emtpy).
