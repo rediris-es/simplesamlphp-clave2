@@ -244,8 +244,8 @@ SimpleSAML_Stats::log('saml:idp:LogoutRequest:sent', array(
 
 //Redirect
 $post = array(
-    //'samlRequestLogout'  => $req,  // TODO: probar a restaurar este si no va
-    'logoutRequest'  => $req,
+    'samlRequestLogout'  => $req,  // TODO: probar a restaurar este si no va
+    //'logoutRequest'  => $req,
     'country'   => 'ES',// TODO: añadido al comnparar con el kit. ver si se puede quitar
     'RelayState'   => 'dummystate',// TODO: añadido al comnparar con el kit. ver si se puede quitar. Si se ha de wquedar, intentar propagarlo como hago con el sso
     
