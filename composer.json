@@ -19,8 +19,8 @@
     "require": {
         "php": ">=7.2",
         "simplesamlphp/composer-module-installer": "~1.1",
-        "simplesamlphp/simplesamlphp": "dev-master",
-        "robrichards/xmlseclibs": "^2.1.1"
+        "simplesamlphp/simplesamlphp": "^1.18.4",
+        "robrichards/xmlseclibs": "^3.0.4"
     },
     "support": {
         "issues": "https://github.com/rediris-es/simplesamlphp-clave2/issues",

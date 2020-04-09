@@ -211,9 +211,11 @@ class sspmod_clave_SPlib {
   //Get the friendly name for a eIDAS attribute name
   public static function getEidasFriendlyName ($attributeName){
       
-      if($attributeName === NULL || $attributeName === "")
-          $this->fail(__FUNCTION__, self::ERR_GENERIC,"Empty or null attribute name.");
-      
+      if($attributeName === NULL || $attributeName === "") {
+          # TODO: turn again to self::fail when fal is made static (as it should be)
+          self::critical("[Code ".self::ERR_GENERIC."] ".__FUNCTION__."::"."Empty or null attribute name.");
+          throw new Exception(__FUNCTION__."::"."Empty or null attribute name",self::ERR_GENERIC);
+      }
       
       foreach(self::$eIdasAttributes as $friendlyName => $name){
           if($name === $attributeName)
@@ -390,9 +392,9 @@ class sspmod_clave_SPlib {
       return;
     
     $prefix = "[".date('c',time())."][".self::$logLevels[$level]."]: ";
-    
+
     if(is_object($content) || is_array($content))
-      $message.=print_r($content,TRUE);
+      $message=print_r($content,TRUE);
     else
       $message=$content;
     
@@ -3706,7 +3708,7 @@ class claveAuth {
     $prefix = "[".date('c',time())."][".self::$logLevels[$level]."]: ";
     
     if(is_object($content) || is_array($content))
-      $message.=print_r($content,TRUE);
+      $message=print_r($content,TRUE);
     else
       $message=$content;
     
