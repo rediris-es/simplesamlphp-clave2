@@ -8,12 +8,12 @@
 
 //GET parameter set at the AuthSource startDisco call
 if (!array_key_exists('AuthID', $_REQUEST)) {
-	throw new SimpleSAML_Error_BadRequest('Missing AuthID to country selector response handler');
+	throw new SimpleSAML\Error\BadRequest('Missing AuthID to country selector response handler');
 }
 
 //The parameter we obtained at the country selector
 if (!array_key_exists('country', $_REQUEST)) {
-	throw new SimpleSAML_Error_BadRequest('Missing country to country selector response handler');
+	throw new SimpleSAML\Error\BadRequest('Missing country to country selector response handler');
 }
 
 

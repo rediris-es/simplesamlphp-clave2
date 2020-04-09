@@ -29,7 +29,7 @@ $spEntityId = $hostedSPmeta->getString('entityid', NULL);
 
 
 if(!isset($_REQUEST['samlResponseLogout']))
-   	throw new SimpleSAML_Error_BadRequest('No samlResponseLogout POST param received.');
+   	throw new SimpleSAML\Error\BadRequest('No samlResponseLogout POST param received.');
 
 $resp = base64_decode($_REQUEST['samlResponseLogout']);
 SimpleSAML\Logger::debug("Received response: ".$resp);
@@ -105,7 +105,7 @@ $statsData = array(
 $errInfo = "";
 if (!$clave->isSuccess($errInfo))
     $statsData['error'] = $errInfo['MainStatusCode'];
-SimpleSAML_Stats::log('saml:idp:LogoutResponse:recv', $statsData);
+SimpleSAML\Stats::log('saml:idp:LogoutResponse:recv', $statsData);
 
 
 

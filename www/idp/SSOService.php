@@ -63,9 +63,9 @@ foreach ($_POST as $name => $value){
 
 //Receive the AuthnRequest
 if(!array_key_exists('SAMLRequest',$_POST))
-   	throw new SimpleSAML_Error_BadRequest('SAMLRequest POST param not set.');
+   	throw new SimpleSAML\Error\BadRequest('SAMLRequest POST param not set.');
 if($_POST['SAMLRequest'] == null || $_POST['SAMLRequest'] == "")
-   	throw new SimpleSAML_Error_BadRequest('SAMLRequest POST param empty.');
+   	throw new SimpleSAML\Error\BadRequest('SAMLRequest POST param empty.');
 $authnRequest = $_POST['SAMLRequest'];
 
 
@@ -115,7 +115,7 @@ $eidas->addTrustedRequestIssuer($spEntityId, $certs);
 try{
     $eidas->validateStorkRequest($authnRequest);
 } catch (Exception $e) {
-    throw new SimpleSAML_Error_BadRequest($e->getMessage());
+    throw new SimpleSAML\Error\BadRequest($e->getMessage());
 }
 
 
@@ -128,7 +128,7 @@ SimpleSAML\Logger::debug("SP Request data: ".print_r($reqData,true));
 
 //Log for statistics: received AuthnRequest at the hosted IdP
 //$aux = $eidas->getStorkRequestData($authnRequest);
-SimpleSAML_Stats::log('clave:idp:AuthnRequest', array(
+SimpleSAML\Stats::log('clave:idp:AuthnRequest', array(
     'spEntityID' => $spEntityId,
     'idpEntityID' => $hostedIdpMeta->getString('issuer', ''),
     'forceAuthn' => TRUE,//$reqData['forceAuthn'],
@@ -173,7 +173,7 @@ $state = array(
     'ForceAuthn'                  => TRUE,
     'isPassive'                   => $reqData['isPassive'],
     'saml:ConsumerURL'            => $reqData['assertionConsumerService'],
-    'saml:Binding'                => SAML2_Constants::BINDING_HTTP_POST, // TODO: support HTTP_REDIRECT
+    'saml:Binding'                => SAML2\Constants::BINDING_HTTP_POST, // TODO: support HTTP_REDIRECT
     'saml:NameIDFormat'           => $idFormat,
     'saml:AllowCreate'            => $idAllowCreate,
     'saml:Extensions'             => $reqData,

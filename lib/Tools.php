@@ -4,12 +4,18 @@
 class sspmod_clave_Tools {
 
 
-
-    //Loads a metadata set from the clave specific metadata
-    //files. Metadata directory is taken from the global configuration
-    // @param $entityId The Id of the entoty whose metadata we want
-    // @param $set which metadada set to read from (the name of the file without extension)
-    // @return a SimpleSAML_Configuration object with the metadata for the entity
+    /**
+     * Loads a metadata set from the clave specific metadata files. Metadata
+     * directory is taken from the global configuration
+     *
+     * The Id of the entoty whose metadata we want
+     * @param $entityId
+     * which metadada set to read from (the name of the file without extension)
+     * @param $set
+     * metadata for the entity
+     * @return SimpleSAML\Configuration
+     * @throws Exception
+     */
     public static function getMetadataSet($entityId, $set){
     
         $globalConfig = SimpleSAML\Configuration::getInstance();
@@ -34,8 +40,15 @@ class sspmod_clave_Tools {
     }
 
 
-    //Retrieves metadata for a given clave SP, but taking into account
-    //whether he must search the clave or the saml20 metadatafiles.
+    /**
+     * Retrieves metadata for a given clave SP, but taking into account
+     * whether he must search the clave or the saml20 metadatafiles.
+     * @param SimpleSAML\Configuration $claveConfig
+     * @param $spEntityId
+     * @return SimpleSAML\Configuration|null
+     * @throws SimpleSAML\Error\MetadataNotFound
+     * @throws Exception
+     */
     public static function getSPMetadata($claveConfig,$spEntityId){
         
         //Retrieve the metadata for the requesting SP
@@ -51,7 +64,14 @@ class sspmod_clave_Tools {
     }
     
     
-    // Reads file relative to the configured cert directory
+
+    /**
+     * Reads file relative to the configured cert directory
+     *
+     * @param string $relativePath
+     * @return false|string
+     * @throws Exception
+     */
     public static function readCertKeyFile ($relativePath){
         
         if($relativePath == null || $relativePath == '')
@@ -108,6 +128,11 @@ class sspmod_clave_Tools {
 */
     
     //Now it returns an array
+    /**
+     * @param SimpleSAML\Configuration $metadata
+     * @return array
+     * @throws Exception
+     */
     public static function findX509SignCertOnMetadata ($metadata){
         $ret = array();
         

@@ -51,7 +51,7 @@ $issuer = $claveConfig->getString('issuer', 'NOT_SET');
 
 //Get the response
 if(!isset($_REQUEST['samlResponseLogout']))
-   	throw new SimpleSAML_Error_BadRequest('No samlResponseLogout POST param received.');
+   	throw new SimpleSAML\Error\BadRequest('No samlResponseLogout POST param received.');
 
 $resp = base64_decode($_REQUEST['samlResponseLogout']);
 SimpleSAML\Logger::debug("Received response: ".$resp);
@@ -112,7 +112,7 @@ $statsData = array(
 $errInfo = "";
 if (!$claveSP->isSuccess($errInfo))
     $statsData['error'] = $errInfo['MainStatusCode'];
-SimpleSAML_Stats::log('saml:idp:LogoutResponse:recv', $statsData);
+SimpleSAML\Stats::log('saml:idp:LogoutResponse:recv', $statsData);
 
 
 
@@ -134,7 +134,7 @@ $spResponse = $claveIdP->generateSLOResponse($inResponseTo,$issuer,$respStatus,$
 
 
 //Log for statistics: sent LogoutResponse to the remote SP
-SimpleSAML_Stats::log('saml:idp:LogoutResponse:sent', array(
+SimpleSAML\Stats::log('saml:idp:LogoutResponse:sent', array(
     'spEntityID' => $destination,
     'idpEntityID' => $issuer,
     'partial' => TRUE

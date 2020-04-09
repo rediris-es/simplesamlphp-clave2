@@ -294,7 +294,7 @@ class sspmod_clave_IdP_eIDAS
         if (isset($state['saml:AuthnRequestReceivedAt'])) {
             $statsData['logintime'] = microtime(TRUE) - $state['saml:AuthnRequestReceivedAt'];
         }
-        SimpleSAML_Stats::log('clave:idp:Response', $statsData);
+        SimpleSAML\Stats::log('clave:idp:Response', $statsData);
         
         
         
@@ -378,7 +378,7 @@ class sspmod_clave_IdP_eIDAS
         if (isset($state['saml:AuthnRequestReceivedAt'])) {
             $statsData['logintime'] = microtime(true) - $state['saml:AuthnRequestReceivedAt'];
         }
-        SimpleSAML_Stats::log('saml:idp:Response:error', $statsData);
+        SimpleSAML\Stats::log('saml:idp:Response:error', $statsData);
 
         $binding = \SAML2\Binding::getBinding($protocolBinding);
         $binding->send($ar);

@@ -31,7 +31,7 @@ SimpleSAML\Logger::info('eIDAS - SP.ACS: Accessing SAML 2.0 - eIDAS SP Assertion
 
 // Get the ID of the AuthSource from the queried URL
 if (!array_key_exists('PATH_INFO', $_SERVER)) {
-    throw new SimpleSAML_Error_BadRequest('Missing authentication source ID in assertion consumer service URL');
+    throw new SimpleSAML\Error\BadRequest('Missing authentication source ID in assertion consumer service URL');
 }
 $sourceId = substr($_SERVER['PATH_INFO'], 1);
 $source = SimpleSAML\Auth\Source::getById($sourceId, 'sspmod_clave_Auth_Source_SP');
@@ -65,7 +65,7 @@ $SPsubdialect = $spMetadata->getString('subdialect');
 
 //Receive SAML Response
 if(!isset($_REQUEST['SAMLResponse']))
-   	throw new SimpleSAML_Error_BadRequest('No SAMLResponse POST param received.');
+   	throw new SimpleSAML\Error\BadRequest('No SAMLResponse POST param received.');
 
 $resp = base64_decode($_REQUEST['SAMLResponse']);
 SimpleSAML\Logger::debug("Received response: ".$resp);
@@ -219,7 +219,7 @@ if($eidas->isSuccess($statusInfo)){
     if (isset($state['saml:AuthnRequestReceivedAt'])) {
         $statsData['logintime'] = microtime(TRUE) - $state['saml:AuthnRequestReceivedAt'];
     }
-    SimpleSAML_Stats::log('clave:sp:Response', $statsData);
+    SimpleSAML\Stats::log('clave:sp:Response', $statsData);
     
 
     //Data needed to process the response // TODO: this is specific for this AuthSource. Harmonise with the others, so I can support standard SAML authsource (or offer two ways and try both of them)
@@ -302,7 +302,7 @@ $statsData = array(
 if (isset($state['saml:AuthnRequestReceivedAt'])) {
     $statsData['logintime'] = microtime(TRUE) - $state['saml:AuthnRequestReceivedAt'];
 }
-SimpleSAML_Stats::log('clave:sp:Response:error', $statsData);
+SimpleSAML\Stats::log('clave:sp:Response:error', $statsData);
 
 
 

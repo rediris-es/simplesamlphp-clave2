@@ -65,7 +65,7 @@ $claveIdP = new sspmod_clave_SPlib();
 // TODO Don't know if we should use the standard POST params or
 // completely match the Clave specs Standard: SAMLRequest
 if(!isset($_REQUEST['samlRequestLogout']))
-   	throw new SimpleSAML_Error_BadRequest('No samlRequestLogout POST param received.');
+   	throw new SimpleSAML\Error\BadRequest('No samlRequestLogout POST param received.');
 
 $request = base64_decode($_REQUEST['samlRequestLogout']);
 
@@ -113,7 +113,7 @@ $claveIdP->addTrustedRequestIssuer($spEntityId, $certs);
 
 
 //Log for statistics: received LogoutRequest at the clave IdP
-SimpleSAML_Stats::log('saml:idp:LogoutRequest:recv', array(
+SimpleSAML\Stats::log('saml:idp:LogoutRequest:recv', array(
     'spEntityID'  => $spEntityId,
     'idpEntityID' => $claveConfig->getString('issuer', ''),
 ));
@@ -176,7 +176,7 @@ if($endpoint == NULL){
 
 
     //Log for statistics: sent LogoutResponse to the remote SP
-    SimpleSAML_Stats::log('saml:idp:LogoutResponse:sent', array(
+    SimpleSAML\Stats::log('saml:idp:LogoutResponse:sent', array(
         'spEntityID' => $destination,
         'idpEntityID' => $issuer,
         'partial' => TRUE
@@ -236,7 +236,7 @@ SimpleSAML\Logger::debug("Generated LogoutReq: ".$req);
 
 
 //Log for statistics: sent LogoutRequest to remote clave IdP
-SimpleSAML_Stats::log('saml:idp:LogoutRequest:sent', array(
+SimpleSAML\Stats::log('saml:idp:LogoutRequest:sent', array(
         'spEntityID' =>  $hostedSPmeta->getString('entityid'),
         'idpEntityID' => $idpMeta->getString('SingleSignOnService'),
 ));

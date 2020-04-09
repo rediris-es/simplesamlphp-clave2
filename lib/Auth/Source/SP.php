@@ -651,7 +651,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML\Auth\Source {
         
         
         //Log for statistics: sent AuthnRequest to remote IdP  // TODO: Log any other interesting field?
-        SimpleSAML_Stats::log('clave:sp:AuthnRequest', array(
+        SimpleSAML\Stats::log('clave:sp:AuthnRequest', array(
             'spEntityID' =>  $this->entityId,  // TODO: put the entityId or the issuer?
             'idpEntityID' => $this->idp,
             'forceAuthn' => TRUE,//$state['eidas:requestData']['forceAuthn'],
