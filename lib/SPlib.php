@@ -1152,8 +1152,12 @@ class sspmod_clave_SPlib {
       return false;
     }
   }
-  
-  // Returns the xml document signed in enveloped mode.
+
+    /**
+     * Returns the xml document signed in enveloped mode
+     *
+     * @throws Exception
+     */
   private function calculateXMLDsig($xml, $insertAhead=false){
     
     self::debug(__CLASS__.".".__FUNCTION__."()");
@@ -1206,13 +1210,16 @@ class sspmod_clave_SPlib {
     self::debug("Marshalling signed document.");
     return $doc->saveXML();
   }
-  
-  
-  
-  
-  /*******************  SAML RESPONSE PARSING AND VALIDATION  *********************/
 
-  //Checks if a private key is valid and adds PEM headers if necessary
+
+
+    /*******************  SAML RESPONSE PARSING AND VALIDATION  *******************/
+
+    /**
+     * Checks if a private key is valid and adds PEM headers if necessary
+     *
+     * @throws Exception
+     */
   public function checkKey($key){
     
     if($key == null || $key == "")

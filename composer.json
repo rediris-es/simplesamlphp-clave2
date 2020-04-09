@@ -1,5 +1,5 @@
 {
-    "name": "simplesamlphp/clave",
+    "name": "simplesamlphp/simplesamlphp-module-clave",
     "description": "SimpleSAMLphp module to support an eIDAS IdP and SP (also Spanish eID Clave 1.0 and Clave 2.0)",
     "type": "simplesamlphp-module",
     "keywords": ["simplesamlphp", "eIDAS"],
