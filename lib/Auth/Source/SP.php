@@ -101,9 +101,9 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         parent::__construct($info, $config);
         
         
-        SimpleSAML_Logger::debug('Called sspmod_clave_Auth_Source_SP constructor');
-        //SimpleSAML_Logger::debug('info: '.print_r($info, true));
-        SimpleSAML_Logger::debug('config: '.print_r($config, true));
+        SimpleSAML\Logger::debug('Called sspmod_clave_Auth_Source_SP constructor');
+        //SimpleSAML\Logger::debug('info: '.print_r($info, true));
+        SimpleSAML\Logger::debug('config: '.print_r($config, true));
         
         
         
@@ -117,7 +117,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         if($spConfId == NULL)
             throw new SimpleSAML_Error_Exception("hostedSP field not defined for eIDAS auth source.");
         $this->spMetadata = sspmod_clave_Tools::getMetadataSet($spConfId,"clave-sp-hosted");
-        SimpleSAML_Logger::debug('eIDAS SP hosted metadata: '.print_r($this->spMetadata,true));
+        SimpleSAML\Logger::debug('eIDAS SP hosted metadata: '.print_r($this->spMetadata,true));
         
         
         //Get the remote idp metadata
@@ -125,7 +125,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         if($idpEntityId == NULL)
             throw new SimpleSAML_Error_Exception("idpEntityID field not defined for eIDAS auth source.");
         $this->idpMetadata = sspmod_clave_Tools::getMetadataSet($idpEntityId,"clave-idp-remote");
-        SimpleSAML_Logger::debug('eIDAS IDP remote metadata ('.$idpEntityId.'): '.print_r($this->idpMetadata,true));
+        SimpleSAML\Logger::debug('eIDAS IDP remote metadata ('.$idpEntityId.'): '.print_r($this->idpMetadata,true));
         
         
         
@@ -217,7 +217,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
 	 */
 	private function startDisco(array $state) {
 
-        SimpleSAML_Logger::debug('Called sspmod_clave_Auth_Source_SP startDisco');
+        SimpleSAML\Logger::debug('Called sspmod_clave_Auth_Source_SP startDisco');
         
         //Whether to show the country selctor
         $showCountrySelector = $this->spMetadata->getBoolean('showCountrySelector', false);
@@ -271,9 +271,9 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
 	public function authenticate(&$state) {
         assert('is_array($state)');
 
-        SimpleSAML_Logger::debug('------------------STATE at SP.authenticate (start): '.print_r($state,true));
+        SimpleSAML\Logger::debug('------------------STATE at SP.authenticate (start): '.print_r($state,true));
         
-        SimpleSAML_Logger::debug('Called sspmod_clave_Auth_Source_SP authenticate');
+        SimpleSAML\Logger::debug('Called sspmod_clave_Auth_Source_SP authenticate');
                 
         // We are going to need the authId in order to retrieve this authentication source later.
         $state['clave:sp:AuthId']      = $this->authId;
@@ -286,11 +286,11 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         && $state['saml:idp'] != ""){
             $idpEntityId = $state['saml:idp'];
             
-            SimpleSAML_Logger::debug('eIDAS IDP remote fixed by hosted IDP: ('.$idpEntityId.')');
+            SimpleSAML\Logger::debug('eIDAS IDP remote fixed by hosted IDP: ('.$idpEntityId.')');
             $this->idp = $idpEntityId;
             
             $this->idpMetadata = sspmod_clave_Tools::getMetadataSet($idpEntityId,"clave-idp-remote");
-            SimpleSAML_Logger::debug('eIDAS IDP remote metadata ('.$idpEntityId.'): '.print_r($this->idpMetadata,true));
+            SimpleSAML\Logger::debug('eIDAS IDP remote metadata ('.$idpEntityId.'): '.print_r($this->idpMetadata,true));
         }
         
         
@@ -299,14 +299,14 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         $state['clave:sp:idpEntityID'] = $this->idp;
         
         
-        SimpleSAML_Logger::info("state: ".print_r($state,true));
-        SimpleSAML_Logger::info("metadata: ".print_r($this->metadata,true));
+        SimpleSAML\Logger::info("state: ".print_r($state,true));
+        SimpleSAML\Logger::info("metadata: ".print_r($this->metadata,true));
 
         
         //Redirect to the Country Selector (if enabled and needed)
         $this->startDisco($state);
 
-        SimpleSAML_Logger::debug('------------------STATE at SP.authenticate (end): '.print_r($state,true));
+        SimpleSAML\Logger::debug('------------------STATE at SP.authenticate (end): '.print_r($state,true));
         
         //Go on with the authentication
         $this->startSSO( $this->idp, $state);
@@ -327,11 +327,11 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         assert('is_string($idp)');
 
 
-        SimpleSAML_Logger::debug('------------------STATE at SP.authenticate (end): '.print_r($state,true));
+        SimpleSAML\Logger::debug('------------------STATE at SP.authenticate (end): '.print_r($state,true));
         
-        SimpleSAML_Logger::debug('Called sspmod_clave_Auth_Source_SP startSSO');
+        SimpleSAML\Logger::debug('Called sspmod_clave_Auth_Source_SP startSSO');
         
-        SimpleSAML_Logger::debug("Hosted SP Certificate: ".$this->certData);
+        SimpleSAML\Logger::debug("Hosted SP Certificate: ".$this->certData);
         
         //We get the Remote SP Metadata
         $remoteSpMeta  = SimpleSAML_Configuration::loadFromArray($state['SPMetadata']);
@@ -478,7 +478,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         
         //Build the authn request
         $eidas = new sspmod_clave_SPlib();
-        SimpleSAML_Logger::debug("******************************+LoA: ".$LoA);
+        SimpleSAML\Logger::debug("******************************+LoA: ".$LoA);
         if ($this->dialect === 'eidas'){
             $eidas->setEidasMode();
             $eidas->setEidasRequestParams($SPType,
@@ -622,13 +622,13 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
             //RelayState (because it exceeds the standard size of 80)
             $holdRelayState = $this->spMetadata->getBoolean('holdRelayState',
                                                             $remoteSpMeta->getBoolean('holdRelayState', false));
-            SimpleSAML_Logger::debug('------------------------hold relay state?: '.$holdRelayState);
+            SimpleSAML\Logger::debug('------------------------hold relay state?: '.$holdRelayState);
             
             if ($holdRelayState){
                 $state['saml:HeldRelayState'] = $state['saml:RelayState'];
                 $state['saml:RelayState'] = "RS_held_at_Bridge";
-                SimpleSAML_Logger::debug('------------------------curr value: '.$state['saml:RelayState']);
-                SimpleSAML_Logger::debug('------------------------held value: '.$state['saml:HeldRelayState']);
+                SimpleSAML\Logger::debug('------------------------curr value: '.$state['saml:RelayState']);
+                SimpleSAML\Logger::debug('------------------------held value: '.$state['saml:HeldRelayState']);
             }
         }
         
@@ -638,7 +638,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         $state['clave:sp:returnPage']     = $returnPage;
         $state['clave:sp:mandatoryAttrs'] = $mandatory;
         $id = SimpleSAML_Auth_State::saveState($state, 'clave:sp:req', true);
-        SimpleSAML_Logger::debug("Generated Req ID: ".$id);
+        SimpleSAML\Logger::debug("Generated Req ID: ".$id);
         
         
         //Set the id of the request, it must be the id of the saved state.
@@ -647,7 +647,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         
         //Build Authn Request
         $req = base64_encode($eidas->generateStorkAuthRequest());
-        SimpleSAML_Logger::debug("sspmod_clave_Auth_Source_SP Generated AuthnReq: ".$req);
+        SimpleSAML\Logger::debug("sspmod_clave_Auth_Source_SP Generated AuthnReq: ".$req);
         
         
         //Log for statistics: sent AuthnRequest to remote IdP  // TODO: Log any other interesting field?
@@ -851,8 +851,8 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
       foreach($forwardedParams as $param => $value){
           $post[$param] = $value;
       }
-      SimpleSAML_Logger::debug("forwarded: ".print_r($forwardedParams, true));
-      SimpleSAML_Logger::debug("post: ".print_r($post, true));
+      SimpleSAML\Logger::debug("forwarded: ".print_r($forwardedParams, true));
+      SimpleSAML\Logger::debug("post: ".print_r($post, true));
       
       
       //Redirecting to Clave IdP (Only HTTP-POST binding supported)
@@ -891,7 +891,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         
 		$endpoint = $this->idpMetadata->getString('SingleLogoutService', NULL);
         if ($endpoint === NULL) {
-			SimpleSAML_Logger::info('No logout endpoint for clave remote IdP.');
+			SimpleSAML\Logger::info('No logout endpoint for clave remote IdP.');
 			return;
 		}
         
@@ -911,7 +911,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         //Save information needed for the comeback
         $state['clave:sp:slo:returnPage'] = $returnPage;
         $id = SimpleSAML_Auth_State::saveState($state, 'clave:sp:slo:req', true);
-        SimpleSAML_Logger::debug("Generated Req ID: ".$id);
+        SimpleSAML\Logger::debug("Generated Req ID: ".$id);
         
         
         //Generate the logout requestx
@@ -919,7 +919,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
                                                         $endpoint,
                                                         $returnPage,
                                                         $id));
-        SimpleSAML_Logger::debug("Generated LogoutRequest: ".$req);
+        SimpleSAML\Logger::debug("Generated LogoutRequest: ".$req);
         
         //Perform redirection
         $post = array('samlRequestLogout' => $req,

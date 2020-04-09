@@ -12,7 +12,7 @@ class sspmod_clave_Tools {
     // @return a SimpleSAML_Configuration object with the metadata for the entity
     public static function getMetadataSet($entityId, $set){
     
-        $globalConfig = SimpleSAML_Configuration::getInstance();
+        $globalConfig = SimpleSAML\Configuration::getInstance();
         $metadataDirectory = $globalConfig->getString('metadatadir', 'metadata/');
         $metadataDirectory = $globalConfig->resolvePath($metadataDirectory) . '/';
 
@@ -30,7 +30,7 @@ class sspmod_clave_Tools {
         if(!isset($claveMeta[$entityId]))
             throw new Exception("Entity ".$entityId." not found in set ".$set);
     
-        return SimpleSAML_Configuration::loadFromArray($claveMeta[$entityId]);
+        return SimpleSAML\Configuration::loadFromArray($claveMeta[$entityId]);
     }
 
 
@@ -43,7 +43,7 @@ class sspmod_clave_Tools {
         if(!$claveConfig->getBoolean('sp.useSaml20Meta', false)){
             $spMetadata = sspmod_clave_Tools::getMetadataSet($spEntityId,"clave-sp-remote");
         }else{
-            $metadata   = SimpleSAML_Metadata_MetaDataStorageHandler::getMetadataHandler();
+            $metadata   = SimpleSAML\Metadata\MetaDataStorageHandler::getMetadataHandler();
             $spMetadata = $metadata->getMetaDataConfig($spEntityId, 'saml20-sp-remote');
         }
         
@@ -57,7 +57,7 @@ class sspmod_clave_Tools {
         if($relativePath == null || $relativePath == '')
             throw new Exception('Unable to load cert or key from file: path is empty');
         
-        $path = SimpleSAML_Utilities::resolveCert($relativePath);
+        $path = SimpleSAML\Utils\Config::getCertPath($relativePath);
         $data = @file_get_contents($path);
         if ($data === false){
             throw new Exception('Unable to load cert or key from file "' . $path . '"');

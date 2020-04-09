@@ -34,13 +34,13 @@
 // TODO: Implement the publication of IdP side metadata (for the remote SPs) (besides the actual SP side metadata published. Use the same? check if any differences)
 
 
-SimpleSAML_Logger::info('eIDAS - IdP.SSOService: Accessing SAML 2.0 - eIDAS IdP endpoint SSOService');
+SimpleSAML\Logger::info('eIDAS - IdP.SSOService: Accessing SAML 2.0 - eIDAS IdP endpoint SSOService');
 
 //Hosted IdP config
 $idpEntityId = "__DYNAMIC:1__";
 
 $hostedIdpMeta = sspmod_clave_Tools::getMetadataSet($idpEntityId,"clave-idp-hosted");
-SimpleSAML_Logger::debug('eIDAS IDP hosted metadata ('.$idpEntityId.'): '.print_r($hostedIdpMeta,true));
+SimpleSAML\Logger::debug('eIDAS IDP hosted metadata ('.$idpEntityId.'): '.print_r($hostedIdpMeta,true));
 
 
 //Get the idp class
@@ -78,7 +78,7 @@ if (array_key_exists('RelayState', $_POST))
 
 //Decode the request
 $authnRequest = base64_decode($authnRequest);
-SimpleSAML_Logger::debug("Received authnRequest from remote SP: ".$authnRequest);
+SimpleSAML\Logger::debug("Received authnRequest from remote SP: ".$authnRequest);
 
 
 //eIDAS protocol library object 
@@ -87,11 +87,11 @@ $eidas = new sspmod_clave_SPlib();
 
 //Entity ID of the remote SP (requestor)
 $spEntityId = $eidas->getIssuer($authnRequest);
-SimpleSAML_Logger::info("Remote SP Issuer: ".$spEntityId);
+SimpleSAML\Logger::info("Remote SP Issuer: ".$spEntityId);
 
 //Load the remote SP metadata
 $spMetadata = sspmod_clave_Tools::getSPMetadata($hostedIdpMeta,$spEntityId);
-SimpleSAML_Logger::debug('Clave SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
+SimpleSAML\Logger::debug('Clave SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
 
 
 
@@ -123,7 +123,7 @@ try{
 //Extract all relevant data for the retransmitted request (including stork extensions)
 $reqData = $eidas->getStorkRequestData();
 
-SimpleSAML_Logger::debug("SP Request data: ".print_r($reqData,true));
+SimpleSAML\Logger::debug("SP Request data: ".print_r($reqData,true));
 
 
 //Log for statistics: received AuthnRequest at the hosted IdP
@@ -191,7 +191,7 @@ $state = array(
 );
 
 
-SimpleSAML_Logger::debug('------------------STATE at SSOService: '.print_r($state,true));
+SimpleSAML\Logger::debug('------------------STATE at SSOService: '.print_r($state,true));
 
 // Invoke the IdP Class handler.
 $idp->handleAuthenticationRequest($state);

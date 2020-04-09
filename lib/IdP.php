@@ -32,7 +32,7 @@ class sspmod_clave_IdP
     /**
      * The configuration for this IdP.
      *
-     * @var SimpleSAML_Configuration
+     * @var SimpleSAML\Configuration
      */
     private $config;
 
@@ -40,7 +40,7 @@ class sspmod_clave_IdP
     /**
      * Our authsource.
      *
-     * @var \SimpleSAML\Auth\Simple
+     * @var SimpleSAML\Auth\Simple
      */
     private $authSource;
 
@@ -62,7 +62,7 @@ class sspmod_clave_IdP
     /**
      * Retrieve the configuration for this IdP.
      *
-     * @return SimpleSAML_Configuration The configuration object.
+     * @return SimpleSAML\Configuration The configuration object.
      */
     public function getConfig()
     {
@@ -75,7 +75,7 @@ class sspmod_clave_IdP
      *
      * @param string $id The identifier of the IdP.
      *
-     * @return SimpleSAML_IdP The IdP.
+     * @return sspmod_clave_IdP
      */
     public static function getById($id)
     {
@@ -96,7 +96,7 @@ class sspmod_clave_IdP
      *
      * @param array &$state The state array.
      *
-     * @return SimpleSAML_IdP The IdP.
+     * @return sspmod_clave_IdP
      */
     public static function getByState(array &$state)
     {
@@ -119,16 +119,13 @@ class sspmod_clave_IdP
     }
 
 
-
-
-
-    
     /**
      * Initialize an IdP.
      *
      * @param string $id The identifier of this IdP.
      *
-     * @throws SimpleSAML_Error_Exception If the IdP is disabled or no such auth source was found.
+     * If the IdP is disabled or no such auth source was found.
+     * @throws Exception
      */
     private function __construct($id)
     {
@@ -138,7 +135,7 @@ class sspmod_clave_IdP
         
         //Get the Hosted IdP config
         $this->config = sspmod_clave_Tools::getMetadataSet($id,"clave-idp-hosted");
-        SimpleSAML_Logger::debug('Clave Idp hosted metadata: '.print_r($this->config,true));
+        SimpleSAML\Logger::debug('Clave Idp hosted metadata: '.print_r($this->config,true));
         
         
         //Get the associated AuthSource (as defined in config, and wrapped in the Simple auth class)
@@ -165,7 +162,7 @@ class sspmod_clave_IdP
     {
         assert('isset($state["Responder"])');
 
-        SimpleSAML_Logger::debug('------------------STATE at idp.handleauthreq (start): '.print_r($state,true));
+        SimpleSAML\Logger::debug('------------------STATE at idp.handleauthreq (start): '.print_r($state,true));
 
         $state['core:IdP'] = $this->id;
 
@@ -189,7 +186,7 @@ class sspmod_clave_IdP
         $state['IdPMetadata'] = $this->getConfig()->toArray();
         $state['ReturnCallback'] = array('sspmod_clave_IdP', 'postAuth');  // TODO: when sure it's working, switch for get_class(). Also, try to change it on the ssp code to see if my patch would work
 
-        SimpleSAML_Logger::debug('------------------STATE at idp.handleauthreq (end): '.print_r($state,true));
+        SimpleSAML\Logger::debug('------------------STATE at idp.handleauthreq (end): '.print_r($state,true));
         
         try {
             if ($needAuth) {
@@ -294,7 +291,7 @@ class sspmod_clave_IdP
         if (isset($state['isPassive']) && (bool) $state['isPassive']) {
             throw new SimpleSAML_Error_NoPassive('Passive authentication not supported.');
         }
-        SimpleSAML_Logger::debug('------------------STATE at idp.authenticate: '.print_r($state,true));
+        SimpleSAML\Logger::debug('------------------STATE at idp.authenticate: '.print_r($state,true));
         $this->authSource->login($state);
     }
 

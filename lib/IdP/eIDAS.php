@@ -36,7 +36,7 @@ class sspmod_clave_IdP_eIDAS
         //Get the remote SP metadata
         $spMetadata  = SimpleSAML_Configuration::loadFromArray($state['SPMetadata']);
         $spEntityId = $spMetadata->getString('entityid',NULL);
-        SimpleSAML_Logger::debug('eIDAS SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
+        SimpleSAML\Logger::debug('eIDAS SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
         
         
         
@@ -45,7 +45,7 @@ class sspmod_clave_IdP_eIDAS
         
         $requestId = $state['saml:RequestId'];
         $relayState = $state['saml:RelayState'];
-        SimpleSAML_Logger::debug('------------------Relay State on sendResponse: '.$state['saml:RelayState']);
+        SimpleSAML\Logger::debug('------------------Relay State on sendResponse: '.$state['saml:RelayState']);
         $consumerURL = $state['saml:ConsumerURL'];
         
         
@@ -97,7 +97,7 @@ class sspmod_clave_IdP_eIDAS
         
         //Get response encryption config (remote SP configuration prioritary over hosted IdP config)
         $encryptAssertions = $spMetadata->getBoolean('assertion.encryption',$idpMetadata->getBoolean('assertion.encryption', false));        
-        SimpleSAML_Logger::debug('Encrypt assertions: '.$encryptAssertions);
+        SimpleSAML\Logger::debug('Encrypt assertions: '.$encryptAssertions);
         
         $encryptAlgorithm  = $spMetadata->getString('assertion.encryption.keyAlgorithm',
         $idpMetadata->getString('assertion.encryption.keyAlgorithm', sspmod_clave_SPlib::AES256_CBC));
@@ -275,7 +275,7 @@ class sspmod_clave_IdP_eIDAS
         
         
         $resp = $storkResp->generateStorkResponse($status,$assertions,true,true,$storkize);
-        SimpleSAML_Logger::debug("Response to send to the remote SP: ".$resp);        
+        SimpleSAML\Logger::debug("Response to send to the remote SP: ".$resp);
         
         
         
@@ -331,7 +331,7 @@ class sspmod_clave_IdP_eIDAS
         //Get the remote SP metadata
         $spMetadata  = SimpleSAML_Configuration::loadFromArray($state['SPMetadata']);
         $spEntityId = $spMetadata->getString('entityid',NULL);
-        SimpleSAML_Logger::debug('eIDAS SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
+        SimpleSAML\Logger::debug('eIDAS SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
         
         
         

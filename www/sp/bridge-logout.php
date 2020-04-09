@@ -7,7 +7,7 @@
 
 //Hosted SP metadata
 $claveConfig = sspmod_clave_Tools::getMetadataSet("__DYNAMIC:1__","clave-idp-hosted");
-SimpleSAML_Logger::debug('Clave Idp hosted metadata: '.print_r($claveConfig,true));
+SimpleSAML\Logger::debug('Clave Idp hosted metadata: '.print_r($claveConfig,true));
 
 
 //Remote IdP metadata (Which clave IdP to connect to)
@@ -22,7 +22,7 @@ $hostedSP = $claveConfig->getString('hostedSP', NULL);
 if($hostedSP == NULL)
     throw new SimpleSAML_Error_Exception("No clave hosted SP configuration defined in clave auth source configuration.");
 $hostedSPmeta = sspmod_clave_Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
-SimpleSAML_Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true));
+SimpleSAML\Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true));
 
 $spEntityId = $hostedSPmeta->getString('entityid', NULL);
 
@@ -54,7 +54,7 @@ if(!isset($_REQUEST['samlResponseLogout']))
    	throw new SimpleSAML_Error_BadRequest('No samlResponseLogout POST param received.');
 
 $resp = base64_decode($_REQUEST['samlResponseLogout']);
-SimpleSAML_Logger::debug("Received response: ".$resp);
+SimpleSAML\Logger::debug("Received response: ".$resp);
 
 
 //Validate response
@@ -66,7 +66,7 @@ $id = $claveSP->getInResponseToFromReq($resp);
 
 //Load state we stored for the request associated with this response
 $state = SimpleSAML_Auth_State::loadState($id, 'clave:bridge:slo:req');
-SimpleSAML_Logger::debug('State on slo-return:'.print_r($state,true));
+SimpleSAML\Logger::debug('State on slo-return:'.print_r($state,true));
 
 
 
@@ -86,7 +86,7 @@ if($keys !== NULL){
 
 $certData = $idpMetadata->getString('certData', NULL);
 if($certData !== NULL){
-    SimpleSAML_Logger::debug("Certificate in source (legacy parameter): ".$certData);
+    SimpleSAML\Logger::debug("Certificate in source (legacy parameter): ".$certData);
     $claveSP->addTrustedCert($certData);
 }
 
@@ -98,7 +98,7 @@ $claveSP->setValidationContext($id,
 
 
 if(!$claveSP->validateSLOResponse($resp)){
-    SimpleSAML_Logger::warning('Unsuccessful logout. Status was: '.print_r($claveSP->getResponseStatus(),true));
+    SimpleSAML\Logger::warning('Unsuccessful logout. Status was: '.print_r($claveSP->getResponseStatus(),true));
 }
 
 $respStatus = $claveSP->getResponseStatus();

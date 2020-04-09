@@ -13,7 +13,7 @@
 // response is received here, we kick it to its proper endpoint
 if (isset($_POST['samlResponseLogout'])){
     
-    SimpleSAML_Logger::info('eIDAS - SP.ACS: Accessing SAML 2.0 - eIDAS SP Assertion Consumer Service -- CALLED FOR SLO');
+    SimpleSAML\Logger::info('eIDAS - SP.ACS: Accessing SAML 2.0 - eIDAS SP Assertion Consumer Service -- CALLED FOR SLO');
     
     SimpleSAML_Utilities::postRedirect(SimpleSAML_Module::getModuleURL('clave/sp/bridge-logout.php'), $_POST);
     //header('Location: '.SimpleSAML_Module::getModuleURL('clave/sp/bridge-logout.php'));
@@ -26,7 +26,7 @@ if (isset($_POST['samlResponseLogout'])){
 
 
 
-SimpleSAML_Logger::info('eIDAS - SP.ACS: Accessing SAML 2.0 - eIDAS SP Assertion Consumer Service');
+SimpleSAML\Logger::info('eIDAS - SP.ACS: Accessing SAML 2.0 - eIDAS SP Assertion Consumer Service');
 
 
 // Get the ID of the AuthSource from the queried URL
@@ -39,7 +39,7 @@ $source = SimpleSAML_Auth_Source::getById($sourceId, 'sspmod_clave_Auth_Source_S
 
 //Get the AuthSource config
 $metadata = $source->getMetadata();
-SimpleSAML_Logger::debug('Metadata on acs:'.print_r($metadata,true));
+SimpleSAML\Logger::debug('Metadata on acs:'.print_r($metadata,true));
 
 
 //Get the hosted SP metadata
@@ -47,7 +47,7 @@ $hostedSP = $metadata->getString('hostedSP', NULL);
 if($hostedSP == NULL)
     throw new SimpleSAML_Error_Exception("'hosted SP' parameter not found in $sourceId Auth Source configuration.");
 $spMetadata = sspmod_clave_Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
-SimpleSAML_Logger::debug('Clave SP hosted metadata: '.print_r($spMetadata,true));
+SimpleSAML\Logger::debug('Clave SP hosted metadata: '.print_r($spMetadata,true));
 
 
 //Get remote IdP metadata
@@ -68,7 +68,7 @@ if(!isset($_REQUEST['SAMLResponse']))
    	throw new SimpleSAML_Error_BadRequest('No SAMLResponse POST param received.');
 
 $resp = base64_decode($_REQUEST['SAMLResponse']);
-SimpleSAML_Logger::debug("Received response: ".$resp);
+SimpleSAML\Logger::debug("Received response: ".$resp);
 
 
 
@@ -92,7 +92,7 @@ $id = $eidas->getInResponseToFromReq($resp);
 
 //Load the stored state associated with this request
 $state = SimpleSAML_Auth_State::loadState($id, 'clave:sp:req');
-SimpleSAML_Logger::debug('State on ACS:'.print_r($state,true));
+SimpleSAML\Logger::debug('State on ACS:'.print_r($state,true));
 
 
 
@@ -160,7 +160,7 @@ if($keys !== NULL){
 
 $certData = $remoteIdPMeta->getString('certData', NULL);
 if($certData !== NULL){
-    SimpleSAML_Logger::debug("Remote IdP Certificate as stored in the metadata (legacy parameter): ".$certData);
+    SimpleSAML\Logger::debug("Remote IdP Certificate as stored in the metadata (legacy parameter): ".$certData);
     $eidas->addTrustedCert($certData);
 }
 
@@ -182,7 +182,7 @@ $expectEncrypted = $spMetadata->getBoolean('assertions.encrypted', true);
 $onlyEncrypted   = $spMetadata->getBoolean('assertions.encrypted.only', false);
 
 $eidas->setDecipherParams($spkeypem,$expectEncrypted,$onlyEncrypted);
-//SimpleSAML_Logger::debug("Private Key loaded from hosted SP metadata: ".$spkeypem);
+//SimpleSAML\Logger::debug("Private Key loaded from hosted SP metadata: ".$spkeypem);
 
 
 
@@ -194,12 +194,12 @@ $eidas->validateStorkResponse($resp);
 //Authentication was successful
 $statusInfo = "";
 if($eidas->isSuccess($statusInfo)){
-    SimpleSAML_Logger::info("Authentication Successful");
+    SimpleSAML\Logger::info("Authentication Successful");
 
     //TODO: this in only specific for clave 1.0 maybe for clave-2.0 keep an eye and add it
     if($SPsubdialect === "clave-1.0"){
         //Add the Issuer as an attribute (as it tells which idpp was used)
-        SimpleSAML_Logger::debug('Adding issuer as attribute usedIdP:'.$eidas->getRespIssuer());
+        SimpleSAML\Logger::debug('Adding issuer as attribute usedIdP:'.$eidas->getRespIssuer());
         $attributes['usedIdP'] = array($eidas->getRespIssuer());
     }
     
@@ -232,10 +232,10 @@ if($eidas->isSuccess($statusInfo)){
     // If the remote IDP or SP needed the Relay State to be stopped
     // here and returned back, we get it from the state and send it
     // back, ignoring the one that was propagated
-    SimpleSAML_Logger::debug('------------------------held relay state?: '.$state['saml:HeldRelayState']);
+    SimpleSAML\Logger::debug('------------------------held relay state?: '.$state['saml:HeldRelayState']);
     if (isset($state['saml:HeldRelayState'])){
         $state['saml:RelayState'] = $state['saml:HeldRelayState'];
-        SimpleSAML_Logger::debug('------------------------set held relay state: '.$state['saml:RelayState']);
+        SimpleSAML\Logger::debug('------------------------set held relay state: '.$state['saml:RelayState']);
     }
     
     $authInstant = new DateTime($eidas->getAuthnInstant()); 

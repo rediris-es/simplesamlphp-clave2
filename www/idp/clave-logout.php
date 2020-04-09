@@ -5,19 +5,19 @@
  */
 
 
-SimpleSAML_Logger::info('Call to Clave bridge IdP side');
+SimpleSAML\Logger::info('Call to Clave bridge IdP side');
 
 
 //Hosted IdP config
 $claveConfig = sspmod_clave_Tools::getMetadataSet("__DYNAMIC:1__","clave-idp-hosted");
-SimpleSAML_Logger::debug('Clave Idp hosted metadata: '.print_r($claveConfig,true));
+SimpleSAML\Logger::debug('Clave Idp hosted metadata: '.print_r($claveConfig,true));
 
 //Hosted SP config
 $hostedSP = $claveConfig->getString('hostedSP', NULL);
 if($hostedSP == NULL)
     throw new SimpleSAML_Error_Exception("No clave hosted SP configuration defined in clave bridge configuration.");
 $hostedSPmeta = sspmod_clave_Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
-SimpleSAML_Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true));
+SimpleSAML\Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true));
 
 
 //Which clave IdP to use
@@ -26,7 +26,7 @@ if($idpEntityId == NULL)
     throw new SimpleSAML_Error_Exception("No clave IdP configuration defined in clave bridge configuration.");
 
 $idpMeta = sspmod_clave_Tools::getMetadataSet($idpEntityId,"clave-idp-remote");
-SimpleSAML_Logger::debug('Clave Idp remote metadata ('.$idpEntityId.'): '.print_r($idpMeta,true));
+SimpleSAML\Logger::debug('Clave Idp remote metadata ('.$idpEntityId.'): '.print_r($idpMeta,true));
 
 
 $providerName = $hostedSPmeta->getString('providerName', NULL);
@@ -72,11 +72,11 @@ $request = base64_decode($_REQUEST['samlRequestLogout']);
 
 //On SLO requests, the SP entity ID travels on the nameID field.
 $spEntityId = $claveIdP->getSloNameId($request);
-SimpleSAML_Logger::info("SLO request Issuer (SP): ".$spEntityId);
+SimpleSAML\Logger::info("SLO request Issuer (SP): ".$spEntityId);
 
 
 $spMetadata = sspmod_clave_Tools::getSPMetadata($claveConfig,$spEntityId);
-SimpleSAML_Logger::debug('Clave SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
+SimpleSAML\Logger::debug('Clave SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
 
 
 
@@ -88,8 +88,8 @@ $IdPdialect    = $spMetadata->getString('dialect',
 $IdPsubdialect = $spMetadata->getString('subdialect',
                                         $claveConfig->getString('subdialect'));
 
-SimpleSAML_Logger::debug('---------------------->dialect: '.$IdPdialect);
-SimpleSAML_Logger::debug('---------------------->subdialect: '.$IdPsubdialect);
+SimpleSAML\Logger::debug('---------------------->dialect: '.$IdPdialect);
+SimpleSAML\Logger::debug('---------------------->subdialect: '.$IdPsubdialect);
 
 if ($IdPdialect === 'eidas')
     $claveIdP->setEidasMode();
@@ -125,7 +125,7 @@ $claveIdP->validateLogoutRequest($request);
 //Extract all relevant data for the retransmitted request (including stork extensions)
 $reqData = $claveIdP->getSloRequestData();
 
-SimpleSAML_Logger::debug("SP SLO Request data: ".print_r($reqData,true));
+SimpleSAML\Logger::debug("SP SLO Request data: ".print_r($reqData,true));
 
 
 
@@ -225,14 +225,14 @@ $state['sp:slo:request']            = $reqData;
 $state['bridge:slo:returnPage']     = $returnPage;
 
 $id = SimpleSAML_Auth_State::saveState($state, 'clave:bridge:slo:req', true);
-SimpleSAML_Logger::debug("Generated Req ID: ".$id);
+SimpleSAML\Logger::debug("Generated Req ID: ".$id);
 
 
 
 
 //Set the id of the request, it must be the id of the saved state.
 $req = base64_encode($claveSP->generateSLORequest($providerName,$endpoint,$returnPage,$id));
-SimpleSAML_Logger::debug("Generated LogoutReq: ".$req);
+SimpleSAML\Logger::debug("Generated LogoutReq: ".$req);
 
 
 //Log for statistics: sent LogoutRequest to remote clave IdP
@@ -251,7 +251,7 @@ $post = array(
     
 );
 
-SimpleSAML_Logger::debug("post: ".print_r($post, true));
+SimpleSAML\Logger::debug("post: ".print_r($post, true));
 
 
 //Redirecting to Clave IdP (Only HTTP-POST binding supported)

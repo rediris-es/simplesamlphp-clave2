@@ -30,7 +30,7 @@ if ($acsID === NULL || $acsID === "")
 if($hostedSpId === NULL || $hostedSpId === "")
     throw new SimpleSAML_Error_Exception("No eIDAS hosted SP ID provided on the url path info.");
 $hostedSPmeta = sspmod_clave_Tools::getMetadataSet($hostedSpId,"clave-sp-hosted");
-SimpleSAML_Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true));
+SimpleSAML\Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true));
 
 
 

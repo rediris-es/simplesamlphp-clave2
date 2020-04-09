@@ -7,7 +7,7 @@
 
 //Hosted IdP config
 $claveConfig = sspmod_clave_Tools::getMetadataSet("__DYNAMIC:1__","clave-idp-hosted");
-SimpleSAML_Logger::debug('Clave Idp hosted metadata: '.print_r($claveConfig,true));
+SimpleSAML\Logger::debug('Clave Idp hosted metadata: '.print_r($claveConfig,true));
 
 
 //Hosted SP config
@@ -15,7 +15,7 @@ $hostedSP = $claveConfig->getString('hostedSP', NULL);
 if($hostedSP == NULL)
     throw new SimpleSAML_Error_Exception("No clave hosted SP configuration defined in clave bridge configuration.");
 $claveSP = sspmod_clave_Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
-SimpleSAML_Logger::debug('Clave SP hosted metadata: '.print_r($claveSP,true));
+SimpleSAML\Logger::debug('Clave SP hosted metadata: '.print_r($claveSP,true));
 
 
 //Get the list of countries

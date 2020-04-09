@@ -1244,7 +1244,7 @@ class sspmod_clave_SPlib {
         $this->fail(__FUNCTION__, self::ERR_EMPTY_CERT);
     
     $certPem = $cert;
-    //    SimpleSAML_Logger::debug("********** cert  at the beginning: ".$certPem);
+    //    SimpleSAML\Logger::debug("********** cert  at the beginning: ".$certPem);
     // We check it is a valid X509 certificate
 //    try{
 //      @openssl_x509_read($certPem) or $this->fail(__FUNCTION__, self::ERR_X509_CERT_READ);
@@ -1257,9 +1257,9 @@ class sspmod_clave_SPlib {
               "-----BEGIN CERTIFICATE-----\n"
               . chunk_split($certPem,64,"\n")
               . "-----END CERTIFICATE-----\n";
-          //SimpleSAML_Logger::debug("********** cert with headers?: ".$certPem);
+          //SimpleSAML\Logger::debug("********** cert with headers?: ".$certPem);
       }
-      //SimpleSAML_Logger::debug("********** cert at the end: ".$certPem);
+      //SimpleSAML\Logger::debug("********** cert at the end: ".$certPem);
       @openssl_x509_read($certPem) or $this->fail(__FUNCTION__, self::ERR_X509_CERT_READ);
       
       return $certPem;
