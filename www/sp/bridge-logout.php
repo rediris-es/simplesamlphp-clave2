@@ -148,4 +148,4 @@ SimpleSAML\Stats::log('saml:idp:LogoutResponse:sent', array(
 $post = array(
     'samlResponseLogout'  => base64_encode($spResponse),
 );
-SimpleSAML_Utilities::postRedirect($destination, $post);
+SimpleSAML\Utils\HTTP::submitPOSTData($destination, $post);

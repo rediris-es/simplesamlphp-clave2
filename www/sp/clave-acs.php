@@ -15,8 +15,8 @@ if (isset($_POST['samlResponseLogout'])){
     
     SimpleSAML\Logger::info('eIDAS - SP.ACS: Accessing SAML 2.0 - eIDAS SP Assertion Consumer Service -- CALLED FOR SLO');
     
-    SimpleSAML_Utilities::postRedirect(SimpleSAML_Module::getModuleURL('clave/sp/bridge-logout.php'), $_POST);
-    //header('Location: '.SimpleSAML_Module::getModuleURL('clave/sp/bridge-logout.php'));
+    SimpleSAML\Utils\HTTP::submitPOSTData(SimpleSAML\Module::getModuleURL('clave/sp/bridge-logout.php'), $_POST);
+    //header('Location: '.SimpleSAML\Module::getModuleURL('clave/sp/bridge-logout.php'));
     die();
 }
 

@@ -9,6 +9,6 @@
 
 SimpleSAML\Logger::info('Call to Clave bridge IdP side [old endpoint]');
 
-SimpleSAML_Utilities::postRedirect(SimpleSAML_Module::getModuleURL('clave/idp/SSOService.php'), $_POST);
-//header('Location: '.SimpleSAML_Module::getModuleURL('clave/idp/SSOService.php'));
+SimpleSAML\Utils\HTTP::submitPOSTData(SimpleSAML\Module::getModuleURL('clave/idp/SSOService.php'), $_POST);
+//header('Location: '.SimpleSAML\Module::getModuleURL('clave/idp/SSOService.php'));
 die();

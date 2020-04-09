@@ -35,10 +35,10 @@ SimpleSAML\Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true
 
 
 //Obtain the full URL of this same page
-$metadataUrl = SimpleSAML_Module::getModuleURL('clave/sp/metadata.php/'.$pathInfoStr);
+$metadataUrl = SimpleSAML\Module::getModuleURL('clave/sp/metadata.php/'.$pathInfoStr);
 
 //Get the ACS url
-$returnPage = SimpleSAML_Module::getModuleURL('clave/sp/'.$acsID.'-acs.php/'.$authSource);
+$returnPage = SimpleSAML\Module::getModuleURL('clave/sp/'.$acsID.'-acs.php/'.$authSource);
 
 //Get the signing certificate and key
 $spcertpem = sspmod_clave_Tools::readCertKeyFile($hostedSPmeta->getString('certificate', NULL));

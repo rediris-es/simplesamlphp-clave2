@@ -15,10 +15,10 @@ SimpleSAML\Logger::debug('Clave Idp hosted metadata: '.print_r($claveConfig,true
 
 
 //Obtain the full URL of this same page
-$metadataUrl = SimpleSAML_Module::getModuleURL('clave/idp/metadata.php');
+$metadataUrl = SimpleSAML\Module::getModuleURL('clave/idp/metadata.php');
 
 //Get the SSO url
-$ssoserviceurl = SimpleSAML_Module::getModuleURL('clave/idp/clave-bridge.php');
+$ssoserviceurl = SimpleSAML\Module::getModuleURL('clave/idp/clave-bridge.php');
 
 //Get the signing certificate and key
 $idpcertpem = sspmod_clave_Tools::readCertKeyFile($claveConfig->getString('certificate', NULL));

@@ -25,7 +25,7 @@ $countries = $claveSP->getArray('countries', array());
 
 
 //$spEntityId    = $_GET['entityID']; //Hosted SP entity ID
-$returnURL     = \SimpleSAML\Utils\HTTP::checkURLAllowed($_GET['return']);
+$returnURL     = SimpleSAML\Utils\HTTP::checkURLAllowed($_GET['return']);
 //$returnIdParam = $_GET['returnIDParam'];
 $returnIdParam = "country";
 
@@ -34,7 +34,7 @@ foreach($countries as $countryCode => $countryName)
     $countryLines .= '<option value="'.$countryCode.'">'.$countryName.'</option>';
 
 
-$page =  '<html>'
+$page =  '<html lang="es">'
     .'  <body>'
     .'    <form action="'.$returnURL.'" method="POST">'
     .'      Seleccione su país de orígen:<br/>'
@@ -46,8 +46,8 @@ $page =  '<html>'
     .'      <br/>'
     .'      <input type="submit" value="Continuar">'
     .'    </form>'
-    .'  <body>'
-    .'<html>';
+    .'  </body>'
+    .'</html>';
 
 
 echo $page;

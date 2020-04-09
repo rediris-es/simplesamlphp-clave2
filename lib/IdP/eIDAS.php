@@ -16,12 +16,12 @@ class sspmod_clave_IdP_eIDAS
 {
 
 
-
-
     /**
      * Send a response to the SP.
      *
      * @param array $state The authentication state.
+     * @throws \SimpleSAML\Error\Exception
+     * @throws Exception
      */
     public static function sendResponse(array $state)
     {
@@ -34,7 +34,7 @@ class sspmod_clave_IdP_eIDAS
         
         
         //Get the remote SP metadata
-        $spMetadata  = SimpleSAML_Configuration::loadFromArray($state['SPMetadata']);
+        $spMetadata  = SimpleSAML\Configuration::loadFromArray($state['SPMetadata']);
         $spEntityId = $spMetadata->getString('entityid',NULL);
         SimpleSAML\Logger::debug('eIDAS SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
         
@@ -125,7 +125,7 @@ class sspmod_clave_IdP_eIDAS
         
         
         //Obtain the full URL of the IdP Metadata page
-        $metadataUrl = SimpleSAML_Module::getModuleURL('clave/idp/metadata.php');
+        $metadataUrl = SimpleSAML\Module::getModuleURL('clave/idp/metadata.php');
         
 
         //Set the list of POST params to forward from the remote IDP response, if any
@@ -307,17 +307,17 @@ class sspmod_clave_IdP_eIDAS
         if($relayState != NULL)
             $post['RelayState'] = $relayState;
         
-        SimpleSAML_Utilities::postRedirect($acs, $post);
+        SimpleSAML\Utils\HTTP::submitPOSTData($acs, $post);
     }
-    
-    
-    
+
+
     /**
      * Handle authentication error.
      *
      * SimpleSAML\Error\Exception $exception  The exception.
      *
      * @param array $state The error state.
+     * @throws Exception
      */
     public static function handleAuthError(SimpleSAML\Error\Exception $exception, array $state)
     {
@@ -329,7 +329,7 @@ class sspmod_clave_IdP_eIDAS
         
         
         //Get the remote SP metadata
-        $spMetadata  = SimpleSAML_Configuration::loadFromArray($state['SPMetadata']);
+        $spMetadata  = SimpleSAML\Configuration::loadFromArray($state['SPMetadata']);
         $spEntityId = $spMetadata->getString('entityid',NULL);
         SimpleSAML\Logger::debug('eIDAS SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
         
@@ -353,7 +353,7 @@ class sspmod_clave_IdP_eIDAS
         
         
         
-        $error = sspmod_saml_Error::fromException($exception);
+        $error = SimpleSAML\Error\Exception::fromException($exception);
         
         SimpleSAML\Logger::warning("Returning error to SP with entity ID '".var_export($spEntityId, true)."'.");
         $exception->log(SimpleSAML\Logger::WARNING);
@@ -380,26 +380,26 @@ class sspmod_clave_IdP_eIDAS
         }
         SimpleSAML\Stats::log('saml:idp:Response:error', $statsData);
 
-        $binding = \SAML2\Binding::getBinding($protocolBinding);
+        $binding = SAML2\Binding::getBinding($protocolBinding);
         $binding->send($ar);
         
         
     }
-    
-    
-    
+
+
     /**
      * Build a authentication response based on information in the metadata.
      *
-     * @param SimpleSAML_Configuration $idpMetadata The metadata of the IdP.
-     * @param SimpleSAML_Configuration $spMetadata The metadata of the SP.
-     * @param string                   $consumerURL The Destination URL of the response.
+     * @param SimpleSAML\Configuration $idpMetadata The metadata of the IdP.
+     * @param SimpleSAML\Configuration $spMetadata The metadata of the SP.
+     * @param string $consumerURL The Destination URL of the response.
      *
-     * @return \SAML2\Response The SAML2 response corresponding to the given data.
+     * @return SAML2\Response The SAML2 response corresponding to the given data.
+     * @throws Exception
      */
     private static function buildResponse(
-        SimpleSAML_Configuration $idpMetadata,
-        SimpleSAML_Configuration $spMetadata,
+        SimpleSAML\Configuration $idpMetadata,
+        SimpleSAML\Configuration $spMetadata,
         $consumerURL
     ) {
 
@@ -408,13 +408,13 @@ class sspmod_clave_IdP_eIDAS
             $signResponse = $idpMetadata->getBoolean('saml20.sign.response', true);
         }
 
-        $r = new \SAML2\Response();
+        $r = new SAML2\Response();
 
         $r->setIssuer($idpMetadata->getString('entityID'));  // TODO: quizá deba cambiar esto para que se devuelva el de la respuesta original. O hacerlo dialect-specific. Decidir
         $r->setDestination($consumerURL);
 
         if ($signResponse) {
-            sspmod_saml_Message::addSign($idpMetadata, $spMetadata, $r);
+            SimpleSAML\Module\saml\Message::addSign($idpMetadata, $spMetadata, $r);
         }
 
         return $r;

@@ -38,7 +38,7 @@ $keyPath  = $hostedSPmeta->getString('privatekey', NULL);
 $endpoint = $idpMeta->getString('SingleLogoutService', NULL);
 
 //Calculate return page for the new request
-$returnPage = SimpleSAML_Module::getModuleURL('clave/sp/bridge-logout.php/');
+$returnPage = SimpleSAML\Module::getModuleURL('clave/sp/bridge-logout.php/');
 
 
 if($providerName == NULL)
@@ -102,7 +102,7 @@ if ($IdPdialect === 'eidas')
 //smash it
 if ($IdPdialect === 'eidas'){
     //Calculate return page for the new request in clave 2, which is SSO ACM
-    $returnPage = SimpleSAML_Module::getModuleURL('clave/sp/clave-acs.php/'.$claveConfig->getString('auth','')); // TODO: works?
+    $returnPage = SimpleSAML\Module::getModuleURL('clave/sp/clave-acs.php/'.$claveConfig->getString('auth','')); // TODO: works?
 
 }
 
@@ -190,7 +190,7 @@ if($endpoint == NULL){
     $post = array(
         'samlResponseLogout'  => base64_encode($spResponse),
     );
-    SimpleSAML_Utilities::postRedirect($destination, $post);
+    SimpleSAML\Utils\HTTP::submitPOSTData($destination, $post);
 }
 
 
@@ -255,7 +255,7 @@ SimpleSAML\Logger::debug("post: ".print_r($post, true));
 
 
 //Redirecting to Clave IdP (Only HTTP-POST binding supported)
-SimpleSAML_Utilities::postRedirect($endpoint, $post);
+SimpleSAML\Utils\HTTP::submitPOSTData($endpoint, $post);
 
 
 assert(false);
