@@ -18,7 +18,7 @@ if (!array_key_exists('country', $_REQUEST)) {
 
 
 //Get the auth process state left when we jumped to the Country Selector
-$state = SimpleSAML_Auth_State::loadState($_REQUEST['AuthID'], 'clave:sp:sso');
+$state = SimpleSAML\Auth\State::loadState($_REQUEST['AuthID'], 'clave:sp:sso');
 
 // Find authentication source ID in state (set on the AuthSource 'authenticate' call)
 assert('array_key_exists("clave:sp:AuthId", $state)');
@@ -31,12 +31,12 @@ $idpEntityId = $state['clave:sp:idpEntityID'];
 
 
 //Instantiate the AuthSource
-$source = SimpleSAML_Auth_Source::getById($sourceId);
+$source = SimpleSAML\Auth\Source::getById($sourceId);
 if ($source === NULL) {
 	throw new Exception('Could not find authentication source with id ' . $sourceId);
 }
 if (!($source instanceof sspmod_clave_Auth_Source_SP)) {
-	throw new SimpleSAML_Error_Exception("Source -$sourceId- type (sspmod_clave_Auth_Source_SP) changed?");
+	throw new SimpleSAML\Error\Exception("Source -$sourceId- type (sspmod_clave_Auth_Source_SP) changed?");
 }
 
 

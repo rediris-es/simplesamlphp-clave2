@@ -84,7 +84,7 @@ class sspmod_clave_IdP_eIDAS
         $hiCertPath = $idpMetadata->getString('certificate', NULL);
         $hiKeyPath  = $idpMetadata->getString('privatekey', NULL);       
         if($hiCertPath == NULL || $hiKeyPath == NULL)
-            throw new SimpleSAML_Error_Exception("'certificate' and/or 'privatekey' parameters not defined in eIDAS hosted IdP Metadata.");
+            throw new SimpleSAML\Error\Exception("'certificate' and/or 'privatekey' parameters not defined in eIDAS hosted IdP Metadata.");
         
         $hikeypem  = sspmod_clave_Tools::readCertKeyFile($hiKeyPath);
         $hicertpem = sspmod_clave_Tools::readCertKeyFile($hiCertPath);
@@ -120,7 +120,7 @@ class sspmod_clave_IdP_eIDAS
             $acs = $spMetadata->getArray('AssertionConsumerService',array(['Location' => ""]))[0]['Location'];
         
         if($acs === NULL || $acs == "")
-            throw new SimpleSAML_Error_Exception("Assertion Consumer Service URL not found on the request nor metadata for the entity: $spEntityId.");
+            throw new SimpleSAML\Error\Exception("Assertion Consumer Service URL not found on the request nor metadata for the entity: $spEntityId.");
         
         
         
@@ -315,11 +315,11 @@ class sspmod_clave_IdP_eIDAS
     /**
      * Handle authentication error.
      *
-     * SimpleSAML_Error_Exception $exception  The exception.
+     * SimpleSAML\Error\Exception $exception  The exception.
      *
      * @param array $state The error state.
      */
-    public static function handleAuthError(SimpleSAML_Error_Exception $exception, array $state)
+    public static function handleAuthError(SimpleSAML\Error\Exception $exception, array $state)
     {
         assert('isset($state["SPMetadata"])');
         assert('isset($state["saml:ConsumerURL"])');

@@ -1,6 +1,6 @@
 <?php
  
-class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
+class sspmod_clave_Auth_Source_SP extends SimpleSAML\Auth\Source {
   
   
     private static $mandatoryConfigParams = array('providerName','entityid','QAA',
@@ -115,7 +115,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         //Get the hosted sp metadata
         $spConfId = $this->metadata->getString('hostedSP', NULL);
         if($spConfId == NULL)
-            throw new SimpleSAML_Error_Exception("hostedSP field not defined for eIDAS auth source.");
+            throw new SimpleSAML\Error\Exception("hostedSP field not defined for eIDAS auth source.");
         $this->spMetadata = sspmod_clave_Tools::getMetadataSet($spConfId,"clave-sp-hosted");
         SimpleSAML\Logger::debug('eIDAS SP hosted metadata: '.print_r($this->spMetadata,true));
         
@@ -123,7 +123,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         //Get the remote idp metadata
         $idpEntityId = $this->spMetadata->getString('idpEntityID', NULL);
         if($idpEntityId == NULL)
-            throw new SimpleSAML_Error_Exception("idpEntityID field not defined for eIDAS auth source.");
+            throw new SimpleSAML\Error\Exception("idpEntityID field not defined for eIDAS auth source.");
         $this->idpMetadata = sspmod_clave_Tools::getMetadataSet($idpEntityId,"clave-idp-remote");
         SimpleSAML\Logger::debug('eIDAS IDP remote metadata ('.$idpEntityId.'): '.print_r($this->idpMetadata,true));
         
@@ -137,7 +137,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
             if ($value == NULL)
                 $value = $this->idpMetadata->getValue($mandParam, NULL);
             if ($value == NULL)
-                throw new SimpleSAML_Error_Exception("$mandParam field not defined for eIDAS auth source."); 
+                throw new SimpleSAML\Error\Exception("$mandParam field not defined for eIDAS auth source.");
         }
         
         
@@ -236,7 +236,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         
         
         //Show country selector
-		$id = SimpleSAML_Auth_State::saveState($state, 'clave:sp:sso');
+		$id = SimpleSAML\Auth\State::saveState($state, 'clave:sp:sso');
         
 		$config = SimpleSAML_Configuration::getInstance();
 
@@ -637,7 +637,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         //   $state['clave:sp:reqTime']        = $eidas->getRequestTimestamp();
         $state['clave:sp:returnPage']     = $returnPage;
         $state['clave:sp:mandatoryAttrs'] = $mandatory;
-        $id = SimpleSAML_Auth_State::saveState($state, 'clave:sp:req', true);
+        $id = SimpleSAML\Auth\State::saveState($state, 'clave:sp:req', true);
         SimpleSAML\Logger::debug("Generated Req ID: ".$id);
         
         
@@ -706,14 +706,14 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
 		if (isset($state['saml:sp:SessionIndex'])) {
 			$authProcState['saml:sp:SessionIndex'] = $state['saml:sp:SessionIndex'];
 		}
-        $pc = new SimpleSAML_Auth_ProcessingChain($idpMetadataArray, $spMetadataArray, 'sp');
+        $pc = new SimpleSAML\Auth\ProcessingChain($idpMetadataArray, $spMetadataArray, 'sp');
 		$pc->processState($authProcState);
         
 		self::onProcessingCompleted($authProcState);
         
         //$state['Attributes'] = $attributes;
         //Return control to the hosted IDP
-        //SimpleSAML_Auth_Source::completeAuth($state);
+        //SimpleSAML\Auth\Source::completeAuth($state);
     }
 
 
@@ -732,7 +732,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
 		$state = $authProcState['saml:sp:State'];
         
 		$sourceId = $state['clave:sp:AuthId'];
-		$source = SimpleSAML_Auth_Source::getById($sourceId);
+		$source = SimpleSAML\Auth\Source::getById($sourceId);
 		if ($source === NULL) {
 			throw new Exception('Could not find authentication source with id ' . $sourceId);
 		}
@@ -751,7 +751,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
 			self::handleUnsolicitedAuth($sourceId, $state, $redirectTo);
 		}
         
-		SimpleSAML_Auth_Source::completeAuth($state);
+		SimpleSAML\Auth\Source::completeAuth($state);
 	}
 
     
@@ -910,7 +910,7 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML_Auth_Source {
         
         //Save information needed for the comeback
         $state['clave:sp:slo:returnPage'] = $returnPage;
-        $id = SimpleSAML_Auth_State::saveState($state, 'clave:sp:slo:req', true);
+        $id = SimpleSAML\Auth\State::saveState($state, 'clave:sp:slo:req', true);
         SimpleSAML\Logger::debug("Generated Req ID: ".$id);
         
         

@@ -161,8 +161,8 @@ $state = array(
 
     //Standard by SSPHP    
     'Responder'                                   => array('sspmod_clave_IdP_eIDAS', 'sendResponse'), //The callback to send the response for this request
-    SimpleSAML_Auth_State::EXCEPTION_HANDLER_FUNC => array('sspmod_clave_IdP_eIDAS', 'handleAuthError'),
-    SimpleSAML_Auth_State::RESTART                => SimpleSAML\Utils\HTTP::getSelfURLNoQuery(),
+    SimpleSAML\Auth\State::EXCEPTION_HANDLER_FUNC => array('sspmod_clave_IdP_eIDAS', 'handleAuthError'),
+    SimpleSAML\Auth\State::RESTART                => SimpleSAML\Utils\HTTP::getSelfURLNoQuery(),
 
     'SPMetadata'                  => $spMetadata->toArray(),
     'saml:RelayState'             => $relayState,
@@ -204,7 +204,7 @@ assert('FALSE');
 
 //************** Jump to the authSource (wrapped in Simple and defined in idp metadata): *****************
 //Simple-> login (define  $state['ReturnCallback'] as PostAuth)
-//authsource->initLogin ($state['ReturnCallback'] as PostAuth is passed and stored as $state['SimpleSAML_Auth_Source.Return'])
+//authsource->initLogin ($state['ReturnCallback'] as PostAuth is passed and stored as $state['SimpleSAML\Auth\Source.Return'])
 //authsource->authenticate : implemented by (instance)
 //authsource(instance)-> startSSO
 //%%%%%% jump to remote IDP
@@ -214,7 +214,7 @@ assert('FALSE');
 //authsource(instance)->onProcessingCompleted (autocallback)
 //authsource->completeAuth
 //authsource calls the callback defined in  $state['LoginCompletedHandler']: which is authsource->loginCompleted ; (defined in: authsource->initLogin).
-//authsource->loginCompleted: calls the callback or redirect URL in SimpleSAML_Auth_Source.Return. (This callback was defined in initLogin, passed as param, and its value is PostAuth)
+//authsource->loginCompleted: calls the callback or redirect URL in SimpleSAML\Auth\Source.Return. (This callback was defined in initLogin, passed as param, and its value is PostAuth)
 
 //******** Back to the IdP impl *********
 //idp-->postAuth($state); executes filters and calls PostAuthProc.

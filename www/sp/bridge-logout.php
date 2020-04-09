@@ -13,14 +13,14 @@ SimpleSAML\Logger::debug('Clave Idp hosted metadata: '.print_r($claveConfig,true
 //Remote IdP metadata (Which clave IdP to connect to)
 $idpEntityId = $claveConfig->getString('claveIdP', NULL);
 if($idpEntityId == NULL)
-    throw new SimpleSAML_Error_Exception("No clave IdP configuration defined in clave bridge configuration.");
+    throw new SimpleSAML\Error\Exception("No clave IdP configuration defined in clave bridge configuration.");
 $idpMetadata = sspmod_clave_Tools::getMetadataSet($idpEntityId,"clave-idp-remote");
 
 
 //Hosted SP config
 $hostedSP = $claveConfig->getString('hostedSP', NULL);
 if($hostedSP == NULL)
-    throw new SimpleSAML_Error_Exception("No clave hosted SP configuration defined in clave auth source configuration.");
+    throw new SimpleSAML\Error\Exception("No clave hosted SP configuration defined in clave auth source configuration.");
 $hostedSPmeta = sspmod_clave_Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
 SimpleSAML\Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true));
 
@@ -38,7 +38,7 @@ $keyPath  = $claveConfig->getString('privatekey', NULL);
 $spcertpem = sspmod_clave_Tools::readCertKeyFile($certPath);
 $spkeypem  = sspmod_clave_Tools::readCertKeyFile($keyPath);
 if($certPath == NULL || $keyPath == NULL)
-    throw new SimpleSAML_Error_Exception("No clave SSO response signing certificate or key defined for the IdP interface in clave bridge configuration.");
+    throw new SimpleSAML\Error\Exception("No clave SSO response signing certificate or key defined for the IdP interface in clave bridge configuration.");
 
 
 //Response generation parameters
@@ -65,7 +65,7 @@ $id = $claveSP->getInResponseToFromReq($resp);
 
 
 //Load state we stored for the request associated with this response
-$state = SimpleSAML_Auth_State::loadState($id, 'clave:bridge:slo:req');
+$state = SimpleSAML\Auth\State::loadState($id, 'clave:bridge:slo:req');
 SimpleSAML\Logger::debug('State on slo-return:'.print_r($state,true));
 
 

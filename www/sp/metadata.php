@@ -24,11 +24,11 @@ if (count($pathInfo) >= 3)
     $authSource = $pathInfo[2];
 
 if ($acsID === NULL || $acsID === "")
-    throw new SimpleSAML_Error_Exception("No eIDAS ACS ID provided on the url path info.");
+    throw new SimpleSAML\Error\Exception("No eIDAS ACS ID provided on the url path info.");
 
 //Read the hosted sp metadata
 if($hostedSpId === NULL || $hostedSpId === "")
-    throw new SimpleSAML_Error_Exception("No eIDAS hosted SP ID provided on the url path info.");
+    throw new SimpleSAML\Error\Exception("No eIDAS hosted SP ID provided on the url path info.");
 $hostedSPmeta = sspmod_clave_Tools::getMetadataSet($hostedSpId,"clave-sp-hosted");
 SimpleSAML\Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true));
 

@@ -34,7 +34,7 @@ if (!array_key_exists('PATH_INFO', $_SERVER)) {
     throw new SimpleSAML_Error_BadRequest('Missing authentication source ID in assertion consumer service URL');
 }
 $sourceId = substr($_SERVER['PATH_INFO'], 1);
-$source = SimpleSAML_Auth_Source::getById($sourceId, 'sspmod_clave_Auth_Source_SP');
+$source = SimpleSAML\Auth\Source::getById($sourceId, 'sspmod_clave_Auth_Source_SP');
 
 
 //Get the AuthSource config
@@ -45,7 +45,7 @@ SimpleSAML\Logger::debug('Metadata on acs:'.print_r($metadata,true));
 //Get the hosted SP metadata
 $hostedSP = $metadata->getString('hostedSP', NULL);
 if($hostedSP == NULL)
-    throw new SimpleSAML_Error_Exception("'hosted SP' parameter not found in $sourceId Auth Source configuration.");
+    throw new SimpleSAML\Error\Exception("'hosted SP' parameter not found in $sourceId Auth Source configuration.");
 $spMetadata = sspmod_clave_Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
 SimpleSAML\Logger::debug('Clave SP hosted metadata: '.print_r($spMetadata,true));
 
@@ -91,7 +91,7 @@ $id = $eidas->getInResponseToFromReq($resp);
 
 
 //Load the stored state associated with this request
-$state = SimpleSAML_Auth_State::loadState($id, 'clave:sp:req');
+$state = SimpleSAML\Auth\State::loadState($id, 'clave:sp:req');
 SimpleSAML\Logger::debug('State on ACS:'.print_r($state,true));
 
 
@@ -100,7 +100,7 @@ SimpleSAML\Logger::debug('State on ACS:'.print_r($state,true));
 //state associated to the request
 assert('array_key_exists("clave:sp:AuthId", $state)');
 if ($state['clave:sp:AuthId'] !== $sourceId) {
-    throw new SimpleSAML_Error_Exception(
+    throw new SimpleSAML\Error\Exception(
         'The authentication source id in the URL does not match the authentication source which sent the request '//.' !== '.$sourceId.print_r($state,true)//.'
     );
 }
@@ -308,12 +308,12 @@ SimpleSAML_Stats::log('clave:sp:Response:error', $statsData);
 
 
 //Forward the Clave IdP error to our remote SP.
-//SimpleSAML_Auth_State::throwException($state,
+//SimpleSAML\Auth\State::throwException($state,
 //                                      new sspmod_saml_Error($statusInfo['MainStatusCode'],
 //                                                            $statusInfo['SecondaryStatusCode'],
 //                                                            $statusInfo['StatusMessage']));
-SimpleSAML_Auth_State::throwException($state,
-                                      new SimpleSAML_Error_Exception("IdP returned failed status: ".$statusInfo['StatusMessage']));
+SimpleSAML\Auth\State::throwException($state,
+                                      new SimpleSAML\Error\Exception("IdP returned failed status: ".$statusInfo['StatusMessage']));
 
 
 assert('FALSE');

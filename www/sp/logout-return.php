@@ -10,7 +10,7 @@ SimpleSAML\Logger::info('Call to Clave auth source logout-comeback');
 
 // Get the Id of the authsource
 $sourceId = substr($_SERVER['PATH_INFO'], 1);
-$source = SimpleSAML_Auth_Source::getById($sourceId, 'sspmod_clave_Auth_Source_SP');
+$source = SimpleSAML\Auth\Source::getById($sourceId, 'sspmod_clave_Auth_Source_SP');
 
 //Get the metadata for the soliciting SP
 $spMetadata = $source->getMetadata();
@@ -20,7 +20,7 @@ SimpleSAML\Logger::debug('Metadata on acs:'.print_r($spMetadata,true));
 //Hosted SP config
 $hostedSP = $spMetadata->getString('hostedSP', NULL);
 if($hostedSP == NULL)
-    throw new SimpleSAML_Error_Exception("No clave hosted SP configuration defined in clave auth source configuration.");
+    throw new SimpleSAML\Error\Exception("No clave hosted SP configuration defined in clave auth source configuration.");
 $hostedSPmeta = sspmod_clave_Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
 SimpleSAML\Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true));
 
@@ -42,7 +42,7 @@ $clave = new sspmod_clave_SPlib();
 $id = $clave->getInResponseToFromReq($resp);
 
 
-$state = SimpleSAML_Auth_State::loadState($id, 'clave:sp:slo:req');
+$state = SimpleSAML\Auth\State::loadState($id, 'clave:sp:slo:req');
 SimpleSAML\Logger::debug('State on logout-return:'.print_r($state,true));
 
 
@@ -111,7 +111,7 @@ SimpleSAML_Stats::log('saml:idp:LogoutResponse:recv', $statsData);
 
 
 $state['saml:sp:LogoutStatus'] = $clave->getResponseStatus();
-SimpleSAML_Auth_Source::completeLogout($state);
+SimpleSAML\Auth\Source::completeLogout($state);
 
 
 

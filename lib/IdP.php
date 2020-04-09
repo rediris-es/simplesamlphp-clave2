@@ -68,14 +68,15 @@ class sspmod_clave_IdP
     {
         return $this->config;
     }
-    
-    
+
+
     /**
      * Retrieve an IdP by ID.
      *
      * @param string $id The identifier of the IdP.
      *
      * @return sspmod_clave_IdP
+     * @throws Exception
      */
     public static function getById($id)
     {
@@ -97,6 +98,7 @@ class sspmod_clave_IdP
      * @param array &$state The state array.
      *
      * @return sspmod_clave_IdP
+     * @throws Exception
      */
     public static function getByState(array &$state)
     {
@@ -140,23 +142,22 @@ class sspmod_clave_IdP
         
         //Get the associated AuthSource (as defined in config, and wrapped in the Simple auth class)
         $auth = $this->config->getString('auth');
-        if (SimpleSAML_Auth_Source::getById($auth) !== null) {
-            $this->authSource = new SimpleSAML_Auth_Simple($auth);
+        if (SimpleSAML\Auth\Source::getById($auth) !== null) {
+            $this->authSource = new SimpleSAML\Auth\Simple($auth);
         } else {
-            throw new SimpleSAML_Error_Exception('No such "'.$auth.'" auth source found.');
+            throw new SimpleSAML\Error\Exception('No such "'.$auth.'" auth source found.');
         }
         
     }
-    
 
 
-    
     /**
      * Process authentication requests. Same implementation as
      * base. but need to override as the callback has the base class
      * hardcoded instead of getting the actual instance classname   // TODO: file an issue on this to ssp
      *
      * @param array &$state The authentication request state.
+     * @throws \SimpleSAML\Error\Exception
      */
     public function handleAuthenticationRequest(array &$state)
     {
@@ -196,32 +197,32 @@ class sspmod_clave_IdP
                 $this->reauthenticate($state);
             }
             $this->postAuth($state);
-        } catch (SimpleSAML_Error_Exception $e) {
-            SimpleSAML_Auth_State::throwException($state, $e);
+        } catch (SimpleSAML\Error\Exception $e) {
+            SimpleSAML\Auth\State::throwException($state, $e);
         } catch (Exception $e) {
-            $e = new SimpleSAML_Error_UnserializableException($e);
-            SimpleSAML_Auth_State::throwException($state, $e);
+            $e = new SimpleSAML\Error\UnserializableException($e);
+            SimpleSAML\Auth\State::throwException($state, $e);
         }
     }
-
 
 
     /**
      * Called after authproc has run.
      *
      * @param array $state The authentication request state array.
+     * @throws Exception
      */
     public static function postAuthProc(array $state)
     {
         assert('is_callable($state["Responder"])');
 
         if (isset($state['core:SP'])) {
-            $session = SimpleSAML_Session::getSessionFromRequest();
+            $session = SimpleSAML\Session::getSessionFromRequest();
             $session->setData(
                 'core:idp-ssotime',
                 $state['core:IdP'].';'.$state['core:SP'],
                 time(),
-                SimpleSAML_Session::DATA_TIMEOUT_SESSION_END
+                SimpleSAML\Session::DATA_TIMEOUT_SESSION_END
             );
         }
 
@@ -235,14 +236,15 @@ class sspmod_clave_IdP
      *
      * @param array $state The authentication request state array.
      *
-     * @throws SimpleSAML_Error_Exception If we are not authenticated.
+     * @throws SimpleSAML\Error\Exception If we are not authenticated.
+     * @throws Exception
      */
     public static function postAuth(array $state)
     {
         $idp = sspmod_clave_IdP::getByState($state);   // TODO: when sure it's working, switch for self::. Also, try to change it on the ssp code to see if my patch would work
 
         if (!$idp->isAuthenticated()) {
-            throw new SimpleSAML_Error_Exception('Not authenticated.');
+            throw new SimpleSAML\Error\Exception('Not authenticated.');
         }
 
         $state['Attributes'] = $idp->authSource->getAttributes();
@@ -254,7 +256,7 @@ class sspmod_clave_IdP
         }
 
         if (isset($state['core:SP'])) {
-            $session = SimpleSAML_Session::getSessionFromRequest();
+            $session = SimpleSAML\Session::getSessionFromRequest();
             $previousSSOTime = $session->getData('core:idp-ssotime', $state['core:IdP'].';'.$state['core:SP']);
             if ($previousSSOTime !== null) {
                 $state['PreviousSSOTimestamp'] = $previousSSOTime;
@@ -263,7 +265,7 @@ class sspmod_clave_IdP
 
         $idpMetadata = $idp->getConfig()->toArray();
 
-        $pc = new SimpleSAML_Auth_ProcessingChain($idpMetadata, $spMetadata, 'idp');
+        $pc = new SimpleSAML\Auth\ProcessingChain($idpMetadata, $spMetadata, 'idp');
 
         $state['ReturnCall'] = array('sspmod_clave_IdP', 'postAuthProc'); // TODO: when sure it's working, switch for get_class(). Also, try to change it on the ssp code to see if my patch would work
         $state['Destination'] = $spMetadata;
@@ -284,12 +286,13 @@ class sspmod_clave_IdP
      *
      * @param array &$state The authentication request state.
      *
-     * @throws SimpleSAML_Error_NoPassive If we were asked to do passive authentication.
+     * If we were asked to do passive authentication.
+     * @throws SimpleSAML\Error\NoPassive
      */
     private function authenticate(array &$state)
     {
         if (isset($state['isPassive']) && (bool) $state['isPassive']) {
-            throw new SimpleSAML_Error_NoPassive('Passive authentication not supported.');
+            throw new SimpleSAML\Error\NoPassive('Passive authentication not supported.');
         }
         SimpleSAML\Logger::debug('------------------STATE at idp.authenticate: '.print_r($state,true));
         $this->authSource->login($state);
@@ -308,13 +311,13 @@ class sspmod_clave_IdP
      *
      * @param array &$state The authentication request state.
      *
-     * @throws SimpleSAML_Error_Exception If there is no auth source defined for this IdP.
+     * @throws SimpleSAML\Error\Exception If there is no auth source defined for this IdP.
      */
     private function reauthenticate(array &$state)
     {
         $sourceImpl = $this->authSource->getAuthSource();
         if ($sourceImpl === null) {
-            throw new SimpleSAML_Error_Exception('No such auth source defined.');
+            throw new SimpleSAML\Error\Exception('No such auth source defined.');
         }
 
         $sourceImpl->reauthenticate($state);
@@ -338,24 +341,25 @@ class sspmod_clave_IdP
      *
      * @return \SimpleSAML\IdP\LogoutHandlerInterface The logout handler class.
      *
-     * @throws SimpleSAML_Error_Exception If we cannot find a logout handler.
+     * @throws SimpleSAML\Error\Exception If we cannot find a logout handler.
      */
     public function getLogoutHandler()
     {
-        throw new SimpleSAML_Error_Exception('Logout not supported in eIDAS.');
+        throw new SimpleSAML\Error\Exception('Logout not supported in eIDAS.');
     }
-    
-    
+
+
     /**
      * Finish the logout operation.
      *
      * This function will never return.
      *
      * @param array &$state The logout request state.
+     * @throws \SimpleSAML\Error\Exception
      */
     public function finishLogout(array &$state)
     {
-        throw new SimpleSAML_Error_Exception('Logout not supported in eIDAS.');
+        throw new SimpleSAML\Error\Exception('Logout not supported in eIDAS.');
     }
 
 
@@ -367,10 +371,11 @@ class sspmod_clave_IdP
      * @param array       &$state The logout request state.
      * @param string|null $assocId The association we received the logout request from, or null if there was no
      * association.
+     * @throws \SimpleSAML\Error\Exception
      */
     public function handleLogoutRequest(array &$state, $assocId)
     {
-        throw new SimpleSAML_Error_Exception('Logout not supported in eIDAS.');
+        throw new SimpleSAML\Error\Exception('Logout not supported in eIDAS.');
     }
 
 
@@ -379,13 +384,14 @@ class sspmod_clave_IdP
      *
      * This function will never return.
      *
-     * @param string                          $assocId The association that is terminated.
-     * @param string|null                     $relayState The RelayState from the start of the logout.
-     * @param SimpleSAML_Error_Exception|null $error The error that occurred during session termination (if any).
+     * @param string $assocId The association that is terminated.
+     * @param string|null $relayState The RelayState from the start of the logout.
+     * @param SimpleSAML\Error\Exception|null $error The error that occurred during session termination (if any).
+     * @throws \SimpleSAML\Error\Exception
      */
-    public function handleLogoutResponse($assocId, $relayState, SimpleSAML_Error_Exception $error = null)
+    public function handleLogoutResponse($assocId, $relayState, SimpleSAML\Error\Exception $error = null)
     {
-        throw new SimpleSAML_Error_Exception('Logout not supported in eIDAS.');
+        throw new SimpleSAML\Error\Exception('Logout not supported in eIDAS.');
     }
 
 
@@ -395,10 +401,11 @@ class sspmod_clave_IdP
      * This function never returns.
      *
      * @param string $url The URL the user should be returned to after logout.
+     * @throws \SimpleSAML\Error\Exception
      */
     public function doLogoutRedirect($url)
     {
-        throw new SimpleSAML_Error_Exception('Logout not supported in eIDAS.');
+        throw new SimpleSAML\Error\Exception('Logout not supported in eIDAS.');
     }
 
 
@@ -409,10 +416,11 @@ class sspmod_clave_IdP
      *
      * @param sspmod_clave_IdP $idp Deprecated. Will be removed.
      * @param array          &$state The logout state from doLogoutRedirect().
+     * @throws \SimpleSAML\Error\Exception
      */
     public static function finishLogoutRedirect(sspmod_clave_IdP $idp, array $state)
     {
-        throw new SimpleSAML_Error_Exception('Logout not supported in eIDAS.');
+        throw new SimpleSAML\Error\Exception('Logout not supported in eIDAS.');
     }
     
     

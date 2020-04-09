@@ -15,7 +15,7 @@ SimpleSAML\Logger::debug('Clave Idp hosted metadata: '.print_r($claveConfig,true
 //Hosted SP config
 $hostedSP = $claveConfig->getString('hostedSP', NULL);
 if($hostedSP == NULL)
-    throw new SimpleSAML_Error_Exception("No clave hosted SP configuration defined in clave bridge configuration.");
+    throw new SimpleSAML\Error\Exception("No clave hosted SP configuration defined in clave bridge configuration.");
 $hostedSPmeta = sspmod_clave_Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
 SimpleSAML\Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true));
 
@@ -23,7 +23,7 @@ SimpleSAML\Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true
 //Which clave IdP to use
 $idpEntityId = $hostedSPmeta->getString('idpEntityID', NULL);
 if($idpEntityId == NULL)
-    throw new SimpleSAML_Error_Exception("No clave IdP configuration defined in clave bridge configuration.");
+    throw new SimpleSAML\Error\Exception("No clave IdP configuration defined in clave bridge configuration.");
 
 $idpMeta = sspmod_clave_Tools::getMetadataSet($idpEntityId,"clave-idp-remote");
 SimpleSAML\Logger::debug('Clave Idp remote metadata ('.$idpEntityId.'): '.print_r($idpMeta,true));
@@ -42,9 +42,9 @@ $returnPage = SimpleSAML_Module::getModuleURL('clave/sp/bridge-logout.php/');
 
 
 if($providerName == NULL)
-    throw new SimpleSAML_Error_Exception("No provider Name defined in clave bridge configuration.");
+    throw new SimpleSAML\Error\Exception("No provider Name defined in clave bridge configuration.");
 if($certPath == NULL || $keyPath == NULL)
-    throw new SimpleSAML_Error_Exception("No clave certificate or key defined for the SP interface in clave bridge configuration.");
+    throw new SimpleSAML\Error\Exception("No clave certificate or key defined for the SP interface in clave bridge configuration.");
 
 
 
@@ -139,7 +139,7 @@ SimpleSAML\Logger::debug("SP SLO Request data: ".print_r($reqData,true));
 
 //Now, if no SLO endpoint is defined,  we make it just go back silently to the SP
 if($endpoint == NULL){
-    //throw new SimpleSAML_Error_Exception("No clave SLO endpoint defined in clave bridge configuration.");
+    //throw new SimpleSAML\Error\Exception("No clave SLO endpoint defined in clave bridge configuration.");
 
 
     // ****** Build response for the SP *******
@@ -150,7 +150,7 @@ if($endpoint == NULL){
     $idpcertpem = sspmod_clave_Tools::readCertKeyFile($idpCertPath);
     $idpkeypem  = sspmod_clave_Tools::readCertKeyFile($idpKeyPath);
     if($idpCertPath == NULL || $idpKeyPath == NULL)
-        throw new SimpleSAML_Error_Exception("No clave SSO response signing certificate or key defined for the IdP interface in clave bridge configuration.");
+        throw new SimpleSAML\Error\Exception("No clave SSO response signing certificate or key defined for the IdP interface in clave bridge configuration.");
 
 
     $issuer = $claveConfig->getString('issuer', 'NOT_SET');
@@ -224,7 +224,7 @@ $state = array();
 $state['sp:slo:request']            = $reqData;
 $state['bridge:slo:returnPage']     = $returnPage;
 
-$id = SimpleSAML_Auth_State::saveState($state, 'clave:bridge:slo:req', true);
+$id = SimpleSAML\Auth\State::saveState($state, 'clave:bridge:slo:req', true);
 SimpleSAML\Logger::debug("Generated Req ID: ".$id);
 
 
