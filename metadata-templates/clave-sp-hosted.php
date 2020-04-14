@@ -41,6 +41,10 @@ $claveMeta['eidasSP'] = array(
 	// until I add anotgher flag to control this, metadata url should be set here.
     'issuer' => 'https://eidas.sp/metadata.php',
 
+    // [Optional] If set, the metadata URL is sent as the issuer field,
+    // and the option avove is overridden
+    'useMetadataUrl' => True,
+
     // [Optional] If set, SP will search an attribute with this name and,
     // if found, will set its value as the NameID of the assertion subject
     'idAttribute' => 'PersonIdentifier',

@@ -379,11 +379,18 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML\Auth\Source {
             
             
             //Issuer is set in this order:
+            // 0. If the UseMetadataUrl is set, use hosted SP metadata URL
             // 1. Hosted SP metadata issuer field (if set)
             // 2. Remote SP metadata issuer field (if set)
             // 3. Issuer Field specified on the remote SP request
             // (Dropped using the entityId of the hosted SP)
-            $reqIssuer = $this->spMetadata->getString('issuer', $remoteSpMeta->getString('issuer', $state['eidas:requestData']['issuer']));
+            $useMetadataUrl = $this->spMetadata->getBoolean('useMetadataUrl', False);
+            if(!$useMetadataUrl)
+                $reqIssuer = $this->spMetadata->getString('issuer',
+                    $remoteSpMeta->getString('issuer',
+                        $state['eidas:requestData']['issuer']));
+            else
+                $reqIssuer = $this->getMetadataURL();
 
             if(!array_key_exists('QAA',$state['eidas:requestData'])
             || $state['eidas:requestData']['QAA'] === NULL
