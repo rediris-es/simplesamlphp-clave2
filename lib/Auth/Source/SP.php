@@ -422,7 +422,8 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML\Auth\Source {
             $NameIDFormat = $this->spMetadata->getString('NameIDFormat', $remoteSpMeta->getString('NameIDFormat', $state['eidas:requestData']['IdFormat']));
 
             // If the request had a LoA, that is the priority value
-            if(isset($state['eidas:requestData']['LoA'])) {
+            if(isset($state['eidas:requestData']['LoA'])
+                && $state['eidas:requestData']['LoA'] !== "") {
                 SimpleSAML\Logger::debug("Setting LoA from request: ".$state['eidas:requestData']['LoA']);
                 $LoA = $state['eidas:requestData']['LoA'];
             }
