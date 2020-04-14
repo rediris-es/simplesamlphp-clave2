@@ -40,7 +40,10 @@ $claveMeta['eidasSP'] = array(
     // URL if unset, and this is precisely the requirement of eIDAS. So, 
 	// until I add anotgher flag to control this, metadata url should be set here.
     'issuer' => 'https://eidas.sp/metadata.php',
-    
+
+    // [Optional] If set, SP will search an attribute with this name and,
+    // if found, will set its value as the NameID of the assertion subject
+    'idAttribute' => 'PersonIdentifier',
     
     // [Optional] List of the post parameters that will be
     // retransmitted along with the response (if not set, none will

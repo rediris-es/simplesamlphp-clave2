@@ -267,8 +267,88 @@ if($eidas->isSuccess($statusInfo)){
         'SecondaryStatusCode' => $statusInfo['SecondaryStatusCode'],
         'StatusMessage' => $statusInfo['StatusMessage'],
     );
-    
-    
+
+
+
+
+
+
+    // We also build a rich object with information from the assertion for the Clave IdP
+    $respAssertions = $eidas->getAssertions();
+    $assertionsData = array();
+
+    foreach ($respAssertions as $respAssertion){
+        $assertionData = array();
+
+        if(isset($respAssertion['ID']))   // TODO: recycle assertionID or set new (don't set)?
+            $assertionData['ID'] = $respAssertion['ID'];
+
+        if(isset($respAssertion['Issuer']))
+            $assertionData['Issuer'] = $respAssertion['Issuer'];
+
+        if(isset($respAssertion['AuthnStatement']['AuthnInstant']))
+            $assertionData['AuthnInstant'] = $respAssertion['AuthnStatement']['AuthnInstant'];
+
+        if(isset($respAssertion['AuthnStatement']['AuthnContext'])) {
+            $assertionData['AuthnContextClassRef'] = $respAssertion['AuthnStatement']['AuthnContext'];
+            //$assertionData['AuthnContextClassRef'] = $state['saml:AuthnContextClassRef'];
+        }
+
+        // --- Setting the NameID ---
+        if(isset($respAssertion['Subject']['NameID'])) {
+            $assertionData['NameID'] = $respAssertion['Subject']['NameID'];
+            $assertionData['NameIDFormat'] = sspmod_clave_SPlib::NAMEID_FORMAT_PERSISTENT;
+            if(isset($respAssertion['Subject']['NameFormat']))
+                $assertionData['NameIDFormat'] = $respAssertion['Subject']['NameFormat'];
+            if(isset($respAssertion['Subject']['NameQualifier']))
+                $assertionData['NameQualifier'] = $respAssertion['Subject']['NameQualifier'];
+        }
+
+        // Hosted SP can define an attribute that is the ID attribute, we put that value on the nameID
+        $idAttrName = $spMetadata->getString("idAttribute", NULL);
+
+        //Set the NameID from the eIDAS ID attribute
+        if ($idAttrName !== NULL){
+            foreach($assertionData['attributes'] as $attr) {
+                if ($attr['friendlyName'] == $idAttrName
+                    || $attr['name'] == $idAttrName) {
+                    $assertionData['NameID'] = $attr['values'][0];  # Add
+                    break;
+                }
+            }
+        }
+
+        // --- Attributes ---
+        $assertionData['attributes'] = array();
+        foreach($respAssertion['Attributes'] as $attr) {
+
+            $assertionData['attributes'] [] = array(
+                'values' => $attr['values'],
+                'friendlyName' => $attr['friendlyName'],
+                'name' => $attr['Name'],
+            );
+        }
+
+        // --- Conditions ---  // TODO: get this from the remote SP req
+        //if(isset())
+        //    $assertionData['Address'] = ;
+        if(isset($state['saml:ConsumerURL']))
+            $assertionData['Recipient'] = $state['saml:ConsumerURL'];
+        if(isset($state['eidas:requestData']['issuer']))
+            $assertionData['Audience'] = $state['eidas:requestData']['issuer']; // entityId del remote SP
+        if(isset($state['saml:RequestId']))
+            $assertionData['InResponseTo'] = $state['saml:RequestId'];
+
+
+        $assertionsData []= $assertionData;
+    }
+
+    $state['eidas:struct:assertions'] = $assertionsData;
+
+
+
+
+
     //Pass the response state to the WebSSO SP
     $source->handleResponse($state, $remoteIdPMeta->getString('entityID', NULL), $attributes);
 }

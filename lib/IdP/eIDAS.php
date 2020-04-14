@@ -170,7 +170,9 @@ class sspmod_clave_IdP_eIDAS
             
             foreach($structassertions as $assertionData){
                 
-                
+                // TODO: This block is legacy. Should be implemented on the esmo
+                //   module authsource acs and removed from here. It is already
+                //   implemented on this acs
                 //Set the NameID of the response
                 if(isset($state['saml:sp:NameID'])){
                     $assertionData['NameID'] = $state['saml:sp:NameID'];

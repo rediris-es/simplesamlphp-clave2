@@ -1712,6 +1712,7 @@ class sspmod_clave_SPlib {
       $subjectInfo = array(
         "NameID"        => "".$subject->NameID, //In eIDAS, it will be the same as the PersonIdentifier attribute
         "NameFormat"    => "".$subject->NameID->attributes()->Format,
+        "NameQualifier" => "".$subject->NameID->attributes()->NameQualifier,
         "Method"        => "".$subject->SubjectConfirmation->attributes()->Method,
         "Address"       => "".$subject->SubjectConfirmation->SubjectConfirmationData->attributes()->Address,
         "InResponseTo"  => "".$subject->SubjectConfirmation->SubjectConfirmationData->attributes()->InResponseTo,
@@ -1790,9 +1791,9 @@ class sspmod_clave_SPlib {
         }
         
         //On eIDAS, this is the QAA of the authentication
-        if($assertion->AuthnContext){
-          if($assertion->AuthnContext->AuthnContextClassRef){
-              $assertionInfo['AuthnStatement']['AuthnContext'] = "".$assertion->AuthnContext->AuthnContextClassRef;
+        if($assertion->AuthnStatement->AuthnContext){
+          if($assertion->AuthnStatement->AuthnContext->AuthnContextClassRef){
+              $assertionInfo['AuthnStatement']['AuthnContext'] = "".$assertion->AuthnStatement->AuthnContext->AuthnContextClassRef;
           }
         }
         
@@ -2538,7 +2539,7 @@ class sspmod_clave_SPlib {
           
           if(isset($assertionData['NameIDFormat']))
               $NameIDFormat = $assertionData['NameIDFormat'];
-          
+
           
           
           //Build the optional parts of the assertion, if inputs are available
