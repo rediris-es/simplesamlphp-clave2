@@ -420,7 +420,12 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML\Auth\Source {
             
             $SPType       = $this->spMetadata->getString('SPType', $remoteSpMeta->getString('SPType', $state['eidas:requestData']['SPType']));
             $NameIDFormat = $this->spMetadata->getString('NameIDFormat', $remoteSpMeta->getString('NameIDFormat', $state['eidas:requestData']['IdFormat']));
-            $LoA          = $this->spMetadata->getString('LoA', $remoteSpMeta->getString('LoA', $state['eidas:requestData']['LoA']));
+
+            // If the request had a LoA, that is the priority value
+            if(isset($state['eidas:requestData']['LoA']))
+                $LoA = $state['eidas:requestData']['LoA'];
+            else
+                $LoA = $this->spMetadata->getString('LoA', $remoteSpMeta->getString('LoA', sspmod_clave_SPlib::LOA_LOW));
             $QAA          = sspmod_clave_SPlib::loaToQaa($LoA);
             $state['eidas:requestData']['QAA'] = sspmod_clave_SPlib::loaToQaa($LoA); //We overwrite it to avoid it overwriting the LoA later when the remote SP spoke stork
             
