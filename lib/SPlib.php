@@ -203,6 +203,8 @@ class sspmod_clave_SPlib {
       "PartialAfirma"             => "http://es.minhafp.clave/PartialAfirma",
       "RelayState"                => "http://es.minhafp.clave/RelayState",
 
+      "RegisterType"			  => "http://es.minhafp.clave/RegisterType",
+
       //Defined for the websso interface
       "usedIdP"                   => "http://es.minhafp.clave/usedIdP",
   );
