@@ -297,7 +297,8 @@ class sspmod_clave_SPlib {
   private $decryptPrivateKey;
   private $doDecipher;
   private $onlyEncrypted;
-  
+
+  private $idplist;
   
   /*********** Response attributes **************/
   
@@ -573,6 +574,8 @@ class sspmod_clave_SPlib {
     $this->nameIdFormat = self::NAMEID_FORMAT_PERSISTENT;
 
     $this->responseSuccess = false;
+
+    $this->idplist = NULL;
     
     //request ID is randomly generated
     $this->ID = self::generateID();
@@ -813,9 +816,13 @@ class sspmod_clave_SPlib {
     $this->crossSectorShare = $crossSectorShare;
     $this->crossBorderShare = $crossBorderShare;
   }
-  
-  
-  
+
+  //If the request needs to have a scoping of the allowed idps when proxying this request
+  public function setIdpList ($IdpList){
+    $this->idplist  = $IdpList;
+  }
+
+
   //Establishes an equivalence between Stork QAA levels and eIDAS LoA
   //levels
   public static function qaaToLoA($QAA) {
@@ -1047,7 +1054,24 @@ class sspmod_clave_SPlib {
                 .'</saml2p:RequestedAuthnContext>';
         }
     }
-    
+
+    $Scoping = "";
+    if($this->idplist != null){
+        $idpList = "";
+        foreach ($this->idplist as $idp)
+            $idpList .= '<samlp:IDPEntry ProviderID="'.$idp.'" />';
+
+        if($idpList != ""){
+            $Scoping = '<samlp:Scoping>'
+            .'  <samlp:IDPList>'
+            .$idpList
+            .'  </samlp:IDPList>'
+            .'</samlp:Scoping>';
+        }
+
+    }
+
+
     
     //Compose the AuthnRequest
     $this->samlAuthReq = $RootTagOpen
@@ -1055,6 +1079,7 @@ class sspmod_clave_SPlib {
       .$Extensions
       .$NameIDPolicy
       .$AuthnContext
+      .$Scoping
       .'</saml2p:AuthnRequest>';
     
     
@@ -2135,10 +2160,30 @@ class sspmod_clave_SPlib {
     }
     
     return $xmlObj;
-  }  
+  }
 
-  
-  public function getInResponseToFromReq($storkSamlResponseToken){
+
+
+  private function parseScoping($samlReq){
+    self::debug(__CLASS__.".".__FUNCTION__."()");
+
+    if($samlReq == null)
+      $this->fail(__FUNCTION__, self::ERR_BAD_PARAMETER,"samlReq object is null");
+
+    $idpList = [];
+    $idpEntries = $samlReq->children(self::NS_SAML2P,false)->Scoping->IDPList->IDPEntry;
+    if($idpEntries != null)
+        foreach($idpEntries as $idpEntry){
+            $idpList []= "".$idpEntry->attributes()->ProviderID;
+        }
+    return $idpList;
+  }
+
+
+
+
+
+    public function getInResponseToFromReq($storkSamlResponseToken){
     
     self::debug(__CLASS__.".".__FUNCTION__."()");
     
@@ -2251,7 +2296,12 @@ class sspmod_clave_SPlib {
       $ret['issuer'] = "".$samlReq->children(self::NS_SAML2,false)->Issuer;      
       
       $ext = $samlReq->children(self::NS_SAML2P,false)->Extensions;
-      
+
+      //Check for scoping (list of allowed remote IDPs in a proxying request)
+      $ret['idplist'] =  $this->parseScoping($samlReq);
+      // TODO: SEGUIR: funciona?
+
+
       if($this->mode === 0){ //Stork
           self::debug("Mode 0");
           
