@@ -355,7 +355,8 @@ class sspmod_clave_IdP_eIDAS
         
         
         
-        $error = SimpleSAML\Error\Exception::fromException($exception);
+        //$error = SimpleSAML\Error\Exception::fromException($exception);
+        $error = \SimpleSAML\Module\saml\Error::fromException($exception);
         
         SimpleSAML\Logger::warning("Returning error to SP with entity ID '".var_export($spEntityId, true)."'.");
         $exception->log(SimpleSAML\Logger::WARNING);
