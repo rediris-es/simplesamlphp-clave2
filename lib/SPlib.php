@@ -2244,6 +2244,8 @@ class sspmod_clave_SPlib {
     
     //We get the issuer
     $issuer = "".$samlReq->children(self::NS_SAML2,false)->Issuer;
+    if($issuer == "")
+        $issuer = "".$samlReq["ProviderName"]; // Dirty workaround for Clave 2.0 java SPs not using issuers TODO: verify.
 
     //Validates the signature
     self::debug("Checking request signature. Issuer: ".$issuer);
