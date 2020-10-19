@@ -2813,6 +2813,19 @@ class sspmod_clave_SPlib {
       return "".$samlTok->children(self::NS_SAML2,false)->Issuer;
   }
 
+  // Gets the providerName from a Saml token
+  // $samlToken: string xml saml token string
+  public function getProviderName($samlToken){
+
+      if($samlToken == null || $samlToken == "")
+          $this->fail(__FUNCTION__, self::ERR_GENERIC,"Empty saml token.");
+
+      //Checks if it is a valid XML string.
+      $samlTok = $this->parseXML($samlToken);
+
+      //We get the providerName
+      return "".$samlTok["ProviderName"];
+  }
 
   public static function getFriendlyName($attributeName, $mode=0){
 

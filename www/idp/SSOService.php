@@ -87,6 +87,8 @@ $eidas = new sspmod_clave_SPlib();
 
 //Entity ID of the remote SP (requestor)
 $spEntityId = $eidas->getIssuer($authnRequest);
+if($spEntityId == "") // Extra-Dirty workaround for the Clave 2.0 Java SPs that DON'T send an issuer field
+    $spEntityId = $eidas->getProviderName($authnRequest);     // TODO: VERIFCAR
 SimpleSAML\Logger::info("Remote SP Issuer: ".$spEntityId);
 
 //Load the remote SP metadata
