@@ -1454,8 +1454,10 @@ class sspmod_clave_SPlib {
         
         
         //Get data from the first assertion
-        $this->responseNameId       = "".$samlResponse->children(self::NS_SAML2,false)->Assertion[0]->Subject->NameID;
-        $this->responseNameIdFrm    = "".$samlResponse->children(self::NS_SAML2,false)->Assertion[0]->Subject->NameID->attributes()->Format;
+        if($samlResponse->children(self::NS_SAML2,false)->Assertion[0]->Subject){
+            $this->responseNameId       = "".$samlResponse->children(self::NS_SAML2,false)->Assertion[0]->Subject->NameID;
+            $this->responseNameIdFrm    = "".$samlResponse->children(self::NS_SAML2,false)->Assertion[0]->Subject->NameID->attributes()->Format;
+        }
         $this->AuthnInstant         = "".$samlResponse->children(self::NS_SAML2,false)->Assertion[0]->AuthnStatement->attributes()->AuthnInstant;
         $this->AuthnContextClassRef = "".$samlResponse->children(self::NS_SAML2,false)->Assertion[0]->AuthnStatement->AuthnContext->AuthnContextClassRef;
         
@@ -1732,9 +1734,11 @@ class sspmod_clave_SPlib {
     
     self::debug(__CLASS__.".".__FUNCTION__."()");
     
-    if(!$subject)
-      $this->fail(__FUNCTION__, self::ERR_NO_ASSERT_SUBJECT);
-    
+    if(!$subject){
+        //$this->fail(__FUNCTION__, self::ERR_NO_ASSERT_SUBJECT);
+        return NULL;
+    }
+
     try{
       $subjectInfo = array(
         "NameID"        => "".$subject->NameID, //In eIDAS, it will be the same as the PersonIdentifier attribute
