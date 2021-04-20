@@ -1,0 +1,22 @@
+[
+  {
+    "spEntityID": "https:\/\/clave.sir2.rediris.es\/clave\/module.php\/saml\/sp\/saml2-acs.php\/q2891006e_ea0009994",
+    "idpEntityID": "prodClave2",
+    "forceAuthn": true,
+    "isPassive": false,
+    "protocol": "saml2-eidas",
+    "idpInit": false,
+    "op": "clave:sp:AuthnRequest",
+    "time": 1577917859.293335,
+    "_id": "000000005e0d1da3eaf0da5f6403d1bb2a6a0f4ac6ee217a"
+  },
+  {
+    "spEntityID": "https:\/\/clave.sir2.rediris.es\/clave\/module.php\/saml\/sp\/saml2-acs.php\/q2891006e_ea0009994",
+    "idpEntityID": "https:\/\/pasarela.clave.gob.es\/Proxy2",
+    "protocol": "saml2-eidas",
+    "logintime": 36.35207009315491,
+    "op": "clave:sp:Response",
+    "time": 1577920436.12701,
+    "_id": "000000005e0d27b4d3cc3e1c660cc00161e2674dce2dec86"
+  }
+]
