@@ -17,7 +17,12 @@
 
 $claveMeta['https://eidas.sp/metadata.php'] = array (
   'entityid' => 'https://eidas.sp/metadata.php',
-  
+
+
+  // [Optional] Added to do a dirty patch on the Clave 2 java kit. When
+  // no issuer is sent, the audience field was empty. A custom value can
+  // be added here instead of the entityID
+  //'Audience' => "https://eidas.sp/acs.php",
   
   // -=== EIDAS SPECIFIC METADATA ===-
 
