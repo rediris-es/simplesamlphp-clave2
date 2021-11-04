@@ -342,8 +342,10 @@ if($eidas->isSuccess($statusInfo)){
             // Entities like this will need to have the spName on the array key but the proper url (mainly the acs url) on the 'entityid' (in lowercase) field.. Example:
             // $metadata['Q3150012G_U03500001;DEMO-SP'] = array (
             //    'entityid' => 'https://some.domain.es/SP2/ReturnPage',
+            // Correction: using this field caused undesired interactions.
+            // Since this is a dirty workaround, let's use a dirty new field: "Audience"
             if(isset($state['SPMetadata']['entityid']))
-                $assertionData['Audience'] = $state['SPMetadata']['entityid']; // TODO: Ojo. en minúsculas. Si cambia el campo, cambiar.  entityId del remote SP en los metadatos
+                $assertionData['Audience'] = $state['SPMetadata']['Audience']; // TODO: Ojo. en minúsculas. Si cambia el campo, cambiar.  entityId del remote SP en los metadatos
         if(isset($state['saml:RequestId']))
             $assertionData['InResponseTo'] = $state['saml:RequestId'];
 
