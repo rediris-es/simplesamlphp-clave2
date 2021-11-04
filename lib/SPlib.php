@@ -2655,7 +2655,7 @@ class sspmod_clave_SPlib {
                       //.'        xsi:type="eidas-natural:PersonIdentifierType"'
                       .'>'
                       .htmlspecialchars($val)
-                      .'    </saml2:AttributeValue>';
+                      .'</saml2:AttributeValue>';
               }
               
               $attribs .= '<saml2:Attribute '
