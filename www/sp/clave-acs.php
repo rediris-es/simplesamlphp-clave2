@@ -334,8 +334,16 @@ if($eidas->isSuccess($statusInfo)){
         //    $assertionData['Address'] = ;
         if(isset($state['saml:ConsumerURL']))
             $assertionData['Recipient'] = $state['saml:ConsumerURL'];
-        if(isset($state['eidas:requestData']['issuer']))
+        if(isset($state['eidas:requestData']['issuer'])
+            && $state['eidas:requestData']['issuer'] != NULL
+            && $state['eidas:requestData']['issuer'] !== "")
             $assertionData['Audience'] = $state['eidas:requestData']['issuer']; // entityId del remote SP
+        else // On Java Clave 2 Kit, request carries no entityID, but complains of not having an audience url. Read the entityID from SP remote metadata.
+            // Entities like this will need to have the spName on the array key but the proper url (mainly the acs url) on the 'entityid' (in lowercase) field.. Example:
+            // $metadata['Q3150012G_U03500001;DEMO-SP'] = array (
+            //    'entityid' => 'https://some.domain.es/SP2/ReturnPage',
+            if(isset($state['SPMetadata']['entityid']))
+                $assertionData['Audience'] = $state['SPMetadata']['entityid']; // TODO: Ojo. en minúsculas. Si cambia el campo, cambiar.  entityId del remote SP en los metadatos
         if(isset($state['saml:RequestId']))
             $assertionData['InResponseTo'] = $state['saml:RequestId'];
 
