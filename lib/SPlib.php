@@ -385,7 +385,7 @@ class sspmod_clave_SPlib {
   
   private static $logLevel    = self::LOG_TRACE;
   private static $logFile     = '/tmp/storkLog';
-  private static $logToFile   = true;
+  private static $logToFile   = false;
   private static $logToStdout = false;
   
   
@@ -1830,7 +1830,7 @@ class sspmod_clave_SPlib {
         
         self::debug("Parsing Attributes.");        
         //Get Attributes
-        $assertionInfo['Attributes'] =  $this->parseAssertionAttributes($assertion->AttributeStatement);  // TODO SEGUIR he quitado el self porque no es static!
+        $assertionInfo['Attributes'] =  $this->parseAssertionAttributes($assertion->AttributeStatement, true);  // TODO SEGUIR he quitado el self porque no es static!
         
         self::trace("Assertion SimpleXMLNode:\n".print_r($assertion,true));
         self::trace("Assertion storkAuth inner Struct:\n".print_r($assertionInfo,true));
@@ -1940,7 +1940,8 @@ class sspmod_clave_SPlib {
                   $valueNode = array(   // TODO  ojo: revisar cuando pueda hacer pruebas reales. el prefijo podría cambiar si hay varios namespaces  y requeriría buscarlos todos o pasar el namespace tal cual.
                       'value' => "".$attrval,
                       'type'  => "".$attrval->attributes("xsi",TRUE)->type,
-                  );
+                      'LatinScript' => "".$attrval->attributes("eidas-natural",TRUE)->LatinScript,
+              );
               
               
                   if($attrval->attributes()->languageID)
@@ -2643,6 +2644,19 @@ class sspmod_clave_SPlib {
               
               $values = '';
               foreach($attr['values'] as $val){
+
+                  // Legacy is: each value as a string. We only apply the new logic if the value is an array
+                  // TODO: check thoroughly that works! first as legacy, then as new behaviour!!!
+                  $valueType = "";
+                  $latinScript = "";
+                  if(is_array($val)){
+                      if($val['type'] != "")
+                          $valueType = ' xsi:type="'.htmlspecialchars($val['type']).'"'; //eidas-natural:PersonIdentifierType
+                      if($val['LatinScript'] != "")
+                          $latinScript = ' eidas-natural:LatinScript="'.htmlspecialchars($val['LatinScript']).'"';
+                      $val = $val['value'];
+                  }
+
                   $values .= '    <saml2:AttributeValue '
                       // TODO: for the moment we don't set the data
                       // type (as eIDAs implementations seem to ignore
@@ -2651,8 +2665,8 @@ class sspmod_clave_SPlib {
                       // more than one value, SAML2 says all must have
                       // the same type, so do it on the attribute
                       // section, not per value).
-                      
-                      //.'        xsi:type="eidas-natural:PersonIdentifierType"'
+                      .$valueType
+                      .$latinScript
                       .'>'
                       .htmlspecialchars($val)
                       .'</saml2:AttributeValue>';
