@@ -1642,7 +1642,10 @@ class sspmod_clave_SPlib {
         
         if($attr['values'])
           foreach($attr['values'] as $value){
-            
+            // We added a functionality to get the metadata of the attr value,
+            // but here we don't want it // TODO: works?
+            if(is_array($value))
+                $value = $value['value'];
             $attributes[$attributeName][] = $value;
           }
       }
