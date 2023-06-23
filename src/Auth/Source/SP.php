@@ -403,12 +403,12 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML\Auth\Source {
         if ($this->dialect === 'eidas'){ //On eIDAS, we always get the country selector value.
             
             //Set defaults for when the remote SP was in Stork mode
-            if(!array_key_exists('IdFormat',$state['eidas:requestData'])
+            if( isset($state['eidas:requestData']) && !array_key_exists('IdFormat',$state['eidas:requestData'])
             || $state['eidas:requestData']['IdFormat'] === NULL
             || $state['eidas:requestData']['IdFormat'] === "")
                 $state['eidas:requestData']['IdFormat'] = sspmod_clave_SPlib::NAMEID_FORMAT_PERSISTENT;
             
-            if(!array_key_exists('SPType',$state['eidas:requestData'])
+            if( isset($state['eidas:requestData']) && !array_key_exists('SPType',$state['eidas:requestData'])
             || $state['eidas:requestData']['SPType'] === NULL
             || $state['eidas:requestData']['SPType'] === "")
                 $state['eidas:requestData']['SPType'] = sspmod_clave_SPlib::EIDAS_SPTYPE_PUBLIC;
@@ -605,15 +605,15 @@ class sspmod_clave_Auth_Source_SP extends SimpleSAML\Auth\Source {
             
             //Set default mandatoriness
             foreach($attrsToRequest as $attr){
-                $mandatory = false;
+                $mand = false;
                 
                 if ($this->dialect === 'eidas')
                     if (in_array($attr, array("PersonIdentifier","FirstName","FamilyName","DateOfBirth"))){
-                        $mandatory = true;   //minimum dataset always mandatory.
+                        $mand = true;   //minimum dataset always mandatory.
                         $mandatory []= $attr;
                     }
                 
-                $attributes []= array($attr, $mandatory);
+                $attributes []= array($attr, $mand);
             }
         }        
         
