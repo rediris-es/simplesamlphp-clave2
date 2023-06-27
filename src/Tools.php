@@ -156,6 +156,39 @@ class sspmod_clave_Tools {
         
         return $ret;
     }
-    
-    
+
+
+
+    /**
+     * @param SimpleSAML\Configuration $configArray
+     * @param string $field
+     * @param string $default
+     * @return string
+     * @throws Exception
+     */
+    public static function getString (SimpleSAML\Configuration $configArray, string $field, string $default)
+    {
+        try{
+            return $configArray->getString($field);
+        }catch (\SimpleSAML\Assert\AssertionFailedException $e){
+            return $default;
+        }
+    }
+
+    /**
+     * @param SimpleSAML\Configuration $configArray
+     * @param string $field
+     * @param boolean $default
+     * @return string
+     * @throws Exception
+     */
+    public static function getBoolean (SimpleSAML\Configuration $configArray, string $field, boolean $default)
+    {
+        try{
+            return $configArray->getBoolean($field);
+        }catch (\SimpleSAML\Assert\AssertionFailedException $e){
+            return $default;
+        }
+    }
+
 }
