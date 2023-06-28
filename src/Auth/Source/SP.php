@@ -14,7 +14,7 @@ use SimpleSAML\Configuration;
 use SimpleSAML\Module;
 use SimpleSAML\Stats;
 use SimpleSAML\Utils\HTTP;
-use sspmod_clave_SPlib;
+use SimpleSAML\Module\clave\SPlib;
 use SimpleSAML\Module\clave\Tools;
 
 
@@ -397,11 +397,11 @@ class SP extends Source {
             //$SpId="$SPCountry-$SPsector-$SPinstitution-$SPapp";
             $SpId = Tools::getString($remoteSpMeta, 'spID',Tools::getString($this->spMetadata,'spID', ''.$state['eidas:requestData']['spID']));
             $sectorShare      = Tools::getBoolean($remoteSpMeta, 'eIDSectorShare', Tools::getBoolean($this->spMetadata, 'eIDSectorShare',
-                                                 sspmod_clave_SPlib::stb($state['eidas:requestData']['eIDSectorShare'])));
+                                                 SPlib::stb($state['eidas:requestData']['eIDSectorShare'])));
             $crossSectorShare = Tools::getBoolean($remoteSpMeta, 'eIDCrossSectorShare', Tools::getBoolean($this->spMetadata,'eIDCrossSectorShare',
-                                                 sspmod_clave_SPlib::stb($state['eidas:requestData']['eIDCrossSectorShare'])));
+                                                 SPlib::stb($state['eidas:requestData']['eIDCrossSectorShare'])));
             $crossBorderShare = Tools::getBoolean($remoteSpMeta, 'eIDCrossBorderShare', Tools::getBoolean($this->spMetadata,'eIDCrossBorderShare',
-                                                 sspmod_clave_SPlib::stb($state['eidas:requestData']['eIDCrossBorderShare'])));
+                                                 SPlib::stb($state['eidas:requestData']['eIDCrossBorderShare'])));
                         
             $CitizenCountry = "";
             //For Spain's Clave based on stork, country is fixed
@@ -432,28 +432,28 @@ class SP extends Source {
             || $state['eidas:requestData']['QAA'] === "")
                 $state['eidas:requestData']['QAA'] = 1;
             $QAA = Tools::getInteger($this->spMetadata,'QAA', Tools::getInteger($remoteSpMeta,'QAA', $state['eidas:requestData']['QAA'] ));
-            $LoA = sspmod_clave_SPlib::qaaToLoA($QAA);
+            $LoA = SPlib::qaaToLoA($QAA);
         }
 
-        $SPType       = sspmod_clave_SPlib::EIDAS_SPTYPE_PUBLIC;
-        $NameIDFormat = sspmod_clave_SPlib::NAMEID_FORMAT_PERSISTENT;
+        $SPType       = SPlib::EIDAS_SPTYPE_PUBLIC;
+        $NameIDFormat = SPlib::NAMEID_FORMAT_PERSISTENT;
         if ($this->dialect === 'eidas'){ //On eIDAS, we always get the country selector value.
             
             //Set defaults for when the remote SP was in Stork mode
             if( isset($state['eidas:requestData']) && !array_key_exists('IdFormat',$state['eidas:requestData'])
             || $state['eidas:requestData']['IdFormat'] === NULL
             || $state['eidas:requestData']['IdFormat'] === "")
-                $state['eidas:requestData']['IdFormat'] = sspmod_clave_SPlib::NAMEID_FORMAT_PERSISTENT;
+                $state['eidas:requestData']['IdFormat'] = SPlib::NAMEID_FORMAT_PERSISTENT;
             
             if( isset($state['eidas:requestData']) && !array_key_exists('SPType',$state['eidas:requestData'])
             || $state['eidas:requestData']['SPType'] === NULL
             || $state['eidas:requestData']['SPType'] === "")
-                $state['eidas:requestData']['SPType'] = sspmod_clave_SPlib::EIDAS_SPTYPE_PUBLIC;
+                $state['eidas:requestData']['SPType'] = SPlib::EIDAS_SPTYPE_PUBLIC;
             
             if(!array_key_exists('LoA',$state['eidas:requestData'])
             || $state['eidas:requestData']['LoA'] === NULL
             || $state['eidas:requestData']['LoA'] === "")
-                $state['eidas:requestData']['LoA'] = sspmod_clave_SPlib::qaaToLoA($state['eidas:requestData']['QAA']);
+                $state['eidas:requestData']['LoA'] = SPlib::qaaToLoA($state['eidas:requestData']['QAA']);
             
             $SPType       = Tools::getString($this->spMetadata,'SPType', Tools::getString($remoteSpMeta,'SPType', $state['eidas:requestData']['SPType']));
             $NameIDFormat = Tools::getString($this->spMetadata,'NameIDFormat', Tools::getString($remoteSpMeta,'NameIDFormat', $state['eidas:requestData']['IdFormat']));
@@ -465,11 +465,11 @@ class SP extends Source {
                 $LoA = $state['eidas:requestData']['LoA'];
             }
             else {
-                $LoA = Tools::getString($this->spMetadata,'LoA', Tools::getString($remoteSpMeta,'LoA', sspmod_clave_SPlib::LOA_LOW));
+                $LoA = Tools::getString($this->spMetadata,'LoA', Tools::getString($remoteSpMeta,'LoA', SPlib::LOA_LOW));
                 Logger::debug("Setting LoA from Metadata: ".$LoA);
             }
-            $QAA          = sspmod_clave_SPlib::loaToQaa($LoA);
-            $state['eidas:requestData']['QAA'] = sspmod_clave_SPlib::loaToQaa($LoA); //We overwrite it to avoid it overwriting the LoA later when the remote SP spoke stork
+            $QAA          = SPlib::loaToQaa($LoA);
+            $state['eidas:requestData']['QAA'] = SPlib::loaToQaa($LoA); //We overwrite it to avoid it overwriting the LoA later when the remote SP spoke stork
             
             $CitizenCountry = '';
             if($showCountrySelector === true)
@@ -534,7 +534,7 @@ class SP extends Source {
         
         
         //Build the authn request
-        $eidas = new sspmod_clave_SPlib();
+        $eidas = new SPlib();
         Logger::debug("******************************+LoA: ".$LoA);
         if ($this->dialect === 'eidas'){
             $eidas->setEidasMode();
@@ -548,8 +548,8 @@ class SP extends Source {
         //if($state['eidas:requestData']['forceAuthn'])
         $eidas->forceAuthn();
         
-        $eidas->setSignatureKeyParams($this->certData, $this->keyData, sspmod_clave_SPlib::RSA_SHA512);
-        $eidas->setSignatureParams(sspmod_clave_SPlib::SHA512,sspmod_clave_SPlib::EXC_C14N);
+        $eidas->setSignatureKeyParams($this->certData, $this->keyData, SPlib::RSA_SHA512);
+        $eidas->setSignatureParams(SPlib::SHA512,SPlib::EXC_C14N);
         
         $eidas->setServiceProviderParams($providerName, 
                                          $reqIssuer,
@@ -600,7 +600,7 @@ class SP extends Source {
             foreach($state['eidas:requestData']['requestedAttributes'] as $attr){
                 $name = NULL;
                 if ($this->dialect === 'stork'){
-                    $name = sspmod_clave_SPlib::getFriendlyName($attr['name']);
+                    $name = SPlib::getFriendlyName($attr['name']);
                 }
                 if ($this->dialect === 'eidas'){//el dialecto del SP hosted
                     
@@ -612,7 +612,7 @@ class SP extends Source {
                         $name = $attr['friendlyName'];
                     }
                     else{
-                        $name = sspmod_clave_SPlib::getEidasFriendlyName($attr['name']); //We are expecting eIDAS attribute full names, so 1
+                        $name = SPlib::getEidasFriendlyName($attr['name']); //We are expecting eIDAS attribute full names, so 1
                         if($name === "")
                             $name = $attr['name'];
                     }
@@ -620,7 +620,7 @@ class SP extends Source {
                 $attributes []= array($name, $attr['isRequired'],$attr['values']);  // TODO: add the values array here
                 
                 //We store the list of mandatory attributes for response validation
-                if(sspmod_clave_SPlib::stb($attr['isRequired']) === true){
+                if(SPlib::stb($attr['isRequired']) === true){
                     $mandatory []= $name;
                 }
             }
@@ -972,11 +972,11 @@ class SP extends Source {
         $returnPage = Module::getModuleURL('clave/sp/logout-return.php/'.$this->authId);
 
 
-        $eidas = new sspmod_clave_SPlib();
+        $eidas = new SPlib();
    
         $eidas->setSignatureKeyParams($this->certData, $this->keyData,
-                                      sspmod_clave_SPlib::RSA_SHA512);
-        $eidas->setSignatureParams(sspmod_clave_SPlib::SHA512,sspmod_clave_SPlib::EXC_C14N);
+                                      SPlib::RSA_SHA512);
+        $eidas->setSignatureParams(SPlib::SHA512,SPlib::EXC_C14N);
         
         
         //Save information needed for the comeback

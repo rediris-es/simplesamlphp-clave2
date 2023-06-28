@@ -5,9 +5,11 @@
 
 // TODO (IdP still stork-clave1). Make it dual mode, both at SP and IdP, just response generatin lacking
 
+namespace SimpleSAML\Module\clave;
+
 
 //STORK and eIDAS compliant SP
-class sspmod_clave_SPlib {
+class SPlib {
   
   const VERSION = "2.0.3";
   
