@@ -34,7 +34,7 @@ if (!array_key_exists('PATH_INFO', $_SERVER)) {
     throw new SimpleSAML\Error\BadRequest('Missing authentication source ID in assertion consumer service URL');
 }
 $sourceId = substr($_SERVER['PATH_INFO'], 1);
-$source = SimpleSAML\Auth\Source::getById($sourceId, 'sspmod_clave_Auth_Source_SP');
+$source = SimpleSAML\Auth\Source::getById($sourceId, 'SimpleSAML\Module\clave\Auth\Source\SP');
 
 
 //Get the AuthSource config
