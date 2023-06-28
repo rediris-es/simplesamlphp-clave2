@@ -148,7 +148,7 @@ class Tools {
     {
         $ret = array();
         
-        $keys = self::getArray($metadata,'keys', (array)NULL);
+        $keys = self::getArray($metadata,'keys', NULL);
         if ($keys == NULL)
             throw new Exception('No key entry found in metadata: '.print_r($metadata,true));
         
@@ -170,15 +170,13 @@ class Tools {
     }
 
 
-
     /**
      * @param Configuration $configArray
      * @param string $field
-     * @param string $default
-     * @return string
-     * @throws Exception
+     * @param string|null $default
+     * @return string|NULL
      */
-    public static function getString (Configuration $configArray, string $field, string $default): string
+    public static function getString (Configuration $configArray, string $field, string $default=NULL): ?string
     {
         try{
             return $configArray->getString($field);
@@ -192,7 +190,6 @@ class Tools {
      * @param string $field
      * @param boolean $default
      * @return boolean
-     * @throws Exception
      */
     public static function getBoolean (Configuration $configArray, string $field, bool $default): bool
     {
@@ -202,14 +199,14 @@ class Tools {
             return $default;
         }
     }
+
     /**
      * @param Configuration $configArray
      * @param string $field
-     * @param int $default
-     * @return int
-     * @throws Exception
+     * @param int|null $default
+     * @return int|null
      */
-    public static function getInteger (Configuration $configArray, string $field, int $default): int
+    public static function getInteger (Configuration $configArray, string $field, int $default=NULL): ?int
     {
         try{
             return $configArray->getInteger($field);
@@ -217,14 +214,14 @@ class Tools {
             return $default;
         }
     }
+
     /**
      * @param Configuration $configArray
      * @param string $field
-     * @param array $default
-     * @return array
-     * @throws Exception
+     * @param array|null $default
+     * @return array|null
      */
-    public static function getArray (Configuration $configArray, string $field, array $default): array
+    public static function getArray (Configuration $configArray, string $field, array $default=NULL): ?array
     {
         try{
             return $configArray->getArray($field);
