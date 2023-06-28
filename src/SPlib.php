@@ -5,10 +5,22 @@
 
 // TODO (IdP still stork-clave1). Make it dual mode, both at SP and IdP, just response generatin lacking
 
+//STORK and eIDAS compliant SP
+
+
 namespace SimpleSAML\Module\clave;
 
+use DOMDocument;
+use DOMElement;
+use DOMNodeList;
+use DOMXPath;
+use Exception;
+use RobRichards\XMLSecLibs\XMLSecEnc;
+use RobRichards\XMLSecLibs\XMLSecurityDSig;
+use RobRichards\XMLSecLibs\XMLSecurityKey;
+use SimpleXMLElement;
 
-//STORK and eIDAS compliant SP
+
 class SPlib {
   
   const VERSION = "2.0.3";
@@ -99,7 +111,7 @@ class SPlib {
   
   // List of accepted attributes (friendly names)
   // Edit as you need it.
-  private static $ATTRIBUTES = array(
+  private static array $ATTRIBUTES = array(
           // STORK 1 Personal Attributes
           "givenName"                 => "http://www.stork.gov.eu/1.0/givenName", 
           "surname"                   => "http://www.stork.gov.eu/1.0/surname",
@@ -153,7 +165,7 @@ class SPlib {
   const EIDAS_ATTR_PREFIX = "http://eidas.europa.eu/attributes/";
   //PHP5.4 does not accept concatenations in declaration
   //      "PersonIdentifier"     => self::EIDAS_ATTR_PREFIX."naturalperson/PersonIdentifier",
-  private static $eIdasAttributes = array(
+  private static array $eIdasAttributes = array(
       "PersonIdentifier"     => "http://eidas.europa.eu/attributes/naturalperson/PersonIdentifier",
       "FirstName"            => "http://eidas.europa.eu/attributes/naturalperson/CurrentGivenName",
       "FamilyName"           => "http://eidas.europa.eu/attributes/naturalperson/CurrentFamilyName",
@@ -213,7 +225,8 @@ class SPlib {
 
 
   //Get the friendly name for a eIDAS attribute name
-  public static function getEidasFriendlyName ($attributeName){
+  public static function getEidasFriendlyName ($attributeName): string
+  {
       
       if($attributeName === NULL || $attributeName === "") {
           # TODO: turn again to self::fail when fal is made static (as it should be)
@@ -235,11 +248,11 @@ class SPlib {
 
   //The attribute names being used for signed node referencing 
   //[Notice that XPath expressions are case-sensitive]
-  private static $referenceIds = array('ID','Id','id');
+  private static array $referenceIds = array('ID','Id','id');
   
   //The prefix to form the full name of the attributes and the name format declaration.
-  private static $AttrNamePrefix = "http://www.stork.gov.eu/1.0/";
-  private static $AttrNF         = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri";
+  private static string $AttrNamePrefix = "http://www.stork.gov.eu/1.0/";
+  private static string $AttrNF         = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri";
   
 
   //Protocol to be used (0:Stork, 1:eIDAS)
@@ -1425,7 +1438,7 @@ class SPlib {
         self::debug("Response Successful.");
         
         //Search for encrypted assertions and try to decrypt them beforehand
-        if ($this->doDecipher === TRUE){
+        if ($this->doDecipher == TRUE){
             self::debug("Searching for encrypted assertions...");
             $samlResponse = $this->decryptAssertions($storkSamlResponseToken);
         }
@@ -3842,16 +3855,16 @@ class claveAuth {
         $this->conf = self::getConfigFromFile($configFile);
         
         
-        $this->claveSP  = new sspmod_clave_SPlib();
+        $this->claveSP  = new SPlib();
         
         $this->claveSP->forceAuthn();
         
         $this->claveSP->setSignatureKeyParams($this->conf['signCert'],
                                               $this->conf['signKey'],
-                                              sspmod_clave_SPlib::RSA_SHA256);
+                                              SPlib::RSA_SHA256);
         
-        $this->claveSP->setSignatureParams(sspmod_clave_SPlib::SHA256,
-                                           sspmod_clave_SPlib::EXC_C14N);
+        $this->claveSP->setSignatureParams(SPlib::SHA256,
+                                           SPlib::EXC_C14N);
 
         //La URL de retorno es la misma que la actual, así que la calculamos
         $this->claveSP->setServiceProviderParams($this->conf['SPname'],
@@ -3935,7 +3948,7 @@ class claveAuth {
 
     
     private function do_Logout(){
-        $id = sspmod_clave_SPlib::generateID();
+        $id = SPlib::generateID();
         
         $req = $this->claveSP->generateSLORequest($this->conf['Issuer'],
                                                   $this->conf['sloEndpoint'],
@@ -3957,7 +3970,7 @@ class claveAuth {
                 
         $resp = base64_decode($response);
         
-        $claveSP = new sspmod_clave_SPlib();
+        $claveSP = new SPlib();
         
         $claveSP->addTrustedCert($this->conf['validateCert']);
         
@@ -3979,7 +3992,7 @@ class claveAuth {
         
         $resp = base64_decode($response);
         
-        $claveSP = new sspmod_clave_SPlib();
+        $claveSP = new SPlib();
         
         
         $claveSP->addTrustedCert($this->conf['validateCert']);
