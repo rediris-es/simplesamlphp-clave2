@@ -1,10 +1,15 @@
 <?php
 
+namespace SimpleSAML\Module\clave;
 
+
+use Exception;
 use SimpleSAML\Assert\AssertionFailedException;
 use SimpleSAML\Configuration;
+use SimpleSAML\Error\MetadataNotFound;
+use SimpleSAML\Metadata\MetaDataStorageHandler;
 
-class sspmod_clave_Tools {
+class Tools {
 
 
     /**
@@ -16,13 +21,13 @@ class sspmod_clave_Tools {
      * which metadada set to read from (the name of the file without extension)
      * @param $set
      * metadata for the entity
-     * @return SimpleSAML\Configuration
+     * @return Configuration
      * @throws Exception
      */
     public static function getMetadataSet($entityId, $set): Configuration
     {
     
-        $globalConfig = SimpleSAML\Configuration::getInstance();
+        $globalConfig = Configuration::getInstance();
         $metadataDirectory = self::getString($globalConfig,'metadatadir', 'metadata/');
         $metadataDirectory = $globalConfig->resolvePath($metadataDirectory) . '/';
 
@@ -40,17 +45,17 @@ class sspmod_clave_Tools {
         if(!isset($claveMeta[$entityId]))
             throw new Exception("Entity ".$entityId." not found in set ".$set);
     
-        return SimpleSAML\Configuration::loadFromArray($claveMeta[$entityId]);
+        return Configuration::loadFromArray($claveMeta[$entityId]);
     }
 
 
     /**
      * Retrieves metadata for a given clave SP, but taking into account
      * whether he must search the clave or the saml20 metadatafiles.
-     * @param SimpleSAML\Configuration $claveConfig
+     * @param Configuration $claveConfig
      * @param $spEntityId
-     * @return SimpleSAML\Configuration|null
-     * @throws SimpleSAML\Error\MetadataNotFound
+     * @return Configuration|null
+     * @throws MetadataNotFound
      * @throws Exception
      */
     public static function getSPMetadata(Configuration $claveConfig, $spEntityId): ?Configuration
@@ -59,9 +64,9 @@ class sspmod_clave_Tools {
         //Retrieve the metadata for the requesting SP
         $spMetadata = NULL;
         if(!self::getBoolean($claveConfig,'sp.useSaml20Meta', false)){
-            $spMetadata = sspmod_clave_Tools::getMetadataSet($spEntityId,"clave-sp-remote");
+            $spMetadata = Tools::getMetadataSet($spEntityId,"clave-sp-remote");
         }else{
-            $metadata   = SimpleSAML\Metadata\MetaDataStorageHandler::getMetadataHandler();
+            $metadata   = MetaDataStorageHandler::getMetadataHandler();
             $spMetadata = $metadata->getMetaDataConfig($spEntityId, 'saml20-sp-remote');
         }
         
@@ -83,7 +88,7 @@ class sspmod_clave_Tools {
         if($relativePath == null || $relativePath == '')
             throw new Exception('Unable to load cert or key from file: path is empty');
         
-        $path = (new SimpleSAML\Utils\Config)->getCertPath($relativePath);
+        $path = (new \SimpleSAML\Utils\Config)->getCertPath($relativePath);
         $data = @file_get_contents($path);
         if ($data === false){
             throw new Exception('Unable to load cert or key from file "' . $path . '"');
@@ -135,7 +140,7 @@ class sspmod_clave_Tools {
     
     //Now it returns an array
     /**
-     * @param SimpleSAML\Configuration $metadata
+     * @param Configuration $metadata
      * @return array
      * @throws Exception
      */
@@ -167,13 +172,13 @@ class sspmod_clave_Tools {
 
 
     /**
-     * @param SimpleSAML\Configuration $configArray
+     * @param Configuration $configArray
      * @param string $field
      * @param string $default
      * @return string
      * @throws Exception
      */
-    public static function getString (SimpleSAML\Configuration $configArray, string $field, string $default): string
+    public static function getString (Configuration $configArray, string $field, string $default): string
     {
         try{
             return $configArray->getString($field);
@@ -183,13 +188,13 @@ class sspmod_clave_Tools {
     }
 
     /**
-     * @param SimpleSAML\Configuration $configArray
+     * @param Configuration $configArray
      * @param string $field
      * @param boolean $default
      * @return boolean
      * @throws Exception
      */
-    public static function getBoolean (SimpleSAML\Configuration $configArray, string $field, bool $default): bool
+    public static function getBoolean (Configuration $configArray, string $field, bool $default): bool
     {
         try{
             return $configArray->getBoolean($field);
@@ -198,13 +203,13 @@ class sspmod_clave_Tools {
         }
     }
     /**
-     * @param SimpleSAML\Configuration $configArray
+     * @param Configuration $configArray
      * @param string $field
      * @param int $default
      * @return int
      * @throws Exception
      */
-    public static function getInteger (SimpleSAML\Configuration $configArray, string $field, int $default): int
+    public static function getInteger (Configuration $configArray, string $field, int $default): int
     {
         try{
             return $configArray->getInteger($field);
@@ -213,13 +218,13 @@ class sspmod_clave_Tools {
         }
     }
     /**
-     * @param SimpleSAML\Configuration $configArray
+     * @param Configuration $configArray
      * @param string $field
      * @param array $default
      * @return array
      * @throws Exception
      */
-    public static function getArray (SimpleSAML\Configuration $configArray, string $field, array $default): array
+    public static function getArray (Configuration $configArray, string $field, array $default): array
     {
         try{
             return $configArray->getArray($field);
