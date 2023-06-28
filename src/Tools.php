@@ -1,6 +1,9 @@
 <?php
 
 
+use SimpleSAML\Assert\AssertionFailedException;
+use SimpleSAML\Configuration;
+
 class sspmod_clave_Tools {
 
 
@@ -16,10 +19,11 @@ class sspmod_clave_Tools {
      * @return SimpleSAML\Configuration
      * @throws Exception
      */
-    public static function getMetadataSet($entityId, $set){
+    public static function getMetadataSet($entityId, $set): Configuration
+    {
     
         $globalConfig = SimpleSAML\Configuration::getInstance();
-        $metadataDirectory = $globalConfig->getString('metadatadir', 'metadata/');
+        $metadataDirectory = self::getString($globalConfig,'metadatadir', 'metadata/');
         $metadataDirectory = $globalConfig->resolvePath($metadataDirectory) . '/';
 
         $metadataFile = $metadataDirectory.'/'.$set.'.php';
@@ -49,11 +53,12 @@ class sspmod_clave_Tools {
      * @throws SimpleSAML\Error\MetadataNotFound
      * @throws Exception
      */
-    public static function getSPMetadata($claveConfig,$spEntityId){
+    public static function getSPMetadata(Configuration $claveConfig, $spEntityId): ?Configuration
+    {
         
         //Retrieve the metadata for the requesting SP
         $spMetadata = NULL;
-        if(!$claveConfig->getBoolean('sp.useSaml20Meta', false)){
+        if(!self::getBoolean($claveConfig,'sp.useSaml20Meta', false)){
             $spMetadata = sspmod_clave_Tools::getMetadataSet($spEntityId,"clave-sp-remote");
         }else{
             $metadata   = SimpleSAML\Metadata\MetaDataStorageHandler::getMetadataHandler();
@@ -69,15 +74,16 @@ class sspmod_clave_Tools {
      * Reads file relative to the configured cert directory
      *
      * @param string $relativePath
-     * @return false|string
+     * @return string
      * @throws Exception
      */
-    public static function readCertKeyFile ($relativePath){
+    public static function readCertKeyFile (string $relativePath): string
+    {
         
         if($relativePath == null || $relativePath == '')
             throw new Exception('Unable to load cert or key from file: path is empty');
         
-        $path = SimpleSAML\Utils\Config::getCertPath($relativePath);
+        $path = (new SimpleSAML\Utils\Config)->getCertPath($relativePath);
         $data = @file_get_contents($path);
         if ($data === false){
             throw new Exception('Unable to load cert or key from file "' . $path . '"');
@@ -133,10 +139,11 @@ class sspmod_clave_Tools {
      * @return array
      * @throws Exception
      */
-    public static function findX509SignCertOnMetadata ($metadata){
+    public static function findX509SignCertOnMetadata (Configuration $metadata): array
+    {
         $ret = array();
         
-        $keys = $metadata->getArray('keys',NULL);
+        $keys = self::getArray($metadata,'keys', (array)NULL);
         if ($keys == NULL)
             throw new Exception('No key entry found in metadata: '.print_r($metadata,true));
         
@@ -166,11 +173,11 @@ class sspmod_clave_Tools {
      * @return string
      * @throws Exception
      */
-    public static function getString (SimpleSAML\Configuration $configArray, string $field, string $default)
+    public static function getString (SimpleSAML\Configuration $configArray, string $field, string $default): string
     {
         try{
             return $configArray->getString($field);
-        }catch (\SimpleSAML\Assert\AssertionFailedException $e){
+        }catch (AssertionFailedException $e){
             return $default;
         }
     }
@@ -179,16 +186,45 @@ class sspmod_clave_Tools {
      * @param SimpleSAML\Configuration $configArray
      * @param string $field
      * @param boolean $default
-     * @return string
+     * @return boolean
      * @throws Exception
      */
-    public static function getBoolean (SimpleSAML\Configuration $configArray, string $field, boolean $default)
+    public static function getBoolean (SimpleSAML\Configuration $configArray, string $field, bool $default): bool
     {
         try{
             return $configArray->getBoolean($field);
-        }catch (\SimpleSAML\Assert\AssertionFailedException $e){
+        }catch (AssertionFailedException $e){
             return $default;
         }
     }
-
+    /**
+     * @param SimpleSAML\Configuration $configArray
+     * @param string $field
+     * @param int $default
+     * @return int
+     * @throws Exception
+     */
+    public static function getInteger (SimpleSAML\Configuration $configArray, string $field, int $default): int
+    {
+        try{
+            return $configArray->getInteger($field);
+        }catch (AssertionFailedException $e){
+            return $default;
+        }
+    }
+    /**
+     * @param SimpleSAML\Configuration $configArray
+     * @param string $field
+     * @param array $default
+     * @return array
+     * @throws Exception
+     */
+    public static function getArray (SimpleSAML\Configuration $configArray, string $field, array $default): array
+    {
+        try{
+            return $configArray->getArray($field);
+        }catch (AssertionFailedException $e){
+            return $default;
+        }
+    }
 }

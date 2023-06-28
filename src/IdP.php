@@ -9,6 +9,10 @@
  * @package Clave
  */
 
+use SimpleSAML\Auth\Simple;
+use SimpleSAML\Configuration;
+use SimpleSAML\Error\Error;
+use SimpleSAML\IdP\LogoutHandlerInterface;
 
 class sspmod_clave_IdP
 {
@@ -18,7 +22,7 @@ class sspmod_clave_IdP
      *
      * @var array
      */
-    private static $idpCache = array();
+    private static array $idpCache = array();
     
     
     /**
@@ -26,7 +30,7 @@ class sspmod_clave_IdP
      *
      * @var string
      */
-    private $id;
+    private string $id;
     
     
     /**
@@ -34,7 +38,7 @@ class sspmod_clave_IdP
      *
      * @var SimpleSAML\Configuration
      */
-    private $config;
+    private Configuration $config;
 
 
     /**
@@ -42,7 +46,7 @@ class sspmod_clave_IdP
      *
      * @var SimpleSAML\Auth\Simple
      */
-    private $authSource;
+    private Simple $authSource;
 
 
     
@@ -52,7 +56,7 @@ class sspmod_clave_IdP
      *
      * @return string The ID of this IdP.
      */
-    public function getId()
+    public function getId(): string
     {
         return $this->id;
     }
@@ -64,7 +68,7 @@ class sspmod_clave_IdP
      *
      * @return SimpleSAML\Configuration The configuration object.
      */
-    public function getConfig()
+    public function getConfig(): Configuration
     {
         return $this->config;
     }
@@ -78,7 +82,7 @@ class sspmod_clave_IdP
      * @return sspmod_clave_IdP
      * @throws Exception
      */
-    public static function getById($id)
+    public static function getById(string $id): sspmod_clave_IdP
     {
         assert('is_string($id)');
 
@@ -100,7 +104,7 @@ class sspmod_clave_IdP
      * @return sspmod_clave_IdP
      * @throws Exception
      */
-    public static function getByState(array &$state)
+    public static function getByState(array &$state): sspmod_clave_IdP
     {
         assert('isset($state["core:IdP"])');
 
@@ -115,7 +119,7 @@ class sspmod_clave_IdP
      *
      * @return boolean True if the user is authenticated, false otherwise.
      */
-    public function isAuthenticated()
+    public function isAuthenticated(): bool
     {
         return $this->authSource->isAuthenticated();
     }
@@ -129,7 +133,7 @@ class sspmod_clave_IdP
      * If the IdP is disabled or no such auth source was found.
      * @throws Exception
      */
-    private function __construct($id)
+    private function __construct(string $id)
     {
         assert('is_string($id)');
         
@@ -249,11 +253,7 @@ class sspmod_clave_IdP
 
         $state['Attributes'] = $idp->authSource->getAttributes();
 
-        if (isset($state['SPMetadata'])) {
-            $spMetadata = $state['SPMetadata'];
-        } else {
-            $spMetadata = array();
-        }
+        $spMetadata = $state['SPMetadata'] ?? array();
 
         if (isset($state['core:SP'])) {
             $session = SimpleSAML\Session::getSessionFromRequest();
@@ -287,12 +287,12 @@ class sspmod_clave_IdP
      * @param array &$state The authentication request state.
      *
      * If we were asked to do passive authentication.
-     * @throws SimpleSAML\Error\NoPassive
+     * @throws Error
      */
     private function authenticate(array &$state)
     {
         if (isset($state['isPassive']) && (bool) $state['isPassive']) {
-            throw new SimpleSAML\Error\NoPassive('Passive authentication not supported.');
+            throw new Error('Passive authentication not supported.');
         }
         SimpleSAML\Logger::debug('------------------STATE at idp.authenticate: '.print_r($state,true));
         $this->authSource->login($state);
@@ -316,7 +316,7 @@ class sspmod_clave_IdP
     private function reauthenticate(array &$state)
     {
         $sourceImpl = $this->authSource->getAuthSource();
-        if ($sourceImpl === null) {
+        if ($sourceImpl == NULL) {
             throw new SimpleSAML\Error\Exception('No such auth source defined.');
         }
 
@@ -339,11 +339,11 @@ class sspmod_clave_IdP
     /**
      * Find the logout handler of this IdP.
      *
-     * @return \SimpleSAML\IdP\LogoutHandlerInterface The logout handler class.
+     * @return LogoutHandlerInterface The logout handler class.
      *
      * @throws SimpleSAML\Error\Exception If we cannot find a logout handler.
      */
-    public function getLogoutHandler()
+    public function getLogoutHandler(): LogoutHandlerInterface
     {
         throw new SimpleSAML\Error\Exception('Logout not supported in eIDAS.');
     }
@@ -373,7 +373,7 @@ class sspmod_clave_IdP
      * association.
      * @throws \SimpleSAML\Error\Exception
      */
-    public function handleLogoutRequest(array &$state, $assocId)
+    public function handleLogoutRequest(array &$state, ?string $assocId)
     {
         throw new SimpleSAML\Error\Exception('Logout not supported in eIDAS.');
     }
@@ -389,7 +389,7 @@ class sspmod_clave_IdP
      * @param SimpleSAML\Error\Exception|null $error The error that occurred during session termination (if any).
      * @throws \SimpleSAML\Error\Exception
      */
-    public function handleLogoutResponse($assocId, $relayState, SimpleSAML\Error\Exception $error = null)
+    public function handleLogoutResponse(string $assocId, ?string $relayState, SimpleSAML\Error\Exception $error = null)
     {
         throw new SimpleSAML\Error\Exception('Logout not supported in eIDAS.');
     }

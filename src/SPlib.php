@@ -612,6 +612,7 @@ class sspmod_clave_SPlib {
     
     self::debug("Adding attribute ".$friendlyName." required(".self::bts($required).")");
 
+    $prefix = '';
     if($this->mode === 0)
         $prefix = "stork";
     if($this->mode === 1)
@@ -672,9 +673,9 @@ class sspmod_clave_SPlib {
         .'xsi:type="'.$valueType.'">'
         .$transformedValue.'</'.$prefix.':AttributeValue>';
     }
-    
-    
-    
+
+
+    $attrLine = '';
     if($this->mode === 0){
         
         $attrName = $friendlyName;
@@ -2865,7 +2866,7 @@ class sspmod_clave_SPlib {
 //          $attrname = preg_replace("|.+/(.+?)$|i", "\\1", $attributeName);
 //          return $attrname;
 //      }
-      
+      return NULL;
   }
   
 
@@ -4047,7 +4048,7 @@ class claveAuth {
                               $excludedIdPList="",$allowLegalPerson=""){
         
         echo "
-<html>
+<html lang=\"en\">
   <body onload=\"document.forms[0].submit();\">
 	   <form name=\"redirectForm\" method=\"post\" action=\"".$endpoint."\">
 		    <input type=\"hidden\" name=\"".$postParam."\" value=\"".$req."\" />

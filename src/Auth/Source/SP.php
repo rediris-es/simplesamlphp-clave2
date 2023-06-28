@@ -136,7 +136,7 @@ class SP extends Source {
         
         
         //Get the hosted sp metadata
-        $spConfId = $this->metadata->getString('hostedSP'); //getString('hostedSP', NULL);
+        $spConfId = sspmod_clave_Tools::getString($this->metadata,'hostedSP', NULL);
         if($spConfId == NULL)
             throw new Error\Exception("hostedSP field not defined for eIDAS auth source.");
         $this->spMetadata = sspmod_clave_Tools::getMetadataSet($spConfId,"clave-sp-hosted");
@@ -144,7 +144,7 @@ class SP extends Source {
         
         
         //Get the remote idp metadata
-        $idpEntityId = $this->spMetadata->getString('idpEntityID'); //getString('idpEntityID', NULL)
+        $idpEntityId = sspmod_clave_Tools::getString($this->spMetadata,'idpEntityID', NULL);
         if($idpEntityId == NULL)
             throw new Error\Exception("idpEntityID field not defined for eIDAS auth source.");
         $this->idpMetadata = sspmod_clave_Tools::getMetadataSet($idpEntityId,"clave-idp-remote");
@@ -171,11 +171,7 @@ class SP extends Source {
         
         
         //Set the class properties
-        try {
-            $this->discoURL = $this->metadata->getString('discoURL');
-        }catch (Assert\AssertionFailedException $e){
-            $this->discoURL = 'clave/sp/countryselector.php';  // TODO: default value. can be moved elsewhere? can module name be parametrised? anyway, remember to change module name}
-        }
+        $this->discoURL = sspmod_clave_Tools::getString($this->metadata,'discoURL', 'clave/sp/countryselector.php');  // TODO: default value. can be moved elsewhere? can module name be parametrised? anyway, remember to change module name}
 
         $this->entityId   = $this->spMetadata->getString('entityid');
         $this->idp        = $idpEntityId;
@@ -195,11 +191,11 @@ class SP extends Source {
      * Retrieve the URL to the metadata of this SP (eIDAS).
      *
      * @return string  The metadata URL.
-     * @throws Assert\AssertionFailedException
+     * @throws Assert\AssertionFailedException|Exception
      */
 	public function getMetadataURL(): string {
         
-        $spConfId = $this->metadata->getString('hostedSP');
+        $spConfId = sspmod_clave_Tools::getString($this->metadata,'hostedSP', NULL);
         return Module::getModuleURL('clave/sp/metadata.php/'.'clave/'.urlencode($spConfId).'/'.urlencode($this->authId));
 	}
     
@@ -273,7 +269,7 @@ class SP extends Source {
         //Show country selector
 		$id = State::saveState($state, 'clave:sp:sso');
         
-		$config = Configuration::getInstance();
+		//$config = Configuration::getInstance();
 
         //Use country selector url defined in config (internal or absolute)
         $discoURL = $this->discoURL;        
@@ -351,7 +347,7 @@ class SP extends Source {
 
 
     /**
-     * Send a SSO request to an IdP.
+     * Send an SSO request to an IdP.
      *
      * @param string $idp The entity ID of the IdP.
      * @param array $state The state array for the current authentication.
@@ -380,6 +376,14 @@ class SP extends Source {
         $crossSectorShare = "";
         $crossBorderShare = "";
         $LoA = 1;
+        $reqIssuer = NULL;
+        $SPCountry = NULL;
+        $SPsector = NULL;
+        $SPinstitution = NULL;
+        $SPapp = NULL;
+        $SpId = NULL;
+        $CitizenCountry = NULL;
+        $QAA = NULL;
         if ($this->dialect === 'stork'){
             
             //These params are set, in order of preference:
@@ -402,7 +406,7 @@ class SP extends Source {
             $CitizenCountry = "";
             //For Spain's Clave based on stork, country is fixed
             if ($this->subdialect === 'clave-1.0'){
-                $CitizenCountry = $remoteSpMeta->getString('citizenCountryCode',$this->spMetadata->getString('citizenCountryCode', ''.$state['eidas:requestData']['citizenCountryCode']));
+                $CitizenCountry = sspmod_clave_Tools::getString($remoteSpMeta, 'citizenCountryCode',sspmod_clave_Tools::getString($this->spMetadata,'citizenCountryCode', ''.$state['eidas:requestData']['citizenCountryCode']));
             }
             if ($this->subdialect === 'stork')
                 if($showCountrySelector === true)
@@ -415,10 +419,10 @@ class SP extends Source {
             // 2. Remote SP metadata issuer field (if set)
             // 3. Issuer Field specified on the remote SP request
             // (Dropped using the entityId of the hosted SP)
-            $useMetadataUrl = $this->spMetadata->getBoolean('useMetadataUrl', False);
+            $useMetadataUrl = sspmod_clave_Tools::getBoolean($this->spMetadata, 'useMetadataUrl', False);
             if(!$useMetadataUrl)
-                $reqIssuer = $this->spMetadata->getString('issuer',
-                    $remoteSpMeta->getString('issuer',
+                $reqIssuer = sspmod_clave_Tools::getString($this->spMetadata,'issuer',
+                    sspmod_clave_Tools::getString($remoteSpMeta,'issuer',
                         $state['eidas:requestData']['issuer']));
             else
                 $reqIssuer = $this->getMetadataURL();
@@ -427,10 +431,12 @@ class SP extends Source {
             || $state['eidas:requestData']['QAA'] === NULL
             || $state['eidas:requestData']['QAA'] === "")
                 $state['eidas:requestData']['QAA'] = 1;
-            $QAA = $this->spMetadata->getInteger('QAA', $remoteSpMeta->getInteger('QAA', $state['eidas:requestData']['QAA'] ));
+            $QAA = sspmod_clave_Tools::getInteger($this->spMetadata,'QAA', sspmod_clave_Tools::getInteger($remoteSpMeta,'QAA', $state['eidas:requestData']['QAA'] ));
             $LoA = sspmod_clave_SPlib::qaaToLoA($QAA);
         }
-        
+
+        $SPType       = sspmod_clave_SPlib::EIDAS_SPTYPE_PUBLIC;
+        $NameIDFormat = sspmod_clave_SPlib::NAMEID_FORMAT_PERSISTENT;
         if ($this->dialect === 'eidas'){ //On eIDAS, we always get the country selector value.
             
             //Set defaults for when the remote SP was in Stork mode
@@ -449,8 +455,8 @@ class SP extends Source {
             || $state['eidas:requestData']['LoA'] === "")
                 $state['eidas:requestData']['LoA'] = sspmod_clave_SPlib::qaaToLoA($state['eidas:requestData']['QAA']);
             
-            $SPType       = $this->spMetadata->getString('SPType', $remoteSpMeta->getString('SPType', $state['eidas:requestData']['SPType']));
-            $NameIDFormat = $this->spMetadata->getString('NameIDFormat', $remoteSpMeta->getString('NameIDFormat', $state['eidas:requestData']['IdFormat']));
+            $SPType       = sspmod_clave_Tools::getString($this->spMetadata,'SPType', sspmod_clave_Tools::getString($remoteSpMeta,'SPType', $state['eidas:requestData']['SPType']));
+            $NameIDFormat = sspmod_clave_Tools::getString($this->spMetadata,'NameIDFormat', sspmod_clave_Tools::getString($remoteSpMeta,'NameIDFormat', $state['eidas:requestData']['IdFormat']));
 
             // If the request had a LoA, that is the priority value
             if(isset($state['eidas:requestData']['LoA'])
@@ -459,7 +465,7 @@ class SP extends Source {
                 $LoA = $state['eidas:requestData']['LoA'];
             }
             else {
-                $LoA = $this->spMetadata->getString('LoA', $remoteSpMeta->getString('LoA', sspmod_clave_SPlib::LOA_LOW));
+                $LoA = sspmod_clave_Tools::getString($this->spMetadata,'LoA', sspmod_clave_Tools::getString($remoteSpMeta,'LoA', sspmod_clave_SPlib::LOA_LOW));
                 Logger::debug("Setting LoA from Metadata: ".$LoA);
             }
             $QAA          = sspmod_clave_SPlib::loaToQaa($LoA);
@@ -477,7 +483,7 @@ class SP extends Source {
         }
 
         //Hosted SP providerName
-        $providerName = $this->spMetadata->getString('providerName', NULL);
+        $providerName = sspmod_clave_Tools::getString($this->spMetadata,'providerName', NULL);
 
 
         //Another terrible thing for clave: provider name has two
@@ -499,15 +505,15 @@ class SP extends Source {
             
             //Search the value on the metadata (will overwrite request
             //value. If not found, request value to be used)
-            $remoteProviderName = $remoteSpMeta->getString('spApplication',$remoteProviderName);
+            $remoteProviderName = sspmod_clave_Tools::getString($remoteSpMeta,'spApplication',$remoteProviderName);
 
 
             //The geniuses at Spanish Clave 2.0 only added this
             //feature for the RedIRIS proxy!!! if we try to use it for
             //any other administration it fails to identify the SP!!
             //So, I've parametrised this behaviour, to be able to
-            //disable it on othe deployments
-            $forwardPN = $this->spMetadata->getBoolean('providerName.forward', true);
+            //disable it on other deployments
+            $forwardPN = sspmod_clave_Tools::getBoolean($this->spMetadata,'providerName.forward', true);
             if(!$forwardPN)
                 $remoteProviderName = null;
 
@@ -581,7 +587,7 @@ class SP extends Source {
             
             if(!$found)
                 $attributes []= array('RelayState', false);  // TODO SEGUIR
-            // TODO: implement for all eIDAS and STORK to forward the reuqest attr values, if existing
+            // TODO: implement for all eIDAS and STORK to forward the request attr values, if existing
         }
         
         
@@ -592,13 +598,13 @@ class SP extends Source {
         ){
             
             foreach($state['eidas:requestData']['requestedAttributes'] as $attr){
-                
+                $name = NULL;
                 if ($this->dialect === 'stork'){
                     $name = sspmod_clave_SPlib::getFriendlyName($attr['name']);
                 }
                 if ($this->dialect === 'eidas'){//el dialecto del SP hosted
                     
-                    //If the remote SP uses stork dialect but is requestin eIDAs
+                    //If the remote SP uses stork dialect but is requesting eIDAs
                     //attributes, it will send the full name of the eIDAS attributes, and
                     //not the friendly name, so we try to get the friendly name, and if
                     //it fails, we consider it already is a friendly name
@@ -671,8 +677,8 @@ class SP extends Source {
 
             //Check if the remote SP or the hosted SP need us to keep the
             //RelayState (because it exceeds the standard size of 80)
-            $holdRelayState = $this->spMetadata->getBoolean('holdRelayState',
-                                                            $remoteSpMeta->getBoolean('holdRelayState', false));
+            $holdRelayState = sspmod_clave_Tools::getBoolean($this->spMetadata,'holdRelayState',
+                sspmod_clave_Tools::getBoolean($remoteSpMeta,'holdRelayState', false));
             Logger::debug('------------------------hold relay state?: '.$holdRelayState);
             
             if ($holdRelayState){
@@ -722,7 +728,7 @@ class SP extends Source {
 
 
     /**
-     * Handle a response from a SSO operation.
+     * Handle a response from an SSO operation.
      *
      * @param array $state The authentication state.
      * @param string $idp The entity id of the remote IdP.
@@ -731,7 +737,7 @@ class SP extends Source {
      * @throws Error\UnserializableException
      * @throws Exception
      */
-	public function handleResponse(array $state, $idp, array $attributes) {
+	public function handleResponse(array $state, string $idp, array $attributes) {
         assert('is_string($idp)');
         
         $idpMetadata = $this->getIdpMetadata($idp);
@@ -801,7 +807,7 @@ class SP extends Source {
 			if (!empty($state['saml:sp:RelayState'])) {
 				$redirectTo = $state['saml:sp:RelayState'];
 			} else {
-				$redirectTo = $source->getMetadata()->getString('RelayState', '/');
+				$redirectTo = sspmod_clave_Tools::getString($source->getMetadata(),'RelayState', '/');
 			}
 			self::handleUnsolicitedAuth($sourceId, $state, $redirectTo);
 		}
@@ -843,7 +849,8 @@ class SP extends Source {
       //not set, add it (emtpy).
       if ($this->subdialect === 'clave-2.0'){
           
-          $found=false;
+          $found = false;
+          $value = NULL;
           foreach($forwardedParams as $param => $value){
               if ($param === 'RelayState'){
                   $found=true;
@@ -868,13 +875,13 @@ class SP extends Source {
           
           if(!array_key_exists('idpList',$forwardedParams)){
               //IdP config values are the default if sp values not found, else not sent
-              $idpList = $remoteSpMeta->getArray('idpList', $this->spMetadata->getArray('idpList', array()));  
+              $idpList = sspmod_clave_Tools::getArray($remoteSpMeta,'idpList', sspmod_clave_Tools::getArray($this->spMetadata,'idpList', array()));
               if(count($idpList)>0)
                   $post['idpList'] = sspmod_clave_Tools::serializeIdpList($idpList);
           }
 
           if(!array_key_exists('excludedIdPList',$forwardedParams)){
-              $idpExcludedList = $remoteSpMeta->getArray('idpExcludedList', $this->spMetadata->getArray('idpExcludedList', array()));
+              $idpExcludedList = sspmod_clave_Tools::getArray($remoteSpMeta,'idpExcludedList', sspmod_clave_Tools::getArray($this->spMetadata,'idpExcludedList', array()));
               if(count($idpExcludedList)>0)
                   $post['excludedIdPList'] = sspmod_clave_Tools::serializeIdpList($idpExcludedList);  
           }
@@ -882,7 +889,7 @@ class SP extends Source {
           
           if(!array_key_exists('forcedIdP',$forwardedParams)){
               //Force a certain auth source
-              $force = $remoteSpMeta->getString('force', $this->spMetadata->getString('force', NULL));
+              $force = sspmod_clave_Tools::getString($remoteSpMeta,'force', sspmod_clave_Tools::getString($this->spMetadata,'force', NULL));
               if ($force != NULL)
                   $post['forcedIdP'] = $force;
           }
@@ -890,7 +897,7 @@ class SP extends Source {
           
           if(!array_key_exists('allowLegalPerson',$forwardedParams)){
               //Allow legal person certificates to be used
-              $legal = $remoteSpMeta->getBoolean('allowLegalPerson', false);
+              $legal = sspmod_clave_Tools::getBoolean($remoteSpMeta,'allowLegalPerson', false);
               if ($legal === true)
                   $post['allowLegalPerson'] = 'true';
           }
@@ -929,16 +936,16 @@ class SP extends Source {
   // TODO: review and merge/refactor all the logout part. Not now. At the end, as it only is useful for clave1 (maybe in the future for clave2).
 
 
-	/**
-	 * Start logout operation.
-	 *
-	 * @param array $state  The logout state.
-	 */
+    /**
+     * Start logout operation.
+     *
+     * @param array $state The logout state.
+     * @throws Exception
+     */
 	public function logout(array &$state): void {
 		assert('is_array($state)');
         
         $this->startSLO2($state);
-        return;
 	}
 
 
@@ -948,13 +955,13 @@ class SP extends Source {
      * @param array $state The logout state.
      * @throws Exception
      */
-	public function startSLO2(&$state) {
+	public function startSLO2(array &$state) {
 		assert('is_array($state)');
         
-        $providerName = $this->spMetadata->getString('providerName', NULL);
+        $providerName = sspmod_clave_Tools::getString($this->spMetadata,'providerName', NULL);
         
-		$endpoint = $this->idpMetadata->getString('SingleLogoutService', NULL);
-        if ($endpoint === NULL) {
+		$endpoint = sspmod_clave_Tools::getString($this->idpMetadata,'SingleLogoutService', NULL);
+        if ($endpoint == NULL) {
 			Logger::info('No logout endpoint for clave remote IdP.');
 			return;
 		}
@@ -978,7 +985,7 @@ class SP extends Source {
         Logger::debug("Generated Req ID: ".$id);
         
         
-        //Generate the logout requestx
+        //Generate the logout request
         $req = base64_encode($eidas->generateSLORequest($providerName,
                                                         $endpoint,
                                                         $returnPage,

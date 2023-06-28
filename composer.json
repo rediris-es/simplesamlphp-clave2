@@ -21,7 +21,10 @@
         "simplesamlphp/composer-module-installer": "~1.1",
         "simplesamlphp/simplesamlphp": "^2.0.4",
         "robrichards/xmlseclibs": "^3.0.4",
-        "ext-json": "*"
+        "ext-json": "*",
+        "ext-dom": "*",
+        "ext-openssl": "*",
+        "ext-simplexml": "*"
     },
     "support": {
         "issues": "https://github.com/rediris-es/simplesamlphp-clave2/issues",
