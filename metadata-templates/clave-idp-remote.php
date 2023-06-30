@@ -6,9 +6,9 @@
  */
 
 //Clave.es Development Environment
-$claveMeta['eIDASnode'] = array(
+$claveMeta['https://eidas.node/metadata.php'] = array(
     
-    // Unique identifier
+    // Unique identifier  // From SSP2, mandatory to define this field
     'entityID' => 'https://eidas.node/metadata.php',
     
     

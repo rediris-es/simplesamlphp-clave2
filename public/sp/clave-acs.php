@@ -48,6 +48,7 @@ if (!array_key_exists('PATH_INFO', $_SERVER)) {
     throw new Error\BadRequest('Missing authentication source ID in assertion consumer service URL');
 }
 $sourceId = substr($_SERVER['PATH_INFO'], 1);
+Logger::debug('Auth Source ID: '.$sourceId);
 $source = Auth\Source::getById($sourceId, 'SimpleSAML\Module\clave\Auth\Source\SP');
 
 
