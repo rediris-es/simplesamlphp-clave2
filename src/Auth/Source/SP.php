@@ -844,7 +844,9 @@ class SP extends Source {
       $remoteSpMeta  = Configuration::loadFromArray($state['SPMetadata']);
       
       //Get the POST parameters forwarded from the remote SP request
-      $forwardedParams = $state['sp:postParams'];
+      $forwardedParams = array();
+      if(isset($state['sp:postParams']))
+          $forwardedParams = $state['sp:postParams'];
       
       //Add the relay state to the list of forwarded parameters (this way, if the user sent it from the SAML2Int interface, it will work) // TODO check
       if (isset($state['saml:RelayState']) ){
