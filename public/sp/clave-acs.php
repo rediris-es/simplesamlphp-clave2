@@ -226,7 +226,7 @@ if($eidas->isSuccess($statusInfo)){
     
     //Log for statistics: received successful Response from remote clave IdP
     $statsData = array(
-        'spEntityID' => Tools::getString($spMetadata,'entityid', NULL),
+        'spEntityID' => Tools::getString($spMetadata,'entityID', NULL),
         'idpEntityID' => $eidas->getRespIssuer(),
         'protocol' => 'saml2-'.$SPdialect,
     );
@@ -353,12 +353,12 @@ if($eidas->isSuccess($statusInfo)){
             && $state['eidas:requestData']['issuer'] !== "")
             $assertionData['Audience'] = $state['eidas:requestData']['issuer']; // entityId del remote SP
         else // On Java Clave 2 Kit, request carries no entityID, but complains of not having an audience url. Read the entityID from SP remote metadata.
-            // Entities like this will need to have the spName on the array key but the proper url (mainly the acs url) on the 'entityid' (in lowercase) field.. Example:
+            // Entities like this will need to have the spName on the array key but the proper url (mainly the acs url) on the 'entityID' field.. Example:
             // $metadata['Q3150012G_U03500001;DEMO-SP'] = array (
-            //    'entityid' => 'https://some.domain.es/SP2/ReturnPage',
+            //    'entityID' => 'https://some.domain.es/SP2/ReturnPage',
             // Correction: using this field caused undesired interactions.
             // Since this is a dirty workaround, let's use a dirty new field: "Audience"
-            if(isset($state['SPMetadata']['entityid']))
+            if(isset($state['SPMetadata']['entityID']))
                 $assertionData['Audience'] = $state['SPMetadata']['Audience']; // TODO: Ojo. en minúsculas. Si cambia el campo, cambiar.  entityId del remote SP en los metadatos
         if(isset($state['saml:RequestId']))
             $assertionData['InResponseTo'] = $state['saml:RequestId'];
@@ -394,7 +394,7 @@ if($statusInfo['MainStatusCode'] == SPlib::ATST_NOTAVAIL){
 
 //Log for statistics: received failed Response from remote clave IdP
 $statsData = array(
-    'spEntityID' => Tools::getString($spMetadata,'entityid', NULL),
+    'spEntityID' => Tools::getString($spMetadata,'entityID', NULL),
     'idpEntityID' => $eidas->getRespIssuer(),
     'protocol' => 'saml2-'.$SPdialect,
     'error' => array(

@@ -248,7 +248,7 @@ Logger::debug("Generated LogoutReq: ".$req);
 
 //Log for statistics: sent LogoutRequest to remote clave IdP
 Stats::log('saml:idp:LogoutRequest:sent', array(
-        'spEntityID' =>  Tools::getString($hostedSPmeta,'entityid'),
+        'spEntityID' =>  Tools::getString($hostedSPmeta,'entityID'),
         'idpEntityID' => Tools::getString($idpMeta,'SingleSignOnService'),
 ));
 

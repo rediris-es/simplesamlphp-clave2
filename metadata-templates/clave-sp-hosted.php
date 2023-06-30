@@ -10,7 +10,7 @@
 $claveMeta['eidasSP'] = array(
     
     // [Mandatory] The unique ID of this SP
-    'entityid' => 'https://eidas.sp/metadata.php',
+    'entityID' => 'https://eidas.sp/metadata.php',
     
     
     // [Mandatory] In STORK, this identifier must match the

@@ -16,7 +16,7 @@
  */
 
 $claveMeta['https://eidas.sp/metadata.php'] = array (
-  'entityid' => 'https://eidas.sp/metadata.php',
+  'entityID' => 'https://eidas.sp/metadata.php',
 
 
   // [Optional] Added to do a dirty patch on the Clave 2 java kit. When

@@ -173,7 +173,7 @@ class SP extends Source {
         //Set the class properties
         $this->discoURL = Tools::getString($this->metadata,'discoURL', 'clave/sp/countryselector.php');  // TODO: default value. can be moved elsewhere? can module name be parametrised? anyway, remember to change module name
 
-        $this->entityId   = $this->spMetadata->getString('entityid');
+        $this->entityId   = $this->spMetadata->getString('entityID');
         $this->idp        = $idpEntityId;
         $this->dialect    = $this->spMetadata->getString('dialect');
         $this->subdialect = $this->spMetadata->getString('subdialect');

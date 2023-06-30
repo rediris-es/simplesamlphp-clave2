@@ -51,7 +51,7 @@ class eIDAS
         
         //Get the remote SP metadata
         $spMetadata  = Configuration::loadFromArray($state['SPMetadata']);
-        $spEntityId = Tools::getString($spMetadata,'entityid',NULL);
+        $spEntityId = Tools::getString($spMetadata,'entityID',NULL);
         Logger::debug('eIDAS SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
         
         
@@ -348,7 +348,7 @@ class eIDAS
         
         //Get the remote SP metadata
         $spMetadata  = Configuration::loadFromArray($state['SPMetadata']);
-        $spEntityId = Tools::getString($spMetadata,'entityid',NULL);
+        $spEntityId = Tools::getString($spMetadata,'entityID',NULL);
         Logger::debug('eIDAS SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
         
         

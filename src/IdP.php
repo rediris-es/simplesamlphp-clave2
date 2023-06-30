@@ -180,10 +180,10 @@ class IdP
 
         $state['core:IdP'] = $this->id;
 
-        if (isset($state['SPMetadata']['entityid'])) {
-            $spEntityId = $state['SPMetadata']['entityid'];
-        } elseif (isset($state['SPMetadata']['entityID'])) {
+        if (isset($state['SPMetadata']['entityID'])) {
             $spEntityId = $state['SPMetadata']['entityID'];
+        //} elseif (isset($state['SPMetadata']['entityid'])) {
+        //    $spEntityId = $state['SPMetadata']['entityid'];  //SSP2 no longer upports lowercase "entityid" field
         } else {
             $spEntityId = null;
         }

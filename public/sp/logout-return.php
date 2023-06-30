@@ -36,7 +36,7 @@ if($hostedSP == NULL)
 $hostedSPmeta = Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
 Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true));
 
-$spEntityId = Tools::getString($hostedSPmeta,'entityid', NULL);
+$spEntityId = Tools::getString($hostedSPmeta,'entityID', NULL);
 
 
 

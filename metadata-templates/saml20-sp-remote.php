@@ -12,7 +12,7 @@
 
 
 $metadata['https://eidas.sp/metadata.php'] = array (
-  'entityid' => 'https://eidas.sp/metadata.php',
+  'entityID' => 'https://eidas.sp/metadata.php',
   
   
   // [Optional] List of attributes to be requested to eIDAS. If not 
