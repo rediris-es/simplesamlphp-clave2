@@ -128,7 +128,8 @@ $allowedRespPostParams = Tools::getArray($spMetadata,'sp.post.allowed', array())
 //Check if the additionally accepted POST params must be trasferred as
 //such in the state or as attributes (so they are processed by the
 //SAML2Int IdP)
-if($state['idp:postParams:mode'] == 'forward'){
+if(isset($state['idp:postParams:mode'])
+    && $state['idp:postParams:mode'] == 'forward'){
     
     //Get allowed post params to be forwarded to the SP
     $forwardedParams = array();
@@ -246,8 +247,9 @@ if($eidas->isSuccess($statusInfo)){
     // If the remote IDP or SP needed the Relay State to be stopped
     // here and returned back, we get it from the state and send it
     // back, ignoring the one that was propagated
-    Logger::debug('------------------------held relay state?: '.$state['saml:HeldRelayState']);
+    Logger::debug('------------------------is there a held relay state?');
     if (isset($state['saml:HeldRelayState'])){
+        Logger::debug('------------------------Sure. Held relay state: '.$state['saml:HeldRelayState']);
         $state['saml:RelayState'] = $state['saml:HeldRelayState'];
         Logger::debug('------------------------set held relay state: '.$state['saml:RelayState']);
     }
