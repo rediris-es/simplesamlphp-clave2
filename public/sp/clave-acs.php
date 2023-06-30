@@ -66,6 +66,8 @@ Logger::debug('Clave SP hosted metadata: '.print_r($spMetadata,true));
 
 //Get remote IdP metadata
 $remoteIdPMeta = $source->getIdPMetadata("");
+Logger::debug('Clave IDP remote metadata: '.print_r($remoteIdPMeta,true));
+
 
 
 
