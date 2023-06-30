@@ -454,9 +454,13 @@ class SP extends Source {
             || $state['eidas:requestData']['LoA'] === NULL
             || $state['eidas:requestData']['LoA'] === ""))
                 $state['eidas:requestData']['LoA'] = SPlib::qaaToLoA($state['eidas:requestData']['QAA']);
-            
-            $SPType       = Tools::getString($this->spMetadata,'SPType', Tools::getString($remoteSpMeta,'SPType', $state['eidas:requestData']['SPType']));
-            $NameIDFormat = Tools::getString($this->spMetadata,'NameIDFormat', Tools::getString($remoteSpMeta,'NameIDFormat', $state['eidas:requestData']['IdFormat']));
+
+            if(isset($state['eidas:requestData'])) {
+                $defaultSPType = $state['eidas:requestData']['SPType'];
+                $defaultIDFormat = $state['eidas:requestData']['IdFormat'];
+                $SPType = Tools::getString($this->spMetadata, 'SPType', Tools::getString($remoteSpMeta, 'SPType', $defaultSPType));
+                $NameIDFormat = Tools::getString($this->spMetadata, 'NameIDFormat', Tools::getString($remoteSpMeta, 'NameIDFormat', $defaultIDFormat));
+            }
 
             // If the request had a LoA, that is the priority value
             if(isset($state['eidas:requestData']['LoA'])
