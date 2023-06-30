@@ -440,19 +440,19 @@ class SP extends Source {
         if ($this->dialect === 'eidas'){ //On eIDAS, we always get the country selector value.
             
             //Set defaults for when the remote SP was in Stork mode
-            if( isset($state['eidas:requestData']) && !array_key_exists('IdFormat',$state['eidas:requestData'])
+            if( isset($state['eidas:requestData']) && ( !array_key_exists('IdFormat',$state['eidas:requestData'])
             || $state['eidas:requestData']['IdFormat'] === NULL
-            || $state['eidas:requestData']['IdFormat'] === "")
+            || $state['eidas:requestData']['IdFormat'] === "") )
                 $state['eidas:requestData']['IdFormat'] = SPlib::NAMEID_FORMAT_PERSISTENT;
             
-            if( isset($state['eidas:requestData']) && !array_key_exists('SPType',$state['eidas:requestData'])
+            if( isset($state['eidas:requestData']) && ( !array_key_exists('SPType',$state['eidas:requestData'])
             || $state['eidas:requestData']['SPType'] === NULL
-            || $state['eidas:requestData']['SPType'] === "")
+            || $state['eidas:requestData']['SPType'] === ""))
                 $state['eidas:requestData']['SPType'] = SPlib::EIDAS_SPTYPE_PUBLIC;
             
-            if(!array_key_exists('LoA',$state['eidas:requestData'])
+            if(isset($state['eidas:requestData']) && (!array_key_exists('LoA',$state['eidas:requestData'])
             || $state['eidas:requestData']['LoA'] === NULL
-            || $state['eidas:requestData']['LoA'] === "")
+            || $state['eidas:requestData']['LoA'] === ""))
                 $state['eidas:requestData']['LoA'] = SPlib::qaaToLoA($state['eidas:requestData']['QAA']);
             
             $SPType       = Tools::getString($this->spMetadata,'SPType', Tools::getString($remoteSpMeta,'SPType', $state['eidas:requestData']['SPType']));
