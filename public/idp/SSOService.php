@@ -34,23 +34,27 @@
 // TODO: Implement the publication of IdP side metadata (for the remote SPs) (besides the actual SP side metadata published. Use the same? check if any differences)
 
 
+use SimpleSAML\Module\clave\IdP;
+use SimpleSAML\Module\clave\SPlib;
+use SimpleSAML\Module\clave\Tools;
+
 SimpleSAML\Logger::info('eIDAS - IdP.SSOService: Accessing SAML 2.0 - eIDAS IdP endpoint SSOService');
 
 //Hosted IdP config
 $idpEntityId = "__DYNAMIC:1__";
 
-$hostedIdpMeta = sspmod_clave_Tools::getMetadataSet($idpEntityId,"clave-idp-hosted");
+$hostedIdpMeta = Tools::getMetadataSet($idpEntityId,"clave-idp-hosted");
 SimpleSAML\Logger::debug('eIDAS IDP hosted metadata ('.$idpEntityId.'): '.print_r($hostedIdpMeta,true));
 
 
 //Get the idp class
-$idp = sspmod_clave_IdP::getById($idpEntityId);
+$idp = IdP::getById($idpEntityId);
 
 
 
 //Filter the POST params to be forwarded to the remote IdP
 //(based on the hosted IDP metadata)
-$expectedRequestPostParams = $hostedIdpMeta->getArray('idp.post.allowed', array());
+$expectedRequestPostParams = Tools::getArray($hostedIdpMeta,'idp.post.allowed', array());
 
 $forwardedParams = array();
 foreach ($_POST as $name => $value){
@@ -82,7 +86,7 @@ SimpleSAML\Logger::debug("Received authnRequest from remote SP: ".$authnRequest)
 
 
 //eIDAS protocol library object 
-$eidas = new sspmod_clave_SPlib();
+$eidas = new SPlib();
 
 
 //Entity ID of the remote SP (requestor)
@@ -92,23 +96,23 @@ if($spEntityId == "") // Extra-Dirty workaround for the Clave 2.0 Java SPs that 
 SimpleSAML\Logger::info("Remote SP Issuer: ".$spEntityId);
 
 //Load the remote SP metadata
-$spMetadata = sspmod_clave_Tools::getSPMetadata($hostedIdpMeta,$spEntityId);
+$spMetadata = Tools::getSPMetadata($hostedIdpMeta,$spEntityId);
 SimpleSAML\Logger::debug('Clave SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
 
 
 
 //Get the mode of operation this IdP must expect (based on the remote
 //SP specific or the hosted IdP default)
-$IdPdialect    = $spMetadata->getString('dialect',
-                                        $hostedIdpMeta->getString('dialect'));
-$IdPsubdialect = $spMetadata->getString('subdialect',
-                                        $hostedIdpMeta->getString('subdialect'));
+$IdPdialect    = Tools::getString($spMetadata,'dialect',
+    Tools::getString($hostedIdpMeta,'dialect'));
+$IdPsubdialect = Tools::getString($spMetadata,'subdialect',
+    Tools::getString($hostedIdpMeta,'subdialect'));
 if ($IdPdialect === 'eidas')
     $eidas->setEidasMode();
 
 
 //Trust the alleged requester certificate we have in local metadata
-$certs = sspmod_clave_Tools::findX509SignCertOnMetadata($spMetadata);
+$certs = Tools::findX509SignCertOnMetadata($spMetadata);
 $eidas->addTrustedRequestIssuer($spEntityId, $certs);
 
 
@@ -132,7 +136,7 @@ SimpleSAML\Logger::debug("SP Request data: ".print_r($reqData,true));
 //$aux = $eidas->getStorkRequestData($authnRequest);
 SimpleSAML\Stats::log('clave:idp:AuthnRequest', array(
     'spEntityID' => $spEntityId,
-    'idpEntityID' => $hostedIdpMeta->getString('issuer', ''),
+    'idpEntityID' => Tools::getString($hostedIdpMeta,'issuer', ''),
     'forceAuthn' => TRUE,//$reqData['forceAuthn'],
     'isPassive' => $reqData['isPassive'],
     'protocol' => 'saml2-'.$IdPdialect,
@@ -149,7 +153,7 @@ if(isset($reqData['LoA']))
     );
 
 
-$idFormat = sspmod_clave_SPlib::NAMEID_FORMAT_UNSPECIFIED;
+$idFormat = SPlib::NAMEID_FORMAT_UNSPECIFIED;
 if(isset($reqData['IdFormat']))
     $idFormat = $reqData['IdFormat'];
 
@@ -162,9 +166,9 @@ if(isset($reqData['IdAllowCreate']))
 $state = array(
 
     //Standard by SSPHP    
-    'Responder'                                   => array('sspmod_clave_IdP_eIDAS', 'sendResponse'), //The callback to send the response for this request
-    SimpleSAML\Auth\State::EXCEPTION_HANDLER_FUNC => array('sspmod_clave_IdP_eIDAS', 'handleAuthError'),
-    SimpleSAML\Auth\State::RESTART                => SimpleSAML\Utils\HTTP::getSelfURLNoQuery(),
+    'Responder'                                   => array('SimpleSAML\Module\clave\IdP\eIDAS', 'sendResponse'), //The callback to send the response for this request  //sspmod_clave_IdP_eIDAS
+    SimpleSAML\Auth\State::EXCEPTION_HANDLER_FUNC => array('SimpleSAML\Module\clave\IdP\eIDAS', 'handleAuthError'),  //sspmod_clave_IdP_eIDAS
+    SimpleSAML\Auth\State::RESTART                => (new SimpleSAML\Utils\HTTP)->getSelfURLNoQuery(),
 
     'SPMetadata'                  => $spMetadata->toArray(),
     'saml:RelayState'             => $relayState,

@@ -124,7 +124,7 @@ class SP extends Source {
         parent::__construct($info, $config);
         
         
-        Logger::debug('Called sspmod_clave_Auth_Source_SP constructor');
+        Logger::debug('Called SimpleSAML\Module\clave\Auth\Source\SP constructor');
         //Logger::debug('info: '.print_r($info, true));
         Logger::debug('config: '.print_r($config, true));
         
@@ -171,7 +171,7 @@ class SP extends Source {
         
         
         //Set the class properties
-        $this->discoURL = Tools::getString($this->metadata,'discoURL', 'clave/sp/countryselector.php');  // TODO: default value. can be moved elsewhere? can module name be parametrised? anyway, remember to change module name}
+        $this->discoURL = Tools::getString($this->metadata,'discoURL', 'clave/sp/countryselector.php');  // TODO: default value. can be moved elsewhere? can module name be parametrised? anyway, remember to change module name
 
         $this->entityId   = $this->spMetadata->getString('entityid');
         $this->idp        = $idpEntityId;
@@ -248,7 +248,7 @@ class SP extends Source {
      */
 	private function startDisco(array $state): bool {
 
-        Logger::debug('Called sspmod_clave_Auth_Source_SP startDisco');
+        Logger::debug('Called SimpleSAML\Module\clave\Auth\Source\SP startDisco');
         
         //Whether to show the country selector
         $showCountrySelector = Tools::getBoolean($this->spMetadata, 'showCountrySelector', false);
@@ -305,7 +305,7 @@ class SP extends Source {
 
         Logger::debug('------------------STATE at SP.authenticate (start): '.print_r($state,true));
         
-        Logger::debug('Called sspmod_clave_Auth_Source_SP authenticate');
+        Logger::debug('Called SimpleSAML\Module\clave\Auth\Source\SP authenticate');
                 
         // We are going to need the authId in order to retrieve this authentication source later.
         $state['clave:sp:AuthId']      = $this->authId;
@@ -359,7 +359,7 @@ class SP extends Source {
 
         Logger::debug('------------------STATE at SP.authenticate (end): '.print_r($state,true));
         
-        Logger::debug('Called sspmod_clave_Auth_Source_SP startSSO');
+        Logger::debug('Called SimpleSAML\Module\clave\Auth\Source\SP startSSO');
         
         Logger::debug("Hosted SP Certificate: ".$this->certData);
         
@@ -586,7 +586,7 @@ class SP extends Source {
                     $found=true;
             
             if(!$found)
-                $attributes []= array('RelayState', false);  // TODO SEGUIR
+                $attributes []= array('RelayState', false);
             // TODO: implement for all eIDAS and STORK to forward the request attr values, if existing
         }
         
@@ -704,7 +704,7 @@ class SP extends Source {
         
         //Build Authn Request
         $req = base64_encode($eidas->generateStorkAuthRequest());
-        Logger::debug("sspmod_clave_Auth_Source_SP Generated AuthnReq: ".$req);
+        Logger::debug("SimpleSAML\Module\clave\Auth\Source\SP Generated AuthnReq: ".$req);
         
         
         //Log for statistics: sent AuthnRequest to remote IdP  // TODO: Log any other interesting field?
@@ -753,7 +753,7 @@ class SP extends Source {
         $authProcState = array(
 			'saml:sp:IdP' => $idp,
 			'saml:sp:State' => $state,
-			'ReturnCall' => array('sspmod_clave_Auth_Source_SP', 'onProcessingCompleted'),
+			'ReturnCall' => array('SimpleSAML\Module\clave\Auth\Source\SP', 'onProcessingCompleted'),
             
 			'Attributes' => $attributes, //Add received attributes to the state that will, in the end, be returned to the IdP
 			'Destination' => $spMetadataArray,
@@ -822,7 +822,7 @@ class SP extends Source {
      * Some parameters are configurable, but also can be forwarded:
      * - If they came by POST, then that copy is sent to the remote IdP
      * - Else, if they are specifically defined in remote SP metadata, those are sent
-     * - Else, if they are specifically defined in tthe authSource metadata, those are sent
+     * - Else, if they are specifically defined in the authSource metadata, those are sent
      * - Else, not sent
      *
      * @param $destination

@@ -35,8 +35,8 @@ $source = SimpleSAML\Auth\Source::getById($sourceId);
 if ($source === NULL) {
 	throw new Exception('Could not find authentication source with id ' . $sourceId);
 }
-if (!($source instanceof sspmod_clave_Auth_Source_SP)) {
-	throw new SimpleSAML\Error\Exception("Source -$sourceId- type (sspmod_clave_Auth_Source_SP) changed?");
+if (!($source instanceof SimpleSAML\Module\clave\Auth\Source\SP)) {
+	throw new SimpleSAML\Error\Exception("Source -$sourceId- type (SimpleSAML\Module\clave\Auth\Source\SP) changed?");
 }
 
 

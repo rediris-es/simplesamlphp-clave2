@@ -6,25 +6,28 @@
  */
 
 //Hosted SP metadata
-$claveConfig = sspmod_clave_Tools::getMetadataSet("__DYNAMIC:1__","clave-idp-hosted");
+use SimpleSAML\Module\clave\SPlib;
+use SimpleSAML\Module\clave\Tools;
+
+$claveConfig = Tools::getMetadataSet("__DYNAMIC:1__","clave-idp-hosted");
 SimpleSAML\Logger::debug('Clave Idp hosted metadata: '.print_r($claveConfig,true));
 
 
 //Remote IdP metadata (Which clave IdP to connect to)
-$idpEntityId = $claveConfig->getString('claveIdP', NULL);
+$idpEntityId = Tools::getString($claveConfig,'claveIdP', NULL);
 if($idpEntityId == NULL)
     throw new SimpleSAML\Error\Exception("No clave IdP configuration defined in clave bridge configuration.");
-$idpMetadata = sspmod_clave_Tools::getMetadataSet($idpEntityId,"clave-idp-remote");
+$idpMetadata = Tools::getMetadataSet($idpEntityId,"clave-idp-remote");
 
 
 //Hosted SP config
-$hostedSP = $claveConfig->getString('hostedSP', NULL);
+$hostedSP = Tools::getString($claveConfig,'hostedSP', NULL);
 if($hostedSP == NULL)
     throw new SimpleSAML\Error\Exception("No clave hosted SP configuration defined in clave auth source configuration.");
-$hostedSPmeta = sspmod_clave_Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
+$hostedSPmeta = Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
 SimpleSAML\Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true));
 
-$spEntityId = $hostedSPmeta->getString('entityid', NULL);
+$spEntityId = Tools::getString($hostedSPmeta,'entityid', NULL);
 
 
 
@@ -33,16 +36,16 @@ $expectedIssuers = NULL;
 
 
 //Certificate and key to sign the response directed to the remote SP.
-$certPath = $claveConfig->getString('certificate', NULL);
-$keyPath  = $claveConfig->getString('privatekey', NULL);
-$spcertpem = sspmod_clave_Tools::readCertKeyFile($certPath);
-$spkeypem  = sspmod_clave_Tools::readCertKeyFile($keyPath);
+$certPath = Tools::getString($claveConfig,'certificate', NULL);
+$keyPath  = Tools::getString($claveConfig,'privatekey', NULL);
+$spcertpem = Tools::readCertKeyFile($certPath);
+$spkeypem  = Tools::readCertKeyFile($keyPath);
 if($certPath == NULL || $keyPath == NULL)
     throw new SimpleSAML\Error\Exception("No clave SSO response signing certificate or key defined for the IdP interface in clave bridge configuration.");
 
 
 //Response generation parameters
-$issuer = $claveConfig->getString('issuer', 'NOT_SET');
+$issuer = Tools::getString($claveConfig,'issuer', 'NOT_SET');
 
 
 
@@ -58,7 +61,7 @@ SimpleSAML\Logger::debug("Received response: ".$resp);
 
 
 //Validate response
-$claveSP = new sspmod_clave_SPlib();
+$claveSP = new SPlib();
 
 
 $id = $claveSP->getInResponseToFromReq($resp);
@@ -71,7 +74,7 @@ SimpleSAML\Logger::debug('State on slo-return:'.print_r($state,true));
 
 
 //Adding IdP trusted certificate for validation
-$keys = $idpMetadata->getArray('keys',NULL);
+$keys = Tools::getArray($idpMetadata,'keys',NULL);
 if($keys !== NULL){
     foreach($keys as $key){
         //Here we should be selecting signature/encryption certs, but
@@ -84,7 +87,7 @@ if($keys !== NULL){
     }
 }
 
-$certData = $idpMetadata->getString('certData', NULL);
+$certData = Tools::getString($idpMetadata,'certData', NULL);
 if($certData !== NULL){
     SimpleSAML\Logger::debug("Certificate in source (legacy parameter): ".$certData);
     $claveSP->addTrustedCert($certData);
@@ -125,10 +128,10 @@ SimpleSAML\Stats::log('saml:idp:LogoutResponse:recv', $statsData);
 $destination = $state['sp:slo:request']['issuer'];
 $inResponseTo = $state['sp:slo:request']['id'];
 
-$claveIdP = new sspmod_clave_SPlib();
+$claveIdP = new SPlib();
 
-$claveIdP->setSignatureKeyParams($spcertpem, $spkeypem, sspmod_clave_SPlib::RSA_SHA256);
-$claveIdP->setSignatureParams(sspmod_clave_SPlib::SHA256,sspmod_clave_SPlib::EXC_C14N);
+$claveIdP->setSignatureKeyParams($spcertpem, $spkeypem, SPlib::RSA_SHA256);
+$claveIdP->setSignatureParams(SPlib::SHA256,SPlib::EXC_C14N);
 
 $spResponse = $claveIdP->generateSLOResponse($inResponseTo,$issuer,$respStatus,$destination);
 
@@ -148,4 +151,4 @@ SimpleSAML\Stats::log('saml:idp:LogoutResponse:sent', array(
 $post = array(
     'samlResponseLogout'  => base64_encode($spResponse),
 );
-SimpleSAML\Utils\HTTP::submitPOSTData($destination, $post);
+(new SimpleSAML\Utils\HTTP)->submitPOSTData($destination, $post);

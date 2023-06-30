@@ -10,6 +10,9 @@
 
 //Read the hosted-sp ID, to know which metadata to generate
 // ...sp/metadata.php/bridge/hostedSpID/authSource
+use SimpleSAML\Module\clave\SPlib;
+use SimpleSAML\Module\clave\Tools;
+
 $pathInfoStr = str_replace(".","", substr($_SERVER['PATH_INFO'], 1)); // dots not allowed in this path
 $pathInfo = explode("/", $pathInfoStr);
 
@@ -29,7 +32,7 @@ if ($acsID === NULL || $acsID === "")
 //Read the hosted sp metadata
 if($hostedSpId === NULL || $hostedSpId === "")
     throw new SimpleSAML\Error\Exception("No eIDAS hosted SP ID provided on the url path info.");
-$hostedSPmeta = sspmod_clave_Tools::getMetadataSet($hostedSpId,"clave-sp-hosted");
+$hostedSPmeta = Tools::getMetadataSet($hostedSpId,"clave-sp-hosted");
 SimpleSAML\Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true));
 
 
@@ -41,19 +44,19 @@ $metadataUrl = SimpleSAML\Module::getModuleURL('clave/sp/metadata.php/'.$pathInf
 $returnPage = SimpleSAML\Module::getModuleURL('clave/sp/'.$acsID.'-acs.php/'.$authSource);
 
 //Get the signing certificate and key
-$spcertpem = sspmod_clave_Tools::readCertKeyFile($hostedSPmeta->getString('certificate', NULL));
-$spkeypem  = sspmod_clave_Tools::readCertKeyFile($hostedSPmeta->getString('privatekey', NULL));
+$spcertpem = Tools::readCertKeyFile(Tools::getString($hostedSPmeta,'certificate', NULL));
+$spkeypem  = Tools::readCertKeyFile(Tools::getString($hostedSPmeta,'privatekey', NULL));
 
 
 
 
-$eidas = new sspmod_clave_SPlib();
+$eidas = new SPlib();
 
 $eidas->setEidasMode();
 
 
-$eidas->setSignatureKeyParams($spcertpem, $spkeypem, sspmod_clave_SPlib::RSA_SHA512);
-$eidas->setSignatureParams(sspmod_clave_SPlib::SHA512,sspmod_clave_SPlib::EXC_C14N);
+$eidas->setSignatureKeyParams($spcertpem, $spkeypem, SPlib::RSA_SHA512);
+$eidas->setSignatureParams(SPlib::SHA512,SPlib::EXC_C14N);
 
 $eidas->setServiceProviderParams("",$metadataUrl , $returnPage);
 

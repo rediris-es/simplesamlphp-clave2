@@ -188,10 +188,10 @@ class Tools {
     /**
      * @param Configuration $configArray
      * @param string $field
-     * @param boolean $default
-     * @return boolean
+     * @param boolean|null $default
+     * @return boolean|NULL
      */
-    public static function getBoolean (Configuration $configArray, string $field, bool $default): bool
+    public static function getBoolean (Configuration $configArray, string $field, bool $default=NULL): bool
     {
         try{
             return $configArray->getBoolean($field);

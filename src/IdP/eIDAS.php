@@ -9,10 +9,26 @@
  * @package Clave
  */
 
+namespace SimpleSAML\Module\clave\IdP;
 
 // TODO: when everything is working, rename the SPlib and all its internal and external references to eIDASlib
 
-class sspmod_clave_IdP_eIDAS
+use Exception;
+use SAML2\Constants;
+use SimpleSAML\Error;
+use SimpleSAML\Logger;
+use SimpleSAML\Module;
+use SimpleSAML\Module\clave\IdP;
+use SimpleSAML\Configuration;
+use SimpleSAML\Module\clave\SPlib;
+use SimpleSAML\Module\clave\Tools;
+use SAML2;
+use SimpleSAML\Module\saml\Message;
+use SimpleSAML\Stats;
+use SimpleSAML\Utils\HTTP;
+
+
+class eIDAS
 {
 
 
@@ -20,7 +36,7 @@ class sspmod_clave_IdP_eIDAS
      * Send a response to the SP.
      *
      * @param array $state The authentication state.
-     * @throws \SimpleSAML\Error\Exception
+     * @throws Error\Exception
      * @throws Exception
      */
     public static function sendResponse(array $state)
@@ -34,29 +50,29 @@ class sspmod_clave_IdP_eIDAS
         
         
         //Get the remote SP metadata
-        $spMetadata  = SimpleSAML\Configuration::loadFromArray($state['SPMetadata']);
-        $spEntityId = $spMetadata->getString('entityid',NULL);
-        SimpleSAML\Logger::debug('eIDAS SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
+        $spMetadata  = Configuration::loadFromArray($state['SPMetadata']);
+        $spEntityId = Tools::getString($spMetadata,'entityid',NULL);
+        Logger::debug('eIDAS SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
         
         
         
-        SimpleSAML\Logger::info('Sending eIDAS Response to '.var_export($spEntityId, true));
+        Logger::info('Sending eIDAS Response to '.var_export($spEntityId, true));
         
         
         $requestId = $state['saml:RequestId'];
         $relayState = $state['saml:RelayState'];
-        SimpleSAML\Logger::debug('------------------Relay State on sendResponse: '.$state['saml:RelayState']);
+        Logger::debug('------------------Relay State on sendResponse: '.$state['saml:RelayState']);
         $consumerURL = $state['saml:ConsumerURL'];
         
         
-        $idp = sspmod_clave_IdP::getByState($state);
+        $idp = IdP::getByState($state);
         
         
         //Get the hosted IdP metadata
         $idpMetadata = $idp->getConfig();
         
         
-        //We clone the assertions on the response, as they are signed // TODO: decission needs to be taken later. move to a specific variable.
+        //We clone the assertions on the response, as they are signed // TODO: decision needs to be taken later. move to a specific variable.
         //on source (signature kept for legal reasons).    // TODO: make this dialect dependent? or just hierachize assertion building as I did below?
         $rawassertions = null;
         if(isset($state['eidas:raw:assertions']))
@@ -81,27 +97,27 @@ class sspmod_clave_IdP_eIDAS
         
         
         //Signing certificate and key
-        $hiCertPath = $idpMetadata->getString('certificate', NULL);
-        $hiKeyPath  = $idpMetadata->getString('privatekey', NULL);       
+        $hiCertPath = Tools::getString($idpMetadata,'certificate', NULL);
+        $hiKeyPath  = Tools::getString($idpMetadata,'privatekey', NULL);
         if($hiCertPath == NULL || $hiKeyPath == NULL)
-            throw new SimpleSAML\Error\Exception("'certificate' and/or 'privatekey' parameters not defined in eIDAS hosted IdP Metadata.");
+            throw new Error\Exception("'certificate' and/or 'privatekey' parameters not defined in eIDAS hosted IdP Metadata.");
         
-        $hikeypem  = sspmod_clave_Tools::readCertKeyFile($hiKeyPath);
-        $hicertpem = sspmod_clave_Tools::readCertKeyFile($hiCertPath);
+        $hikeypem  = Tools::readCertKeyFile($hiKeyPath);
+        $hicertpem = Tools::readCertKeyFile($hiCertPath);
         
         
         //Mode for the IdP (remote SP specific or hosted IdP default)
-        $IdPdialect    = $spMetadata->getString('dialect',$idpMetadata->getString('dialect'));
-        $IdPsubdialect = $spMetadata->getString('subdialect',$idpMetadata->getString('subdialect'));
+        $IdPdialect    = Tools::getString($spMetadata,'dialect',Tools::getString($idpMetadata,'dialect'));
+        $IdPsubdialect = Tools::getString($spMetadata,'subdialect',Tools::getString($idpMetadata,'subdialect'));
 
         
         //Get response encryption config (remote SP configuration prioritary over hosted IdP config)
-        $encryptAssertions = $spMetadata->getBoolean('assertion.encryption',$idpMetadata->getBoolean('assertion.encryption', false));        
-        SimpleSAML\Logger::debug('Encrypt assertions: '.$encryptAssertions);
+        $encryptAssertions = Tools::getBoolean($spMetadata,'assertion.encryption',Tools::getBoolean($idpMetadata,'assertion.encryption', false));
+        Logger::debug('Encrypt assertions: '.$encryptAssertions);
         
-        $encryptAlgorithm  = $spMetadata->getString('assertion.encryption.keyAlgorithm',
-        $idpMetadata->getString('assertion.encryption.keyAlgorithm', sspmod_clave_SPlib::AES256_CBC));
-        $storkize = $spMetadata->getBoolean('assertion.storkize',$idpMetadata->getBoolean('assertion.storkize', false));
+        $encryptAlgorithm  = Tools::getString($spMetadata,'assertion.encryption.keyAlgorithm',
+            Tools::getString($idpMetadata,'assertion.encryption.keyAlgorithm', SPlib::AES256_CBC));
+        $storkize = Tools::getBoolean($spMetadata,'assertion.storkize',Tools::getBoolean($idpMetadata,'assertion.storkize', false));
 
         
 
@@ -116,16 +132,16 @@ class sspmod_clave_IdP_eIDAS
         if(array_key_exists('assertionConsumerService',$reqData))
             $acs  = $reqData['assertionConsumerService'];
         //If none, get it from the remote SP metadata
-        if($acs === NULL || $acs === '')
-            $acs = $spMetadata->getArray('AssertionConsumerService',array(['Location' => ""]))[0]['Location'];
+        if($acs == NULL || $acs == '')
+            $acs = Tools::getArray($spMetadata,'AssertionConsumerService',array(['Location' => ""]))[0]['Location'];
         
-        if($acs === NULL || $acs == "")
-            throw new SimpleSAML\Error\Exception("Assertion Consumer Service URL not found on the request nor metadata for the entity: $spEntityId.");
+        if($acs == NULL || $acs == "")
+            throw new Error\Exception("Assertion Consumer Service URL not found on the request nor metadata for the entity: $spEntityId.");
         
         
         
         //Obtain the full URL of the IdP Metadata page
-        $metadataUrl = SimpleSAML\Module::getModuleURL('clave/idp/metadata.php');
+        $metadataUrl = Module::getModuleURL('clave/idp/metadata.php');
         
 
         //Set the list of POST params to forward from the remote IDP response, if any
@@ -137,24 +153,24 @@ class sspmod_clave_IdP_eIDAS
             
         
         //Build response
-        $storkResp = new sspmod_clave_SPlib();
+        $storkResp = new SPlib();
 
 
         if ($IdPdialect === 'eidas')
             $storkResp->setEidasMode();
         
         
-        $storkResp->setSignatureKeyParams($hicertpem, $hikeypem, sspmod_clave_SPlib::RSA_SHA256);
+        $storkResp->setSignatureKeyParams($hicertpem, $hikeypem, SPlib::RSA_SHA256);
         
-        $storkResp->setSignatureParams(sspmod_clave_SPlib::SHA256,sspmod_clave_SPlib::EXC_C14N);
+        $storkResp->setSignatureParams(SPlib::SHA256,SPlib::EXC_C14N);
         
         if($encryptAssertions === TRUE)
-            $storkResp->setCipherParams($reqData['spCert'],$encryptAssertions,$encryptAlgorithm);
+            $storkResp->setCipherParams($reqData['spCert'],TRUE,$encryptAlgorithm);
         
         $storkResp->setResponseParameters($storkResp::CNS_OBT,
                                           $acs,
                                           $reqData['id'],
-                                          $idpMetadata->getString('issuer', $metadataUrl)
+            Tools::getString($idpMetadata,'issuer', $metadataUrl)
                                           );
 
         
@@ -191,7 +207,7 @@ class sspmod_clave_IdP_eIDAS
                 }
                     
                 if(!isset($assertionData['NameIDFormat']))
-                    $assertionData['NameIDFormat'] = sspmod_clave_SPlib::NAMEID_FORMAT_PERSISTENT;
+                    $assertionData['NameIDFormat'] = SPlib::NAMEID_FORMAT_PERSISTENT;
                 
                 
                 //TODO: If we want to add conditions, these must be set here by the IdP
@@ -211,7 +227,7 @@ class sspmod_clave_IdP_eIDAS
             
             //Build transfer object from the standard attribute list
             $assertionData = array();
-            $assertionData['Issuer'] = $idpMetadata->getString('issuer', $metadataUrl);            
+            $assertionData['Issuer'] = Tools::getString($idpMetadata,'issuer', $metadataUrl);
             
             $assertionData['attributes'] = array();
             foreach($singleassertion as $attributename => $values){
@@ -245,7 +261,7 @@ class sspmod_clave_IdP_eIDAS
                     }
                 }
             }
-            $assertionData['NameIDFormat'] = sspmod_clave_SPlib::NAMEID_FORMAT_PERSISTENT;
+            $assertionData['NameIDFormat'] = SPlib::NAMEID_FORMAT_PERSISTENT;
             
             
             //Set the effective LoA that was used:
@@ -270,14 +286,14 @@ class sspmod_clave_IdP_eIDAS
             ));
         }else{ //The AuthSource was standard, so a call here can only happen on success
             $status = $storkResp->generateStatus( array(
-                'MainStatusCode' => sspmod_clave_SPlib::ST_SUCCESS,
+                'MainStatusCode' => SPlib::ST_SUCCESS,
             ));
         }
         
         
         
         $resp = $storkResp->generateStorkResponse($status,$assertions,true,true,$storkize);
-        SimpleSAML\Logger::debug("Response to send to the remote SP: ".$resp);
+        Logger::debug("Response to send to the remote SP: ".$resp);
         
         
         
@@ -289,14 +305,14 @@ class sspmod_clave_IdP_eIDAS
         );
         $statsData = array(
             'spEntityID' => $spEntityId,
-            'idpEntityID' => $idpMetadata->getString('issuer', $metadataUrl),
+            'idpEntityID' => Tools::getString($idpMetadata,'issuer', $metadataUrl),
             'protocol' => 'saml2-'.$IdPdialect,
             'status' => $status,
         );
         if (isset($state['saml:AuthnRequestReceivedAt'])) {
             $statsData['logintime'] = microtime(TRUE) - $state['saml:AuthnRequestReceivedAt'];
         }
-        SimpleSAML\Stats::log('clave:idp:Response', $statsData);
+        Stats::log('clave:idp:Response', $statsData);
         
         
         
@@ -309,7 +325,7 @@ class sspmod_clave_IdP_eIDAS
         if($relayState != NULL)
             $post['RelayState'] = $relayState;
         
-        SimpleSAML\Utils\HTTP::submitPOSTData($acs, $post);
+        (new HTTP)->submitPOSTData($acs, $post);
     }
 
 
@@ -321,7 +337,7 @@ class sspmod_clave_IdP_eIDAS
      * @param array $state The error state.
      * @throws Exception
      */
-    public static function handleAuthError(SimpleSAML\Error\Exception $exception, array $state)
+    public static function handleAuthError(Error\Exception $exception, array $state)
     {
         assert('isset($state["SPMetadata"])');
         assert('isset($state["saml:ConsumerURL"])');
@@ -331,13 +347,13 @@ class sspmod_clave_IdP_eIDAS
         
         
         //Get the remote SP metadata
-        $spMetadata  = SimpleSAML\Configuration::loadFromArray($state['SPMetadata']);
-        $spEntityId = $spMetadata->getString('entityid',NULL);
-        SimpleSAML\Logger::debug('eIDAS SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
+        $spMetadata  = Configuration::loadFromArray($state['SPMetadata']);
+        $spEntityId = Tools::getString($spMetadata,'entityid',NULL);
+        Logger::debug('eIDAS SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
         
         
         
-        SimpleSAML\Logger::info('Sending eIDAS Response to '.var_export($spEntityId, true));
+        Logger::info('Sending eIDAS Response to '.var_export($spEntityId, true));
 
         $relayState = NULL;
         if(isset($state['saml:RelayState']))
@@ -347,7 +363,7 @@ class sspmod_clave_IdP_eIDAS
         $consumerURL = $state['saml:ConsumerURL'];
         $protocolBinding = $state['saml:Binding'];        
         
-        $idp = sspmod_clave_IdP::getByState($state);
+        $idp = IdP::getByState($state);
         
         
         //Get the hosted IdP metadata
@@ -356,10 +372,10 @@ class sspmod_clave_IdP_eIDAS
         
         
         //$error = SimpleSAML\Error\Exception::fromException($exception);
-        $error = \SimpleSAML\Module\saml\Error::fromException($exception);
+        $error = Module\saml\Error::fromException($exception);
         
-        SimpleSAML\Logger::warning("Returning error to SP with entity ID '".var_export($spEntityId, true)."'.");
-        $exception->log(SimpleSAML\Logger::WARNING);
+        Logger::warning("Returning error to SP with entity ID '".var_export($spEntityId, true)."'.");
+        $exception->log(Logger::WARNING);
 
         $ar = self::buildResponse($idpMetadata, $spMetadata, $consumerURL);
         $ar->setInResponseTo($requestId);
@@ -381,7 +397,7 @@ class sspmod_clave_IdP_eIDAS
         if (isset($state['saml:AuthnRequestReceivedAt'])) {
             $statsData['logintime'] = microtime(true) - $state['saml:AuthnRequestReceivedAt'];
         }
-        SimpleSAML\Stats::log('saml:idp:Response:error', $statsData);
+        Stats::log('saml:idp:Response:error', $statsData);
 
         $binding = SAML2\Binding::getBinding($protocolBinding);
         $binding->send($ar);
@@ -391,33 +407,38 @@ class sspmod_clave_IdP_eIDAS
 
 
     /**
-     * Build a authentication response based on information in the metadata.
+     * Build an authentication response based on information in the metadata.
      *
-     * @param SimpleSAML\Configuration $idpMetadata The metadata of the IdP.
-     * @param SimpleSAML\Configuration $spMetadata The metadata of the SP.
+     * @param Configuration $idpMetadata The metadata of the IdP.
+     * @param Configuration $spMetadata The metadata of the SP.
      * @param string $consumerURL The Destination URL of the response.
      *
      * @return SAML2\Response The SAML2 response corresponding to the given data.
      * @throws Exception
      */
     private static function buildResponse(
-        SimpleSAML\Configuration $idpMetadata,
-        SimpleSAML\Configuration $spMetadata,
-        $consumerURL
-    ) {
+        Configuration $idpMetadata,
+        Configuration $spMetadata,
+        string $consumerURL
+    ): SAML2\Response
+    {
 
-        $signResponse = $spMetadata->getBoolean('saml20.sign.response', null);
-        if ($signResponse === null) {
-            $signResponse = $idpMetadata->getBoolean('saml20.sign.response', true);
+        $signResponse = Tools::getBoolean($spMetadata,'saml20.sign.response', null);
+        if ($signResponse == null) {
+            $signResponse = Tools::getBoolean($idpMetadata,'saml20.sign.response', true);
         }
 
         $r = new SAML2\Response();
 
-        $r->setIssuer($idpMetadata->getString('entityID'));  // TODO: quizá deba cambiar esto para que se devuelva el de la respuesta original. O hacerlo dialect-specific. Decidir
+        $issuer = new SAML2\XML\saml\Issuer();
+        $issuer->setValue($idpMetadata->getString('entityID'));
+        $issuer->setFormat(Constants::NAMEID_ENTITY);
+
+        $r->setIssuer($issuer);  // TODO: quizá deba cambiar esto para que se devuelva el de la respuesta original. O hacerlo dialect-specific. Decidir
         $r->setDestination($consumerURL);
 
         if ($signResponse) {
-            SimpleSAML\Module\saml\Message::addSign($idpMetadata, $spMetadata, $r);
+            Message::addSign($idpMetadata, $spMetadata, $r);
         }
 
         return $r;

@@ -4,54 +4,65 @@
  *
  */
 
+namespace SimpleSAML\Module\clave\Auth\Source;
 
-SimpleSAML\Logger::info('Call to Clave bridge IdP side');
+use SimpleSAML\Logger;
+use SimpleSAML\Error;
+use SimpleSAML\Module;
+use SimpleSAML\Stats;
+use SimpleSAML\Utils\HTTP;
+use SimpleSAML\Auth\State;
+
+use SimpleSAML\Module\clave\SPlib;
+use SimpleSAML\Module\clave\Tools;
+
+Logger::info('Call to Clave bridge IdP side');
 
 
 //Hosted IdP config
-$claveConfig = sspmod_clave_Tools::getMetadataSet("__DYNAMIC:1__","clave-idp-hosted");
-SimpleSAML\Logger::debug('Clave Idp hosted metadata: '.print_r($claveConfig,true));
+$claveConfig = Tools::getMetadataSet("__DYNAMIC:1__","clave-idp-hosted");
+Logger::debug('Clave Idp hosted metadata: '.print_r($claveConfig,true));
 
 //Hosted SP config
-$hostedSP = $claveConfig->getString('hostedSP', NULL);
+$hostedSP = Tools::getString($claveConfig,'hostedSP', NULL);
 if($hostedSP == NULL)
-    throw new SimpleSAML\Error\Exception("No clave hosted SP configuration defined in clave bridge configuration.");
-$hostedSPmeta = sspmod_clave_Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
-SimpleSAML\Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true));
+    throw new Error\Exception("No clave hosted SP configuration defined in clave bridge configuration.");
+$hostedSPmeta = Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
+Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true));
 
 
 //Which clave IdP to use
-$idpEntityId = $hostedSPmeta->getString('idpEntityID', NULL);
+$idpEntityId = Tools::getString($hostedSPmeta,'idpEntityID', NULL);
 if($idpEntityId == NULL)
-    throw new SimpleSAML\Error\Exception("No clave IdP configuration defined in clave bridge configuration.");
+    throw new Error\Exception("No clave IdP configuration defined in clave bridge configuration.");
 
-$idpMeta = sspmod_clave_Tools::getMetadataSet($idpEntityId,"clave-idp-remote");
-SimpleSAML\Logger::debug('Clave Idp remote metadata ('.$idpEntityId.'): '.print_r($idpMeta,true));
+$idpMeta = Tools::getMetadataSet($idpEntityId,"clave-idp-remote");
+Logger::debug('Clave Idp remote metadata ('.$idpEntityId.'): '.print_r($idpMeta,true));
 
 
-$providerName = $hostedSPmeta->getString('providerName', NULL);
+$providerName = Tools::getString($hostedSPmeta,'providerName', NULL);
 
 //Authorised Signing Certificate to connect to Clave
-$certPath = $hostedSPmeta->getString('certificate', NULL);
-$keyPath  = $hostedSPmeta->getString('privatekey', NULL);
+$certPath = Tools::getString($hostedSPmeta,'certificate', NULL);
+$keyPath  = Tools::getString($hostedSPmeta,'privatekey', NULL);
 
-$endpoint = $idpMeta->getString('SingleLogoutService', NULL);
+$endpoint = Tools::getString($idpMeta,'SingleLogoutService', NULL);
 
 //Calculate return page for the new request
-$returnPage = SimpleSAML\Module::getModuleURL('clave/sp/bridge-logout.php/');
+$returnPage = Module::getModuleURL('clave/sp/bridge-logout.php/');
 
 
 if($providerName == NULL)
-    throw new SimpleSAML\Error\Exception("No provider Name defined in clave bridge configuration.");
+    throw new Error\Exception("No provider Name defined in clave bridge configuration.");
 if($certPath == NULL || $keyPath == NULL)
-    throw new SimpleSAML\Error\Exception("No clave certificate or key defined for the SP interface in clave bridge configuration.");
+    throw new Error\Exception("No clave certificate or key defined for the SP interface in clave bridge configuration.");
 
 
 
 
 //Get the hosted SP cert and key
-$spcertpem = sspmod_clave_Tools::readCertKeyFile($certPath);
-$spkeypem  = sspmod_clave_Tools::readCertKeyFile($keyPath);
+$spcertpem = Tools::readCertKeyFile($certPath);
+$spkeypem  = Tools::readCertKeyFile($keyPath);
 
 
 
@@ -59,37 +70,37 @@ $spkeypem  = sspmod_clave_Tools::readCertKeyFile($keyPath);
 
 
 
-$claveIdP = new sspmod_clave_SPlib();
+$claveIdP = new SPlib();
 
 
 // TODO Don't know if we should use the standard POST params or
 // completely match the Clave specs Standard: SAMLRequest
 if(!isset($_REQUEST['samlRequestLogout']))
-   	throw new SimpleSAML\Error\BadRequest('No samlRequestLogout POST param received.');
+   	throw new Error\BadRequest('No samlRequestLogout POST param received.');
 
 $request = base64_decode($_REQUEST['samlRequestLogout']);
 
 
 //On SLO requests, the SP entity ID travels on the nameID field.
 $spEntityId = $claveIdP->getSloNameId($request);
-SimpleSAML\Logger::info("SLO request Issuer (SP): ".$spEntityId);
+Logger::info("SLO request Issuer (SP): ".$spEntityId);
 
 
-$spMetadata = sspmod_clave_Tools::getSPMetadata($claveConfig,$spEntityId);
-SimpleSAML\Logger::debug('Clave SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
+$spMetadata = Tools::getSPMetadata($claveConfig,$spEntityId);
+Logger::debug('Clave SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
 
 
 
 
 //Get the mode of operation this IdP must expect (based on the remote
 //SP specific or the hosted IdP default)
-$IdPdialect    = $spMetadata->getString('dialect',
-                                        $claveConfig->getString('dialect'));
-$IdPsubdialect = $spMetadata->getString('subdialect',
-                                        $claveConfig->getString('subdialect'));
+$IdPdialect    = Tools::getString($spMetadata,'dialect',
+    Tools::getString($claveConfig,'dialect'));
+$IdPsubdialect = Tools::getString($spMetadata,'subdialect',
+    Tools::getString($claveConfig,'subdialect'));
 
-SimpleSAML\Logger::debug('---------------------->dialect: '.$IdPdialect);
-SimpleSAML\Logger::debug('---------------------->subdialect: '.$IdPsubdialect);
+Logger::debug('---------------------->dialect: '.$IdPdialect);
+Logger::debug('---------------------->subdialect: '.$IdPsubdialect);
 
 if ($IdPdialect === 'eidas')
     $claveIdP->setEidasMode();
@@ -102,20 +113,20 @@ if ($IdPdialect === 'eidas')
 //smash it
 if ($IdPdialect === 'eidas'){
     //Calculate return page for the new request in clave 2, which is SSO ACM
-    $returnPage = SimpleSAML\Module::getModuleURL('clave/sp/clave-acs.php/'.$claveConfig->getString('auth','')); // TODO: works?
+    $returnPage = Module::getModuleURL('clave/sp/clave-acs.php/'.Tools::getString($claveConfig,'auth','')); // TODO: works?
 
 }
 
 
-$certs = sspmod_clave_Tools::findX509SignCertOnMetadata($spMetadata);
+$certs = Tools::findX509SignCertOnMetadata($spMetadata);
 
 $claveIdP->addTrustedRequestIssuer($spEntityId, $certs);
 
 
 //Log for statistics: received LogoutRequest at the clave IdP
-SimpleSAML\Stats::log('saml:idp:LogoutRequest:recv', array(
+Stats::log('saml:idp:LogoutRequest:recv', array(
     'spEntityID'  => $spEntityId,
-    'idpEntityID' => $claveConfig->getString('issuer', ''),
+    'idpEntityID' => Tools::getString($claveConfig,'issuer', ''),
 ));
 
 
@@ -125,7 +136,7 @@ $claveIdP->validateLogoutRequest($request);
 //Extract all relevant data for the retransmitted request (including stork extensions)
 $reqData = $claveIdP->getSloRequestData();
 
-SimpleSAML\Logger::debug("SP SLO Request data: ".print_r($reqData,true));
+Logger::debug("SP SLO Request data: ".print_r($reqData,true));
 
 
 
@@ -139,21 +150,21 @@ SimpleSAML\Logger::debug("SP SLO Request data: ".print_r($reqData,true));
 
 //Now, if no SLO endpoint is defined,  we make it just go back silently to the SP
 if($endpoint == NULL){
-    //throw new SimpleSAML\Error\Exception("No clave SLO endpoint defined in clave bridge configuration.");
+    //throw new Error\Exception("No clave SLO endpoint defined in clave bridge configuration.");
 
 
     // ****** Build response for the SP *******
 
     //Certificate and key to sign the response directed to the remote SP.
-    $idpCertPath = $claveConfig->getString('certificate', NULL);
-    $idpKeyPath  = $claveConfig->getString('privatekey', NULL);
-    $idpcertpem = sspmod_clave_Tools::readCertKeyFile($idpCertPath);
-    $idpkeypem  = sspmod_clave_Tools::readCertKeyFile($idpKeyPath);
+    $idpCertPath = Tools::getString($claveConfig,'certificate', NULL);
+    $idpKeyPath  = Tools::getString($claveConfig,'privatekey', NULL);
+    $idpcertpem = Tools::readCertKeyFile($idpCertPath);
+    $idpkeypem  = Tools::readCertKeyFile($idpKeyPath);
     if($idpCertPath == NULL || $idpKeyPath == NULL)
-        throw new SimpleSAML\Error\Exception("No clave SSO response signing certificate or key defined for the IdP interface in clave bridge configuration.");
+        throw new Error\Exception("No clave SSO response signing certificate or key defined for the IdP interface in clave bridge configuration.");
 
 
-    $issuer = $claveConfig->getString('issuer', 'NOT_SET');
+    $issuer = Tools::getString($claveConfig,'issuer', 'NOT_SET');
     
 
     //Get the endpoint from the SP request, not from the metadata (stork
@@ -161,14 +172,14 @@ if($endpoint == NULL){
     $destination = $reqData['issuer'];
     $inResponseTo = $reqData['id'];
 
-    $claveIdPresp = new sspmod_clave_SPlib();
+    $claveIdPresp = new SPlib();
 
-    $claveIdPresp->setSignatureKeyParams($idpcertpem, $idpkeypem, sspmod_clave_SPlib::RSA_SHA256);
-    $claveIdPresp->setSignatureParams(sspmod_clave_SPlib::SHA256,sspmod_clave_SPlib::EXC_C14N);
+    $claveIdPresp->setSignatureKeyParams($idpcertpem, $idpkeypem, SPlib::RSA_SHA256);
+    $claveIdPresp->setSignatureParams(SPlib::SHA256,SPlib::EXC_C14N);
     
     
     $respStatus = array();
-    $respStatus ["MainStatusCode"] = sspmod_clave_SPlib::ST_SUCCESS;
+    $respStatus ["MainStatusCode"] = SPlib::ST_SUCCESS;
     $respStatus ["SecondaryStatusCode"] = NULL;
     
     
@@ -176,7 +187,7 @@ if($endpoint == NULL){
 
 
     //Log for statistics: sent LogoutResponse to the remote SP
-    SimpleSAML\Stats::log('saml:idp:LogoutResponse:sent', array(
+    Stats::log('saml:idp:LogoutResponse:sent', array(
         'spEntityID' => $destination,
         'idpEntityID' => $issuer,
         'partial' => TRUE
@@ -190,7 +201,7 @@ if($endpoint == NULL){
     $post = array(
         'samlResponseLogout'  => base64_encode($spResponse),
     );
-    SimpleSAML\Utils\HTTP::submitPOSTData($destination, $post);
+    (new HTTP)->submitPOSTData($destination, $post);
 }
 
 
@@ -210,13 +221,13 @@ if($endpoint == NULL){
 //**** Build request for clave *******
 
 
-$claveSP = new sspmod_clave_SPlib();
+$claveSP = new SPlib();
 
 if ($IdPdialect === 'eidas')
     $claveSP->setEidasMode();
 
-$claveSP->setSignatureKeyParams($spcertpem, $spkeypem, sspmod_clave_SPlib::RSA_SHA256);
-$claveSP->setSignatureParams(sspmod_clave_SPlib::SHA256,sspmod_clave_SPlib::EXC_C14N);
+$claveSP->setSignatureKeyParams($spcertpem, $spkeypem, SPlib::RSA_SHA256);
+$claveSP->setSignatureParams(SPlib::SHA256,SPlib::EXC_C14N);
 
 
 //Store state for the comeback
@@ -224,21 +235,21 @@ $state = array();
 $state['sp:slo:request']            = $reqData;
 $state['bridge:slo:returnPage']     = $returnPage;
 
-$id = SimpleSAML\Auth\State::saveState($state, 'clave:bridge:slo:req', true);
-SimpleSAML\Logger::debug("Generated Req ID: ".$id);
+$id = State::saveState($state, 'clave:bridge:slo:req', true);
+Logger::debug("Generated Req ID: ".$id);
 
 
 
 
 //Set the id of the request, it must be the id of the saved state.
 $req = base64_encode($claveSP->generateSLORequest($providerName,$endpoint,$returnPage,$id));
-SimpleSAML\Logger::debug("Generated LogoutReq: ".$req);
+Logger::debug("Generated LogoutReq: ".$req);
 
 
 //Log for statistics: sent LogoutRequest to remote clave IdP
-SimpleSAML\Stats::log('saml:idp:LogoutRequest:sent', array(
-        'spEntityID' =>  $hostedSPmeta->getString('entityid'),
-        'idpEntityID' => $idpMeta->getString('SingleSignOnService'),
+Stats::log('saml:idp:LogoutRequest:sent', array(
+        'spEntityID' =>  Tools::getString($hostedSPmeta,'entityid'),
+        'idpEntityID' => Tools::getString($idpMeta,'SingleSignOnService'),
 ));
 
 
@@ -251,11 +262,11 @@ $post = array(
     
 );
 
-SimpleSAML\Logger::debug("post: ".print_r($post, true));
+Logger::debug("post: ".print_r($post, true));
 
 
 //Redirecting to Clave IdP (Only HTTP-POST binding supported)
-SimpleSAML\Utils\HTTP::submitPOSTData($endpoint, $post);
+(new HTTP)->submitPOSTData($endpoint, $post);
 
 
 assert(false);
