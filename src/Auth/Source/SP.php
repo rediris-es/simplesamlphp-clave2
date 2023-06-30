@@ -24,7 +24,7 @@ use SimpleSAML\Module\clave\Tools;
 class SP extends Source {
   
   
-    private static array $mandatoryConfigParams = array('providerName','entityid','QAA',
+    private static array $mandatoryConfigParams = array('providerName','entityID','QAA',
     'certificate','privatekey','idpEntityID','SingleSignOnService','certData',
     'hostedSP','dialect','subdialect');
     
