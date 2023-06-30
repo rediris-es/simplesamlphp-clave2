@@ -585,9 +585,12 @@ class SP extends Source {
         if ($this->subdialect === 'clave-2.0'){
             
             $found=false;
-            foreach($state['eidas:requestData']['requestedAttributes'] as $attr)
-                if ($attr['friendlyName'] === 'RelayState')
-                    $found=true;
+            if(isset($state['eidas:requestData'])
+                && isset($state['eidas:requestData']['requestedAttributes'])){
+                foreach($state['eidas:requestData']['requestedAttributes'] as $attr)
+                    if ($attr['friendlyName'] === 'RelayState')
+                        $found=true;
+            }
             
             if(!$found)
                 $attributes []= array('RelayState', false);
