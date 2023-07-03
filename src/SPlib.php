@@ -2195,7 +2195,7 @@ class SPlib {
       $this->fail(__FUNCTION__, self::ERR_BAD_PARAMETER,"samlReq object is null");
 
     $idpList = [];
-    $idpEntries = $samlReq->children(self::NS_SAML2P,false)->Scoping->IDPList->IDPEntry;
+    $idpEntries = $samlReq->children(self::NS_SAML2P,false)->Scoping->IDPList->IDPEntry ?? NULL;
     if($idpEntries != null)
         foreach($idpEntries as $idpEntry){
             $idpList []= "".$idpEntry->attributes()->ProviderID;

@@ -16,6 +16,14 @@ $config = array(
         //we be used to connect to the eIDAS remote IdP (from
         //clave-sp-hosted.php)
         'hostedSP' => 'eidasSP',
+
+        // [Optional] The unique ID of this SP --same value as in clave-sp-hosted.
+        // Will work anyway, but add it if any filter expects the entityID of the
+        // hosted SP (or if you want to remove the warning on the log entry in
+        // ProcessingChain)
+        'entityID' => 'https://eidas.sp/metadata.php',
+        //'entityid' => 'https://eidas.sp/metadata.php', //SSP2.0.4 still expects lowercase
+
     ),
 
 );

@@ -10,7 +10,9 @@ $claveMeta['https://eidas.node/metadata.php'] = array(
     
     // Unique identifier  // From SSP2, mandatory to define this field
     'entityID' => 'https://eidas.node/metadata.php',
-    
+    // Add it if you want to remove the warning on the log entry in
+    // ProcessingChain), as SSP2.0.4 still expects lowercase
+    //'entityid' => 'https://eidas.node/metadata.php',
     
     // Endpoint URL of the SSO service
 	'SingleSignOnService'  => 'https://eidas.node/sso.php',

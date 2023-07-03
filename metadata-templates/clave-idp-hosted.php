@@ -10,6 +10,9 @@ $claveMeta['__DYNAMIC:1__'] = array(
     
     //Unique identifier
     'entityID' => 'http://eidas.bridge/metadata.php',
+    // Add it if you want to remove the warning on the log entry in
+    // ProcessingChain), as SSP2.0.4 still expects lowercase
+    //'entityid' => 'http://eidas.bridge/metadata.php',
     
     //Auth Source
     'auth' => 'eidas', //This bridges to the eIDAS SP
