@@ -1,5 +1,5 @@
 {
-    "name": "simplesamlphp/simplesamlphp-module-clave",
+    "name": "rediris-es/simplesamlphp-module-clave",
     "description": "SimpleSAMLphp module to support an eIDAS IdP and SP (also Spanish eID Clave 1.0 and Clave 2.0)",
     "type": "simplesamlphp-module",
     "keywords": ["simplesamlphp", "eIDAS"],
@@ -10,12 +10,6 @@
 			"email": "francisco.arago@externos.rediris.es"
         }
     ],
-    "config": {
-        "preferred-install": {
-            "simplesamlphp/simplesamlphp": "source",
-            "*": "dist"
-        }
-    },
     "require": {
         "php": ">=7.4",
         "simplesamlphp/composer-module-installer": "~1.1",
@@ -29,11 +23,5 @@
     "support": {
         "issues": "https://github.com/rediris-es/simplesamlphp-clave2/issues",
         "source": "https://github.com/rediris-es/simplesamlphp-clave2"
-    },
-	"repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/rediris-es/simplesamlphp-clave2"
-        }
-    ]
+    }
 }

@@ -331,8 +331,8 @@ class SP extends Source {
         $state['clave:sp:idpEntityID'] = $this->idp;
         
         
-        Logger::info("state: ".print_r($state,true));
-        Logger::info("metadata: ".print_r($this->metadata,true));
+        Logger::debug("state: ".print_r($state,true));
+        Logger::debug("metadata: ".print_r($this->metadata,true));
 
         
         //Redirect to the Country Selector (if enabled and needed)
