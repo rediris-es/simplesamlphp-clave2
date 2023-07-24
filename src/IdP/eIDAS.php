@@ -423,10 +423,7 @@ class eIDAS
     ): SAML2\Response
     {
 
-        $signResponse = Tools::getBoolean($spMetadata,'saml20.sign.response', null);
-        if ($signResponse == null) {
-            $signResponse = Tools::getBoolean($idpMetadata,'saml20.sign.response', true);
-        }
+        $signResponse = Tools::getBoolean($spMetadata,'saml20.sign.response', Tools::getBoolean($idpMetadata,'saml20.sign.response', true));
 
         $r = new SAML2\Response();
 
