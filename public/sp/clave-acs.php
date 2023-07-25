@@ -379,7 +379,7 @@ if($eidas->isSuccess($statusInfo)){
 
 
     //Pass the response state to the WebSSO SP
-    $source->handleResponse($state, Tools::getString($remoteIdPMeta,'entityID', NULL), $attributes);
+    $source->handleResponse($state, Tools::getString($remoteIdPMeta,'entityID', ''), $attributes);
 }
 
 
