@@ -214,6 +214,7 @@ class SPlib {
       "GISSIdP"                   => "http://es.minhafp.clave/GISSIdP",
       "AEATIdP"                   => "http://es.minhafp.clave/AEATIdP",
       "EIDASIdP"                  => "http://es.minhafp.clave/EIDASIdP",
+      "CLVMOVILIdP"               => "http://es.minhafp.clave/CLVMOVILIdP",
       "PartialAfirma"             => "http://es.minhafp.clave/PartialAfirma",
       "RelayState"                => "http://es.minhafp.clave/RelayState",
 
