@@ -1482,31 +1482,32 @@ class SPlib {
         self::trace("responseNameIdFrm:    ".$this->responseNameIdFrm);
         self::trace("AuthnInstant:         ".$this->AuthnInstant);
         self::trace("AuthnContextClassRef: ".$this->AuthnContextClassRef);
-    }
-    
 
-    // Once all assertions are parsed check if all mandatory attributes have been served.
-    if($this->mandatoryAttrList){
-        self::debug("Checking that mandatory attributes were served.");      
-        foreach($this->mandatoryAttrList as $mAttr){
-            self::trace("Searching attribute: $mAttr");
-            $found = false;
-            foreach($this->responseAssertions as $assertion){
-                foreach($assertion['Attributes'] as $attr){          
-                    if(trim($attr['friendlyName']) == trim($mAttr)
-                    && $attr['AttributeStatus'] == self::ATST_AVAIL){
-                        self::trace("$mAttr found.");
-                        $found = true;
-                        break 2;
+
+        // Once all assertions are parsed check if all mandatory attributes have been served.
+        if($this->mandatoryAttrList){
+            self::debug("Checking that mandatory attributes were served.");
+            foreach($this->mandatoryAttrList as $mAttr){
+                self::trace("Searching attribute: $mAttr");
+                $found = false;
+                foreach($this->responseAssertions as $assertion){
+                    foreach($assertion['Attributes'] as $attr){
+                        if(trim($attr['friendlyName']) == trim($mAttr)
+                        && $attr['AttributeStatus'] == self::ATST_AVAIL){
+                            self::trace("$mAttr found.");
+                            $found = true;
+                            break 2;
+                        }
                     }
                 }
-            }
-            if(!$found){
-                $this->fail(__FUNCTION__, self::ERR_RESP_NO_MAND_ATTR);
+                if(!$found){
+                    $this->fail(__FUNCTION__, self::ERR_RESP_NO_MAND_ATTR);
+                }
             }
         }
+
     }
-    
+
     $this->SAMLResponseToken = $storkSamlResponseToken;
   }
   
