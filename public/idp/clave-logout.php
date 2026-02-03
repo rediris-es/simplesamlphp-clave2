@@ -75,10 +75,23 @@ $claveIdP = new SPlib();
 
 // TODO Don't know if we should use the standard POST params or
 // completely match the Clave specs Standard: SAMLRequest
-if(!isset($_REQUEST['samlRequestLogout']))
+if(!isset($_REQUEST['samlRequestLogout'])
+    && !isset($_REQUEST['logoutRequest']))
    	throw new Error\BadRequest('No samlRequestLogout POST param received.');
 
-$request = base64_decode($_REQUEST['samlRequestLogout']);
+if(isset($_REQUEST['logoutRequest']))
+    $request = base64_decode($_REQUEST['logoutRequest']);
+else
+    $request = base64_decode($_REQUEST['samlRequestLogout']);
+
+$relayState = '';
+if(isset($_REQUEST['RelayState']))
+    $relayState = $_REQUEST['RelayState'];
+if($relayState == '')
+    $relayState = 'dummystate'; // TODO aún no aplicado ni en pre ni en prod. asegurarme de que esto va.
+                                // Porque clave o eidas se quejaban si no había un relaystate, así que
+// si llega vacío, metemos algo. Asegurarme también de que si llega algo,
+// guardo el valor en sesión y devuelvo ese, nunca dummy
 
 
 //On SLO requests, the SP entity ID travels on the nameID field.
@@ -200,6 +213,8 @@ if($endpoint == NULL){
     //Redirecting to Clave IdP (Only HTTP-POST binding supported, also Stork-flavoured)
     $post = array(
         'samlResponseLogout'  => base64_encode($spResponse),
+        'logoutResponse' => base64_encode($spResponse),
+        'RelayState'  => $relayState,// TODO: propagar el valor recibido guadándolo en el estado cuando implemente la delegación
     );
     (new HTTP)->submitPOSTData($destination, $post);
 }
@@ -255,10 +270,10 @@ Stats::log('saml:idp:LogoutRequest:sent', array(
 
 //Redirect
 $post = array(
-    'samlRequestLogout'  => $req,  // TODO: probar a restaurar este si no va
-    //'logoutRequest'  => $req,
+    'samlRequestLogout'  => $req,  // TODO: probar a quitar este si no va
+    'logoutRequest'  => $req,
     'country'   => 'ES',// TODO: añadido al comnparar con el kit. ver si se puede quitar
-    'RelayState'   => 'dummystate',// TODO: añadido al comnparar con el kit. ver si se puede quitar. Si se ha de wquedar, intentar propagarlo como hago con el sso
+    'RelayState'   => $relayState,// TODO: añadido al comnparar con el kit. ver si se puede quitar. Si se ha de wquedar, intentar propagarlo como hago con el sso
     
 );
 

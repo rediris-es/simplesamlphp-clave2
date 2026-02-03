@@ -40,10 +40,14 @@ $spEntityId = Tools::getString($hostedSPmeta,'entityID', NULL);
 
 
 
-if(!isset($_REQUEST['samlResponseLogout']))
+if(!isset($_REQUEST['samlResponseLogout'])
+    && !isset($_REQUEST['logoutResponse']))
    	throw new Error\BadRequest('No samlResponseLogout POST param received.');
 
-$resp = base64_decode($_REQUEST['samlResponseLogout']);
+if(isset($_REQUEST['logoutResponse']))
+    $resp = base64_decode($_REQUEST['logoutResponse']);
+else
+    $resp = base64_decode($_REQUEST['samlResponseLogout']);
 Logger::debug("Received response: ".$resp);
 
 

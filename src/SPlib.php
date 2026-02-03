@@ -220,6 +220,9 @@ class SPlib {
 
       "RegisterType"			  => "http://es.minhafp.clave/RegisterType",
 
+      "NationalPersonIdentifier" => "http://es.minhafp.clave/NationalPersonIdentifier", //Siempre optional
+
+
       //Defined for the websso interface
       "usedIdP"                   => "http://es.minhafp.clave/usedIdP",
   );

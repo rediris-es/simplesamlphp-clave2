@@ -969,12 +969,13 @@ class SP extends Source {
         
         $providerName = Tools::getString($this->spMetadata,'providerName', NULL);
         
-		$endpoint = Tools::getString($this->idpMetadata,'SingleLogoutService', NULL);
+		$endpoint = Tools::getArray($this->idpMetadata,'SingleLogoutService', NULL);
         if ($endpoint == NULL) {
 			Logger::info('No logout endpoint for clave remote IdP.');
 			return;
 		}
-        
+        $endpoint = $endpoint[0]['Location']; // TODO: mejorar, buscar binding y coger url correcta
+
         //Get address of logout consumer service for this module (it
         //ends with the id of the authsource, so we can retrieve the
         //correct authsource config on the acs)
@@ -1002,7 +1003,8 @@ class SP extends Source {
         Logger::debug("Generated LogoutRequest: ".$req);
         
         //Perform redirection
-        $post = array('samlRequestLogout' => $req,
+        $post = array('samlRequestLogout' => $req,  // TODO: quitar si no funciona
+                      'logoutRequest'     => $req,
                       'RelayState'        => 'dummy');
     //'logoutRequest'? 'SAMLRequest'? 'samlRequestLogout'?
      

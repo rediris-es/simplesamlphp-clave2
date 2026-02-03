@@ -37,6 +37,7 @@ $claveMeta['__DYNAMIC:1__'] = array(
     //properly in the future.  eIDAS sets on the Issuer the IdP
     //metadata URL. If this parameter is not set, that's what will be
     //used
+    // WARNING: set it, otherwise the Clave SLO responses will have it as NOT_SET
     'issuer' => 'http://eidas.bridge/metadata.php',
     
     
