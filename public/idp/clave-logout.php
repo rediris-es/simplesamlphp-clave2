@@ -46,11 +46,21 @@ $providerName = Tools::getString($hostedSPmeta,'providerName', NULL);
 $certPath = Tools::getString($hostedSPmeta,'certificate', NULL);
 $keyPath  = Tools::getString($hostedSPmeta,'privatekey', NULL);
 
-$endpoint = Tools::getString($idpMeta,'SingleLogoutService', NULL);
+// TODO: no longer a string, but an array
+//$endpoint = Tools::getString($idpMeta,'SingleLogoutService', NULL);
+$endpoint = Tools::getArray($idpMeta,'SingleLogoutService', NULL);
+if ($endpoint == NULL) {
+    Logger::info('No logout endpoint for clave remote IdP.');
+	return;
+}
+$endpoint = $endpoint[0]['Location']; // TODO: mejorar, buscar binding y coger url correcta
+
+
 
 //Calculate return page for the new request
-$returnPage = Module::getModuleURL('clave/sp/bridge-logout.php/');
-
+//$returnPage = Module::getModuleURL('clave/sp/bridge-logout.php/');
+// TODO: new return page, using he controller that allows POST being received
+$returnPage = Module::getModuleURL('clave/BridgeLogout/');
 
 if($providerName == NULL)
     throw new Error\Exception("No provider Name defined in clave bridge configuration.");
@@ -124,11 +134,12 @@ if ($IdPdialect === 'eidas')
 //madness: If subdialect is clave 2, the return page for the SLO
 //response must be the same as for the SSO acs, not the proper one, so
 //smash it
-if ($IdPdialect === 'eidas'){
-    //Calculate return page for the new request in clave 2, which is SSO ACM
-    $returnPage = Module::getModuleURL('clave/sp/clave-acs.php/'.Tools::getString($claveConfig,'auth','')); // TODO: works?
-
-}
+// TODO: I don't think this longer is as is. I'll comment out
+//if ($IdPdialect === 'eidas'){
+//    //Calculate return page for the new request in clave 2, which is SSO ACM
+//    $returnPage = Module::getModuleURL('clave/sp/clave-acs.php/'.Tools::getString($claveConfig,'auth','')); // TODO: works?
+//
+//}
 
 
 $certs = Tools::findX509SignCertOnMetadata($spMetadata);

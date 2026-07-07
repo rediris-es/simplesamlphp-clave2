@@ -1247,10 +1247,15 @@ class SPlib {
         //On SAMLAuthnReqs, Signature above Extensions
         $extensions = $doc->getElementsByTagName('Extensions')->item(0);
         
+        //On LogoutRequest, Signature above NameID
+        $nameidnode = $doc->getElementsByTagName('NameID')->item(0);
+        
         $nextnode = $statusnode; //Inserts signature before the Status
         if ($nextnode === NULL) // If there is no status, then it is an AuthnReq
             $nextnode = $extensions;  //Inserts signature before the Extensions  // SEGUIR
-        
+        if ($nextnode === NULL) // If there is no extensions, then it is an LogoutRequest
+            $nextnode = $nameidnode;  //Inserts signature before the NameID  // SEGUIR
+          
         $objDSig->insertSignature($doc->documentElement, $nextnode);
     }
     

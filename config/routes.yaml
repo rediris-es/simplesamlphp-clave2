@@ -1,0 +1,4 @@
+clave_bridge_logout:
+  path: /BridgeLogout/
+  controller: SimpleSAML\Module\clave\Controller\BridgeLogoutPostController
+  methods: [GET, POST]

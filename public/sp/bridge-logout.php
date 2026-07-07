@@ -13,13 +13,6 @@ $claveConfig = Tools::getMetadataSet("__DYNAMIC:1__","clave-idp-hosted");
 SimpleSAML\Logger::debug('Clave Idp hosted metadata: '.print_r($claveConfig,true));
 
 
-//Remote IdP metadata (Which clave IdP to connect to)
-$idpEntityId = Tools::getString($claveConfig,'claveIdP', NULL);
-if($idpEntityId == NULL)
-    throw new SimpleSAML\Error\Exception("No clave IdP configuration defined in clave bridge configuration.");
-$idpMetadata = Tools::getMetadataSet($idpEntityId,"clave-idp-remote");
-
-
 //Hosted SP config
 $hostedSP = Tools::getString($claveConfig,'hostedSP', NULL);
 if($hostedSP == NULL)
@@ -28,6 +21,16 @@ $hostedSPmeta = Tools::getMetadataSet($hostedSP,"clave-sp-hosted");
 SimpleSAML\Logger::debug('Clave SP hosted metadata: '.print_r($hostedSPmeta,true));
 
 $spEntityId = Tools::getString($hostedSPmeta,'entityID', NULL);
+
+
+//Remote IdP metadata (Which clave IdP to connect to)
+//$idpEntityId = Tools::getString($claveConfig,'claveIdP', NULL);
+$idpEntityId = Tools::getString($hostedSPmeta,'idpEntityID', NULL);
+if($idpEntityId == NULL)
+    throw new SimpleSAML\Error\Exception("No clave IdP configuration defined in clave bridge configuration.");
+$idpMetadata = Tools::getMetadataSet($idpEntityId,"clave-idp-remote");
+
+
 
 
 
@@ -53,10 +56,13 @@ $issuer = Tools::getString($claveConfig,'issuer', 'NOT_SET');
 
 
 //Get the response
-if(!isset($_REQUEST['samlResponseLogout']))
-   	throw new SimpleSAML\Error\BadRequest('No samlResponseLogout POST param received.');
+if(!isset($_REQUEST['samlResponseLogout']) && !isset($_REQUEST['logoutResponse']))
+   	throw new SimpleSAML\Error\BadRequest('No samlResponseLogout or logoutResponse POST param received.');
 
-$resp = base64_decode($_REQUEST['samlResponseLogout']);
+if(isset($_REQUEST['samlResponseLogout']))
+    $resp = base64_decode($_REQUEST['samlResponseLogout']);
+if(isset($_REQUEST['logoutResponse']))
+    $resp = base64_decode($_REQUEST['logoutResponse']);
 SimpleSAML\Logger::debug("Received response: ".$resp);
 
 
@@ -150,5 +156,6 @@ SimpleSAML\Stats::log('saml:idp:LogoutResponse:sent', array(
 //Redirecting to Clave IdP (Only HTTP-POST binding supported, also Stork-flavoured)
 $post = array(
     'samlResponseLogout'  => base64_encode($spResponse),
+    'logoutResponse' => base64_encode($spResponse),
 );
 (new SimpleSAML\Utils\HTTP)->submitPOSTData($destination, $post);
