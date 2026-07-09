@@ -112,6 +112,16 @@ if(!$claveSP->validateSLOResponse($resp)){
 
 $respStatus = $claveSP->getResponseStatus();
 
+//Belt-and-braces: terminate the local bridge session here too, in
+//case the SLO was initiated in a way that bypassed clave-logout.php.
+//doLogout() is idempotent, so running it twice is harmless.
+$authId = Tools::getString($claveConfig, 'auth', NULL);
+if ($authId !== NULL) {
+    $session = SimpleSAML\Session::getSessionFromRequest();
+    $session->doLogout($authId);
+    SimpleSAML\Logger::info('Clave bridge: local session for auth source "'.$authId.'" terminated on SLO response.');
+}
+
 
 //Log for statistics: received LogoutResponse from remote clave IdP
 $statsData = array(

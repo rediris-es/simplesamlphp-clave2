@@ -10,6 +10,7 @@ use SimpleSAML\Logger;
 use SimpleSAML\Error;
 use SimpleSAML\Module;
 use SimpleSAML\Stats;
+use SimpleSAML\Session;
 use SimpleSAML\Utils\HTTP;
 use SimpleSAML\Auth\State;
 
@@ -156,6 +157,21 @@ Stats::log('saml:idp:LogoutRequest:recv', array(
 
 //Validate Clave LogoutRequest
 $claveIdP->validateLogoutRequest($request);
+
+//Terminate the local bridge session for this auth source, so
+//subsequent AuthnRequests without ForceAuthn are not silently
+//answered with cached credentials after logout.
+//NOTE: keep \SimpleSAML\Session fully qualified: this file declares
+//namespace SimpleSAML\Module\clave\Auth\Source and does not import Session.
+$authId = Tools::getString($claveConfig, 'auth', NULL);
+if ($authId !== NULL) {
+    $session = \SimpleSAML\Session::getSessionFromRequest();
+    $session->doLogout($authId);
+    Logger::info('Clave bridge: local session for auth source "'.$authId.'" terminated on SLO request.');
+} else {
+    Logger::warning('Clave bridge: no auth source defined in clave-idp-hosted; local session NOT terminated on SLO.');
+}
+
 
 //Extract all relevant data for the retransmitted request (including stork extensions)
 $reqData = $claveIdP->getSloRequestData();
