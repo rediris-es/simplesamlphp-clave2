@@ -98,11 +98,12 @@ else
 $relayState = '';
 if(isset($_REQUEST['RelayState']))
     $relayState = $_REQUEST['RelayState'];
-if($relayState == '')
-    $relayState = 'dummystate'; // TODO aún no aplicado ni en pre ni en prod. asegurarme de que esto va.
+//if($relayState == '')
+//    $relayState = 'dummystate'; // TODO aún no aplicado ni en pre ni en prod. asegurarme de que esto va.
                                 // Porque clave o eidas se quejaban si no había un relaystate, así que
 // si llega vacío, metemos algo. Asegurarme también de que si llega algo,
 // guardo el valor en sesión y devuelvo ese, nunca dummy
+// --> comentado porque parece funcionar en PRE. Ski hay problemas descomentar.
 
 
 //On SLO requests, the SP entity ID travels on the nameID field.
