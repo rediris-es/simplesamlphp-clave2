@@ -221,8 +221,10 @@ class SPlib {
       "RegisterType"			  => "http://es.minhafp.clave/RegisterType",
 
       "NationalPersonIdentifier" => "http://es.minhafp.clave/NationalPersonIdentifier", //Siempre optional
+      "FirstSurname"             => "http://es.minhafp.clave/FirstSurname",
 
-
+      // SelectedIdP se devuelve siempre sin solicitarlo
+      "SelectedIdP"               => "http://es.minhafp.clave/SelectedIdP",
       //Defined for the websso interface
       "usedIdP"                   => "http://es.minhafp.clave/usedIdP",
   );
