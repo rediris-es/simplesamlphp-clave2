@@ -5,6 +5,38 @@
  * Includes additional metadata for SAML2 to eIDAS bridging
  */
 
+
+/**
+ * 
+ * Incluir este bloque de código AL FINAL del fichero de metadatos, tras todos 
+ * los SPs definidos, si quweremos imitar el comportamiento de que el 
+ * bridge no tiene estado. Por defecto, el core de SAML2 no permite 
+ * retransmitir SLO al IdP remoto si no hay sesión, y si hay sesión no 
+ * puede ser stateless. El único apaño es que haya sesión pero que cada SP
+ * virtualmente pida forceAuthn al bridge. Que ojo, es distinto a que el 
+ * hosted SP de clave del bridge pida forceAuthn a Clave. Se podría 
+ * pedir forceAuth al bridge, pero que este a Clave no le pidiera forceAuthn, 
+ * habría que etudiar cómo implementarlo
+ *
+ * * 
+ */
+ 
+// TODO: ver si el hosted SP de clave mira el forceAuthn del SP 
+//       remoto en ambos casos (SP saml y sp clave) o hay algún override a nivel de 
+//       config de la authsource. Lo ideal sería que coja el del SP a menos que haya un override
+ 
+// Cara SAML2 estándar: forzar re-autenticación aunque el SP remoto no mande
+// ForceAuthn. El módulo saml lo fusiona con el del request, así que el bridge
+// re-consulta a Cl@ve en cada AuthnRequest en vez de devolver atributos cacheados.
+foreach ($metadata as $sir2_e => $sir2_c) {
+    $metadata[$sir2_e]['ForceAuthn'] = true;
+}
+unset($sir2_e, $sir2_c);
+
+
+
+
+
 /*
  * Example SimpleSAMLphp SAML 2.0 eIDAS SP
  */
