@@ -67,15 +67,8 @@ SimpleSAML\Logger::debug("Received response: ".$resp);
 
 
 
-$relayState = '';
-if(isset($_REQUEST['RelayState']))
-    $relayState = $_REQUEST['RelayState'];
-//if($relayState == '')
-//    $relayState = 'dummystate'; // TODO aún no aplicado ni en pre ni en prod. asegurarme de que esto va.
-                                // Porque clave o eidas se quejaban si no había un relaystate, así que
-// si llega vacío, metemos algo. Asegurarme también de que si llega algo,
-// guardo el valor en sesión y devuelvo ese, nunca dummy
-// --> comentado porque parece funcionar en PRE. Ski hay problemas descomentar.
+//El RelayState del SP se resuelve más abajo (tras loadState) según el flag
+//holdRelayState de la metadata del SP remoto.
 
 
 
@@ -89,6 +82,19 @@ $id = $claveSP->getInResponseToFromReq($resp);
 //Load state we stored for the request associated with this response
 $state = SimpleSAML\Auth\State::loadState($id, 'clave:bridge:slo:req');
 SimpleSAML\Logger::debug('State on slo-return:'.print_r($state,true));
+
+//La decisión holdRelayState se tomó en clave-logout.php (allí el SP se resuelve
+//bien por el NameID) y viaja en el estado. OJO: en el protocolo de Cl@ve el
+//'issuer' del LogoutRequest es la URL de retorno, NO el entityID del SP, por eso
+//aquí NO se puede resolver la metadata del SP con él.
+//  hold=true  -> se devuelve el RelayState real guardado en el estado (robusto,
+//                no depende del eco de Cl@ve; sirve para >80).
+//  hold=false -> echo del RelayState que devuelve Cl@ve.
+$holdRelayState = isset($state['sp:slo:holdrelaystate']) ? $state['sp:slo:holdrelaystate'] : FALSE;
+if($holdRelayState)
+    $relayState = isset($state['sp:slo:relaystate']) ? $state['sp:slo:relaystate'] : '';
+else
+    $relayState = isset($_REQUEST['RelayState']) ? $_REQUEST['RelayState'] : '';
 
 
 
@@ -180,6 +186,6 @@ SimpleSAML\Stats::log('saml:idp:LogoutResponse:sent', array(
 $post = array(
     'samlResponseLogout'  => base64_encode($spResponse),
     'logoutResponse' => base64_encode($spResponse),
-    'RelayState'  => $relayState,// TODO: propagar el valor recibido guadándolo en el estado cuando implemente la delegación
+    'RelayState'  => $relayState,//se devuelve SIEMPRE, aunque venga vacío (algunas implementaciones de SP lo requieren)
 );
 (new SimpleSAML\Utils\HTTP)->submitPOSTData($destination, $post);

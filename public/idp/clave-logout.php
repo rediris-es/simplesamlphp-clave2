@@ -114,6 +114,11 @@ Logger::info("SLO request Issuer (SP): ".$spEntityId);
 $spMetadata = Tools::getSPMetadata($claveConfig,$spEntityId);
 Logger::debug('Clave SP remote metadata ('.$spEntityId.'): '.print_r($spMetadata,true));
 
+//Flag del SP remoto. Si holdRelayState=true: a Cl@ve se le manda un dummystate
+//corto (Cl@ve rechaza RelayState de >80 chars) y el RelayState REAL del SP se
+//guarda en el estado para devolverlo tal cual en la respuesta. Si false: se le
+//manda a Cl@ve el RelayState real y luego se hace echo del que devuelva.
+$holdRelayState = Tools::getBoolean($spMetadata, 'holdRelayState', FALSE);
 
 
 
@@ -277,6 +282,8 @@ $claveSP->setSignatureParams(SPlib::SHA256,SPlib::EXC_C14N);
 $state = array();
 $state['sp:slo:request']            = $reqData;
 $state['bridge:slo:returnPage']     = $returnPage;
+$state['sp:slo:relaystate']         = $relayState;   //RelayState real del SP (posible >80), para devolverlo si holdRelayState
+$state['sp:slo:holdrelaystate']     = $holdRelayState;  //decisión tomada aquí, donde el SP se resuelve bien (NameID), no en la vuelta
 
 $id = State::saveState($state, 'clave:bridge:slo:req', true);
 Logger::debug("Generated Req ID: ".$id);
@@ -301,8 +308,7 @@ $post = array(
     'samlRequestLogout'  => $req,  // TODO: probar a quitar este si no va
     'logoutRequest'  => $req,
     'country'   => 'ES',// TODO: añadido al comnparar con el kit. ver si se puede quitar
-    'RelayState'   => $relayState,// TODO: añadido al comnparar con el kit. ver si se puede quitar. Si se ha de wquedar, intentar propagarlo como hago con el sso
-    
+    'RelayState'   => ($holdRelayState ? 'dummystate' : $relayState),  //dummystate corto para Cl@ve si hold; el real viaja por el estado
 );
 
 Logger::debug("post: ".print_r($post, true));
