@@ -66,6 +66,19 @@ if(isset($_REQUEST['logoutResponse']))
 SimpleSAML\Logger::debug("Received response: ".$resp);
 
 
+
+$relayState = '';
+if(isset($_REQUEST['RelayState']))
+    $relayState = $_REQUEST['RelayState'];
+//if($relayState == '')
+//    $relayState = 'dummystate'; // TODO aún no aplicado ni en pre ni en prod. asegurarme de que esto va.
+                                // Porque clave o eidas se quejaban si no había un relaystate, así que
+// si llega vacío, metemos algo. Asegurarme también de que si llega algo,
+// guardo el valor en sesión y devuelvo ese, nunca dummy
+// --> comentado porque parece funcionar en PRE. Ski hay problemas descomentar.
+
+
+
 //Validate response
 $claveSP = new SPlib();
 
@@ -167,5 +180,6 @@ SimpleSAML\Stats::log('saml:idp:LogoutResponse:sent', array(
 $post = array(
     'samlResponseLogout'  => base64_encode($spResponse),
     'logoutResponse' => base64_encode($spResponse),
+    'RelayState'  => $relayState,// TODO: propagar el valor recibido guadándolo en el estado cuando implemente la delegación
 );
 (new SimpleSAML\Utils\HTTP)->submitPOSTData($destination, $post);
