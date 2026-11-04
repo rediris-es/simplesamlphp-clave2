@@ -209,6 +209,31 @@ $eidas->validateStorkResponse($resp);
 
 
 
+//RelayState to return to the remote SP. This must be done BEFORE the
+//success/error branches: on a failed status the state is passed to
+//Auth\State::throwException() and the error Response is built from
+//$state['saml:RelayState']. If it were only restored on success, error
+//Responses would carry the placeholder sent to the remote IdP
+//("RS_held_at_Bridge") instead of the SP's original RelayState, and the
+//SP could not match the Response to its request.
+//The dummy RelayState we add for Clave 2.0 when the SP sent none is
+//ignored, so the SP gets back what it sent (nothing).
+if(isset($_POST['RelayState'])
+   && $_POST['RelayState'] !== \SimpleSAML\Module\clave\Auth\Source\SP::DUMMY_RELAYSTATE)
+    $state['saml:RelayState'] = $_POST['RelayState'];
+
+// If the remote IDP or SP needed the Relay State to be stopped
+// here and returned back, we get it from the state and send it
+// back, ignoring the one that was propagated
+Logger::debug('------------------------is there a held relay state?');
+if (isset($state['saml:HeldRelayState'])){
+    Logger::debug('------------------------Sure. Held relay state: '.$state['saml:HeldRelayState']);
+    $state['saml:RelayState'] = $state['saml:HeldRelayState'];
+    Logger::debug('------------------------set held relay state: '.$state['saml:RelayState']);
+}
+
+
+
 //Authentication was successful
 $statusInfo = "";
 if($eidas->isSuccess($statusInfo)){
@@ -243,20 +268,8 @@ if($eidas->isSuccess($statusInfo)){
     //Data needed to process the response // TODO: this is specific for this AuthSource. Harmonise with the others, so I can support standard SAML authsource (or offer two ways and try both of them)
     
     //SAML standard return state values
-    
-    if(isset($_POST['RelayState']))
-        $state['saml:RelayState'] = $_POST['RelayState'];
+    //(RelayState is set above, before the success/error branches)
 
-    // If the remote IDP or SP needed the Relay State to be stopped
-    // here and returned back, we get it from the state and send it
-    // back, ignoring the one that was propagated
-    Logger::debug('------------------------is there a held relay state?');
-    if (isset($state['saml:HeldRelayState'])){
-        Logger::debug('------------------------Sure. Held relay state: '.$state['saml:HeldRelayState']);
-        $state['saml:RelayState'] = $state['saml:HeldRelayState'];
-        Logger::debug('------------------------set held relay state: '.$state['saml:RelayState']);
-    }
-    
     $authInstant = new DateTime($eidas->getAuthnInstant()); 
     $state['AuthnInstant'] = $authInstant->getTimestamp(); //Integer required
     $state['saml:Binding'] = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST";
@@ -416,13 +429,20 @@ Stats::log('clave:sp:Response:error', $statsData);
 
 
 
-//Forward the Clave IdP error to our remote SP.
-//SimpleSAML\Auth\State::throwException($state,
-//                                      new sspmod_saml_Error($statusInfo['MainStatusCode'],
-//                                                            $statusInfo['SecondaryStatusCode'],
-//                                                            $statusInfo['StatusMessage']));
+//Forward the Clave IdP error to our remote SP, keeping its status codes
+//(main code, subcode such as AuthnFailed/RequestDenied, and message), so
+//the SP can tell a cancelled/failed authentication from a technical error.
+//A generic exception would be turned into a bare Responder status with
+//the exception class name in the message.
+$mainStatus = $statusInfo['MainStatusCode'] ?? '';
+if($mainStatus === '' || $mainStatus === SPlib::ATST_NOTAVAIL)
+    $mainStatus = SPlib::ST_RESPONDER;
+$subStatus = $statusInfo['SecondaryStatusCode'] ?? NULL;
+if($subStatus === '')
+    $subStatus = NULL;
+$statusMessage = $statusInfo['StatusMessage'] ?? NULL;
 Auth\State::throwException($state,
-                                      new Error\Exception("IdP returned failed status: ".$statusInfo['StatusMessage']));
+                           new \SimpleSAML\Module\saml\Error($mainStatus, $subStatus, $statusMessage));
 
 
 assert('FALSE');

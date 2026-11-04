@@ -22,7 +22,14 @@ use SimpleSAML\Module\clave\Tools;
  * @method static handleUnsolicitedAuth($sourceId, $state, $redirectTo)
  */
 class SP extends Source {
-  
+
+    /**
+     * RelayState sent to Clave 2.0 when the remote SP sent none: its eIDAS
+     * node fails without one. It is filtered out at the ACS so it never
+     * reaches the remote SP.
+     */
+    public const DUMMY_RELAYSTATE = 'dummyvalue';
+
   
     private static array $mandatoryConfigParams = array('providerName','entityID','QAA',
     'certificate','privatekey','idpEntityID','SingleSignOnService','certData',
@@ -868,9 +875,9 @@ class SP extends Source {
           }
           
           if(!$found)
-              $forwardedParams['RelayState'] = "dummyvalue"; //A value is always required to ensure eIDAS node response includes a relay state and is accepted by Clave2
+              $forwardedParams['RelayState'] = self::DUMMY_RELAYSTATE; //A value is always required to ensure eIDAS node response includes a relay state and is accepted by Clave2
           else if($value == NULL || $value == "")
-              $forwardedParams['RelayState'] = "dummyvalue";
+              $forwardedParams['RelayState'] = self::DUMMY_RELAYSTATE;
       }
       
       
