@@ -404,29 +404,78 @@ class SPlib {
                                     );
   
   
-  private static $logLevel    = self::LOG_TRACE;
+  // Minimum level to log. NULL (default): follow SimpleSAMLphp's
+  // 'logging.level' (see sspLogLevel()). Set a LOG_* value to override it
+  // locally for this library (e.g. LOG_TRACE to debug message contents).
+  // Personal data (tokens, assertions, attributes) and key material are
+  // only logged at LOG_TRACE, which SSP's levels never reach on their own.
+  private static $logLevel    = NULL;
+  // Destinations. Default: SimpleSAMLphp's logger (its handler, facility
+  // and level). The old private log file is still available as an option.
+  private static $logToSSP    = true;
   private static $logFile     = '/tmp/storkLog';
   private static $logToFile   = false;
   private static $logToStdout = false;
-  
-  
+
+
   private static function log($content,$level){
-    
-    if($level < self::$logLevel)
+
+    if($level < (self::$logLevel ?? self::sspLogLevel()))
       return;
-    
+
     $prefix = "[".date('c',time())."][".self::$logLevels[$level]."]: ";
 
     if(is_object($content) || is_array($content))
       $message=print_r($content,TRUE);
     else
       $message=$content;
-    
+
+    if(self::$logToSSP)
+      self::logToSSP($level, $message);
+
     if(self::$logToStdout)
       echo $prefix.$message."\n";
-    
+
     if(self::$logToFile)
-      file_put_contents(self::$logFile, $prefix.$message."\n",FILE_APPEND); 
+      file_put_contents(self::$logFile, $prefix.$message."\n",FILE_APPEND);
+  }
+
+  // Equivalent library level of SimpleSAMLphp's 'logging.level'. SSP has
+  // no level below DEBUG, so LOG_TRACE is only reached with a local
+  // override of $logLevel. Without SSP (standalone use): LOG_INFO.
+  public static function sspLogLevel(){
+    static $level = NULL;
+    if($level !== NULL)
+      return $level;
+    $level = self::LOG_INFO;
+    if(class_exists('\SimpleSAML\Configuration')){
+      try{
+        $ssp = \SimpleSAML\Configuration::getInstance()->getOptionalInteger('logging.level', LOG_NOTICE);
+        if($ssp >= LOG_DEBUG)       $level = self::LOG_DEBUG;
+        elseif($ssp >= LOG_NOTICE)  $level = self::LOG_INFO;
+        elseif($ssp >= LOG_WARNING) $level = self::LOG_WARN;
+        elseif($ssp >= LOG_ERR)     $level = self::LOG_ERROR;
+        else                        $level = self::LOG_CRITICAL;
+      }catch(\Throwable $e){
+        // configuration not available: keep the default
+      }
+    }
+    return $level;
+  }
+
+  // Send a message to SimpleSAMLphp's logger (if available).
+  public static function logToSSP($level, $message){
+    if(!class_exists('\SimpleSAML\Logger'))
+      return;
+    $message = 'SPlib: '.$message;
+    switch($level){
+      case self::LOG_TRACE:
+      case self::LOG_DEBUG:    \SimpleSAML\Logger::debug($message);    break;
+      case self::LOG_INFO:     \SimpleSAML\Logger::info($message);     break;
+      case self::LOG_WARN:     \SimpleSAML\Logger::warning($message);  break;
+      case self::LOG_ERROR:    \SimpleSAML\Logger::error($message);    break;
+      default:                 \SimpleSAML\Logger::critical($message); break;
+    }
   }
   
   private static function trace($message){
@@ -3135,7 +3184,7 @@ class SPlib {
           .$Status
           .'</saml2p:LogoutResponse>';
 
-      self::debug("unsigned SLO response: ".$sloResp);
+      self::trace("unsigned SLO response: ".$sloResp);
       
       //Sign the response
       $sloResp = $this->calculateXMLDsig($sloResp);
@@ -3186,7 +3235,7 @@ class SPlib {
       if($this->encryptCert == null || $this->encryptCert == "")
           $this->fail(__FUNCTION__, self::ERR_GENERIC,"Recipient certificate for ciphering not set or empty.");
       
-      self::debug("Plain input token to cipher: ".$samlToken);
+      self::trace("Plain input token to cipher: ".$samlToken);
       self::debug("Recipient certificate to cipher: ".$this->encryptCert);
       
       //Parse the input saml token XML
@@ -3328,14 +3377,14 @@ class SPlib {
       $enc->setNode($encryptedData);
       $enc->type = $encryptedData->getAttribute("Type");
 
-      self::debug("*******************".print_r($encryptedData,true));
+      self::trace("*******************".print_r($encryptedData,true));
       
       self::debug("Locating encrypted symmetric key...");
       $symmetricKey = $enc->locateKey($encryptedData);
       if (!$symmetricKey)
           $this->fail(__FUNCTION__, self::ERR_GENERIC,"Could not locate key algorithm in encrypted data.");
 
-      self::debug("*******************".print_r($symmetricKey,true));
+      self::trace("*******************".print_r($symmetricKey,true));
 
       //Find the ciphering algorithm info (returns a XMLSecurityKey instance with the symmetric key)
       self::debug("Locating ciphering algorithm...");
@@ -3343,7 +3392,7 @@ class SPlib {
       if (!$symmetricKeyInfo)
           $this->fail(__FUNCTION__, self::ERR_GENERIC,"Could not locate <dsig:KeyInfo> for the encrypted key.");
             
-      self::debug("*******************".print_r($symmetricKeyInfo,true));
+      self::trace("*******************".print_r($symmetricKeyInfo,true));
       
       //Key will always be encrypted with the recipient public key
       if (!$symmetricKeyInfo->isEncrypted)
@@ -3403,21 +3452,21 @@ class SPlib {
       }
 
 
-      self::debug("Decrypted symmetric key (raw): ". bin2hex("$key"));
+      self::trace("Decrypted symmetric key (raw): ". bin2hex("$key"));
       
       //Get the decrypted key back to its place
       //$symmetricKey->loadkey($key);
       $symmetricKey->key = $key;
       
-      self::debug("Decrypted symmetric key (obj): ".print_r($symmetricKey,true));
-      self::debug("Decrypted symmetric key (raw from obj): ".bin2hex($symmetricKey->key));
+      self::trace("Decrypted symmetric key (obj): ".print_r($symmetricKey,true));
+      self::trace("Decrypted symmetric key (raw from obj): ".bin2hex($symmetricKey->key));
       self::debug("Data to decrypt: ".base64_encode($enc->getCipherValue()));
       
       //Decrypt the assertion
       self::debug('Decrypting data with symmetric key (if succeeded in decrypting it. Rubbish otherwise)');
       $decrypted = $enc->decryptNode($symmetricKey, false);
 
-      self::debug("Decrypted data: $decrypted");
+      self::trace("Decrypted data: $decrypted");
 
       
       return $decrypted;
@@ -3454,8 +3503,8 @@ class SPlib {
       if($this->decryptPrivateKey == null || $this->decryptPrivateKey == "")
           $this->fail(__FUNCTION__, self::ERR_GENERIC,"Private key for deciphering not set or empty.");
       
-      self::debug("Input token to decipher: ".$samlToken);
-      self::debug("Private key to decipher: ".$this->decryptPrivateKey);
+      self::trace("Input token to decipher: ".$samlToken);
+      self::trace("Private key to decipher: ".$this->decryptPrivateKey);
       
       
       //Load the private key to decipher
@@ -3555,7 +3604,7 @@ class SPlib {
           $assertions = $doc->getElementsByTagName('EncryptedAssertion');
       }
       
-      self::debug("Response with plain assertions:".$doc->saveXML());
+      self::trace("Response with plain assertions:".$doc->saveXML());
       
       //Convert to simpleXML object
       return $this->parseXML($doc->saveXML());
@@ -3818,24 +3867,30 @@ class claveAuth {
                                     );
   
   
-  private static $logLevel    = self::LOG_TRACE;
+  // Same behaviour as SPlib: level from SSP unless overridden here (NULL =
+  // SSP's), SSP's logger by default, private file only as an option.
+  private static $logLevel    = NULL;
+  private static $logToSSP    = true;
   private static $logFile     = '/tmp/storkLog2';
-  private static $logToFile   = true;
+  private static $logToFile   = false;
   private static $logToStdout = false;
-  
-  
+
+
   private static function log($content,$level){
-    
-    if($level < self::$logLevel)
+
+    if($level < (self::$logLevel ?? SPlib::sspLogLevel()))
       return;
-    
+
     $prefix = "[".date('c',time())."][".self::$logLevels[$level]."]: ";
-    
+
     if(is_object($content) || is_array($content))
       $message=print_r($content,TRUE);
     else
       $message=$content;
-    
+
+    if(self::$logToSSP)
+      SPlib::logToSSP($level, $message);
+
     if(self::$logToStdout)
       echo $prefix.$message."\n";
     
@@ -3924,7 +3979,7 @@ class claveAuth {
     public function getAttributes(){
 
 
-        self::debug("**attrs::".print_r($this->attributes,true));
+        self::trace("**attrs::".print_r($this->attributes,true));
 
         
         $ret = array();
@@ -3932,13 +3987,13 @@ class claveAuth {
             $ret[$name] = $values[0];
         }
 
-        self::debug("**attrs2::".print_r($ret,true));
+        self::trace("**attrs2::".print_r($ret,true));
         
         //Aislar DNI
         $ret['eIdentifier'] = explode('/',$this->attributes['eIdentifier'][0])[2];
 
 
-        self::debug("**attrs3::".print_r($ret,true));
+        self::trace("**attrs3::".print_r($ret,true));
                 
         return $ret;
 
